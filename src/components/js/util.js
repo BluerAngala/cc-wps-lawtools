@@ -1,7 +1,8 @@
 //在后续的wps版本中，wps的所有枚举值都会通过wps.Enum对象来自动支持，现阶段先人工定义
 var WPS_Enum = {
   msoCTPDockPositionLeft: 0,
-  msoCTPDockPositionRight: 2
+  msoCTPDockPositionRight: 2,
+  wdAlignParagraphRight: 2
 }
 
 function GetUrlPath() {

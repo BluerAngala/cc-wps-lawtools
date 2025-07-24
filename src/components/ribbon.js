@@ -1,4 +1,4 @@
-
+import Util from './js/util.js'
 
 function OnAction(control) {
   const eleId = control.Id
@@ -16,6 +16,23 @@ function OnAction(control) {
         taskPane = window.Application.CreateTaskPane('lawyerch.feishu.cn/wiki/space/7467382510423506963');
         taskPane.Visible = true;
         taskPane.Visible = false;
+      }
+      break
+    case 'btnShowTaskPane':
+    // 显示任务窗格
+      {
+        let tsId = window.Application.PluginStorage.getItem('taskpane_id')
+        if (!tsId) {
+          let tskpane = window.Application.CreateTaskPane(
+            Util.GetUrlPath() + Util.GetRouterHash() + '/taskpane'
+          )
+          let id = tskpane.ID
+          window.Application.PluginStorage.setItem('taskpane_id', id)
+          tskpane.Visible = true
+        } else {
+          let tskpane = window.Application.GetTaskPane(tsId)
+          tskpane.Visible = !tskpane.Visible
+        }
       }
       break
     default:
