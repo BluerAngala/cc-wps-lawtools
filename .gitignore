@@ -1,0 +1,17 @@
+node_modules
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.swp
+.idea
+.vscode
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+build
+dist
+out
+coverage

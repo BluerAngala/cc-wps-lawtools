@@ -12,6 +12,10 @@ export default defineConfig({
       src: 'manifest.xml',
       dest: 'manifest.xml',
     }),
+    copyFile({
+      src: 'public/ribbon.xml',
+      dest: 'ribbon.xml',
+    }),
     vue()
   ],
   resolve: {
