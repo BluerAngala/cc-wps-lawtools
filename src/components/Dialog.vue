@@ -35,7 +35,7 @@ import { onMounted } from 'vue'
 import dlgFunc from './js/dialog.js'
 import axios from 'axios'
 export default {
-  name: 'Dialog',
+  name: 'DemoDialog',
   data() {
     return {
       DemoSpan: '',

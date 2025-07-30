@@ -40,10 +40,7 @@
       <h3>纯文本内容：</h3>
       <pre>{{ extractedText }}</pre>
     </div>
-    <div class="divItem" v-if="aiProcessedText">
-      <h3>AI处理结果：</h3>
-      <pre>{{ aiProcessedText }}</pre>
-    </div>
+
 
     <!-- 脱敏信息展示 -->
     <div class="divItem" v-if="sensitiveInfoList.length > 0">
@@ -83,6 +80,7 @@
     </div>
 
     <!-- AI交互展示 -->
+
     <div class="divItem">
       <h3>AI文本处理</h3>
       <div>
@@ -97,7 +95,10 @@
         'AI处理' }}</button>
       <div v-if="isProcessing" style="margin-top: 10px; color: #007bff;">正在处理中，请稍候...</div>
     </div>
-
+    <div class="divItem" v-if="aiProcessedText">
+      <h3>AI处理结果：</h3>
+      <pre>{{ aiProcessedText }}</pre>
+    </div>
 
   </div>
 </template>
@@ -106,8 +107,8 @@
 import { onMounted } from 'vue'
 import axios from 'axios'
 import taskPane from './js/taskpane.js'
-import { processDocumentContent } from './js/siliconflow.js'
-import { Desensitizer } from './js/desensitizeAdvanced.js'
+import { processDocumentContent } from '../utils/siliconflow.js'
+import { Desensitizer } from '../utils/desensitizeAdvanced.js'
 
 export default {
   name: 'TaskPane',

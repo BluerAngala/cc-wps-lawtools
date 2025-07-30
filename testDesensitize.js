@@ -1,4 +1,4 @@
-import { desensitizeText } from './src/components/js/desensitizeAdvanced.js';
+import { desensitizeText } from './src/utils/desensitizeAdvanced.js';
 
 // 用户提供的纯文本内容
 const originalText = `

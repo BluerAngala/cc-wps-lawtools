@@ -1,10 +1,14 @@
 // SiliconFlow AI 调用管理
 
 // 替换为你的 SiliconFlow API 密钥
-const API_KEY = 'sk-iqleboagtmtngqxrcupwamwalzypxkyzmogtnvnifwtxyztn';
+const API_KEY =import.meta.env.VITE_AI_API_KEY
 
 // SiliconFlow API 的基础 URL
-const BASE_URL = 'https://api.siliconflow.cn/v1';
+const BASE_URL = import.meta.env.VITE_AI_API_BASE_URL
+
+if (!API_KEY || !BASE_URL) {
+  throw new Error('SiliconFlow API 密钥或基础 URL 未配置');
+}
 
 /**
  * 调用 SiliconFlow AI 处理文档内容
