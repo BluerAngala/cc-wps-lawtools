@@ -16,9 +16,14 @@ dist
 out
 coverage
 
-wps-addon-build
+wps-addon-build/
 
-wps-addon-publish
+wps-addon-publish/
+
+test/
 
 
-test
+
+
+
+
