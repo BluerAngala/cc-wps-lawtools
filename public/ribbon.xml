@@ -4,7 +4,7 @@
             <tab id="wpsAddinTab" label="陈恒律师工具箱">
 				<group id="btnDemoGroup" label="group1">
                     <button id="btnShowAI" label="AI 助理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
-                    <button id="btnShowTaskPane" label="打开工具箱" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnShowTaskPane" label="调试窗格" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnAboutME" label="关于我" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
 				</group>
             </tab>

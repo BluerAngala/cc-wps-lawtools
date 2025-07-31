@@ -1,4 +1,6 @@
-import Util from './js/util.js'
+// ribbon.js 初始化 wps 加载项
+
+import Util from './util.js'
 
 function OnAction(control) {
   const eleId = control.Id
@@ -19,10 +21,12 @@ function OnAction(control) {
       }
       break
     case 'btnShowTaskPane':
-    // 显示任务窗格
+      // 显示任务窗格
       {
+        console.log('显示任务窗格!')
         let tsId = window.Application.PluginStorage.getItem('taskpane_id')
         if (!tsId) {
+          console.log('创建任务窗格!' , Util.GetUrlPath() + Util.GetRouterHash() + '/taskpane')
           let tskpane = window.Application.CreateTaskPane(
             Util.GetUrlPath() + Util.GetRouterHash() + '/taskpane'
           )

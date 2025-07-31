@@ -15,3 +15,10 @@ build
 dist
 out
 coverage
+
+wps-addon-build
+
+wps-addon-publish
+
+
+test

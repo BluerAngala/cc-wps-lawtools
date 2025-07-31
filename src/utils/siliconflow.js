@@ -1,47 +1,158 @@
 // SiliconFlow AI 调用管理
+import axios from 'axios'
 
 // 替换为你的 SiliconFlow API 密钥
-const API_KEY =import.meta.env.VITE_AI_API_KEY
+const API_KEY = import.meta.env.VITE_AI_API_KEY
 
 // SiliconFlow API 的基础 URL
 const BASE_URL = import.meta.env.VITE_AI_API_BASE_URL
 
 if (!API_KEY || !BASE_URL) {
-  throw new Error('SiliconFlow API 密钥或基础 URL 未配置');
+  throw new Error('SiliconFlow API 密钥或基础 URL 未配置')
 }
+
+// 创建 axios 实例
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  timeout: 30000, // 30秒超时
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${API_KEY}`
+  }
+})
+
+// 请求拦截器
+apiClient.interceptors.request.use(
+  (config) => {
+    console.log('发送请求:', config.method?.toUpperCase(), config.url)
+    return config
+  },
+  (error) => {
+    console.error('请求拦截器错误:', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log('收到响应:', response.status, response.config.url)
+    return response
+  },
+  (error) => {
+    console.error('响应拦截器错误:', error)
+
+    // 统一错误处理
+    if (error.response) {
+      // 服务器返回错误状态码
+      const { status, data } = error.response
+      console.error(`HTTP ${status}:`, data)
+
+      switch (status) {
+        case 401:
+          throw new Error('API 密钥无效或已过期')
+        case 403:
+          throw new Error('没有权限访问此 API')
+        case 429:
+          throw new Error('请求频率过高，请稍后重试')
+        case 500:
+          throw new Error('服务器内部错误')
+        default:
+          throw new Error(`请求失败: ${status} - ${data?.message || '未知错误'}`)
+      }
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      throw new Error('网络连接失败，请检查网络设置')
+    } else {
+      // 请求配置错误
+      throw new Error(`请求配置错误: ${error.message}`)
+    }
+  }
+)
 
 /**
  * 调用 SiliconFlow AI 处理文档内容
- * @param {string} content - 要处理的文档内容
+ * @param {Object} params - 参数对象
+ * @param {string} params.content - 要处理的文档内容
+ * @param {string} params.model - 使用的模型名称，默认为 'deepseek-ai/DeepSeek-V3'
+ * @returns {Promise<string>} AI 处理后的结果
  * @returns {Promise<string>} AI 处理后的结果
  */
-export async function processDocumentContent(content) {
+async function processDocumentContent({ content, model = 'deepseek-ai/DeepSeek-V3' }) {
   try {
-    const response = await fetch(`${BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'Qwen/Qwen3-8B',
-        messages: [
-          {
-            role: 'user',
-            content: content
-          }
-        ]
-      })
-    });
+    const response = await apiClient.post('/chat/completions', {
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: content
+        }
+      ]
+    })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    return response.data.choices[0].message.content
   } catch (error) {
-    console.error('调用 SiliconFlow AI 时出错:', error);
-    throw error;
+    console.error('调用 SiliconFlow AI 时出错:', error)
+    throw error
   }
+}
+
+/**
+ * 识别合同要素
+ * @param {Object} params - 参数对象
+ * @param {string} params.content - 要处理的文档内容
+ * @param {string} params.model - 使用的模型名称
+ * @returns {Promise<string[]>} AI 处理后的结果
+ */
+async function processContractElements({ content, model = 'deepseek-ai/DeepSeek-V3' }) {
+  try {
+    const response = await apiClient.post('/chat/completions', {
+      model: model,
+      messages: [
+        {
+          role: 'system',
+          content: '用户输入的合同文件内容：{{input}}\n\n提取出合同的基本信息，以 json 格式返回\n\n{\n合同名称\n甲方\n乙方\n合同金额\n合同期限\n合同摘要\n}\n\n\n如果字段无内容，默认设置为 null\n请直接返回结果，不需要解释说明。'
+        },
+        {
+          role: 'user',
+          content: content
+        }
+      ]
+    })
+    // console.log(response.data.choices[0].message.content) 
+    return response.data.choices[0].message.content
+  } catch (error) {
+    console.error('批量处理文档内容时出错:', error)
+    throw error
+  }
+}
+
+/**
+ * 获取可用的模型列表
+ * @returns {Promise<Array>} 可用模型列表
+ */
+async function getAvailableModels() {
+  try {
+    const response = await apiClient.get('/models')
+    return response.data.data || []
+  } catch (error) {
+    console.error('获取模型列表时出错:', error)
+    throw error
+  }
+}
+
+
+// // 测试
+// processContractElements({ content: '你好，我是DeepSeek-V3模型' }).then((result) => {
+//   console.log('合同要素识别结果:', result)
+// }).catch((error) => {
+//   console.error('合同要素识别错误:', error)
+// })
+
+
+export { 
+  processDocumentContent,
+  processContractElements, 
+  getAvailableModels, 
+  apiClient 
 }

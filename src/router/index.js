@@ -1,5 +1,9 @@
+// vue 前端路由
+
 import { createRouter, createWebHashHistory } from 'vue-router'
 //import HomeView from '../views/HomeView.vue'
+
+console.log('路由已加载')
 
 const router = createRouter({
   history:  createWebHashHistory(''),
