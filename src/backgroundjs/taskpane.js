@@ -254,16 +254,32 @@ async function onbuttonclick(idStr, param) {
         return text
       }
 
-      // 添加到金山文档
+
+      // 2025年8月2日 跨域问题没解决啊
+      let amount = json.合同金额
+      if (typeof amount === 'string') {
+        const matched = amount.match(/\d+(?:\.\d+)?/)
+        amount = matched ? parseFloat(matched[0]) : NaN
+      }
+
+      const fields = {
+        合同名称: json.合同名称 ?? '',
+        甲方: json.甲方 ?? '',
+        乙方: json.乙方 ?? '',
+        合同期限: json.合同期限 ?? '',
+        合同摘要: json.合同摘要 ?? ''
+      }
+      if (typeof amount === 'number' && !Number.isNaN(amount)) {
+        fields['合同金额'] = amount
+      }
+
+      console.log('创建金山文档行记录 fields', fields)
       const res = await kdocsHandler({
         type: 'createRecords',
-        sheetID: 5,
+        sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID),
         inputData: [
           {
-            // id: 'CA7',
-            fields: { 
-              合同名称: json.合同名称 
-            }
+            fields
           }
         ]
       })

@@ -19,14 +19,17 @@ if (!webhookUrl || !token || !sheetID) {
   throw new Error('金山文档 webhookUrl 或 token 或 sheetID 未配置')
 }
 
+// 在开发环境使用本地代理以避免 CORS
+const isDev = import.meta.env.DEV
+const baseURL = isDev ? '/kdocs' : webhookUrl
+
 // 创建 axios 实例
 const apiClient = axios.create({
-  baseURL: webhookUrl,
+  baseURL,
   timeout: 60000, // 60秒超时
   headers: {
     'Content-Type': 'application/json',
-    'AirScript-Token': token,
-    'Access-Control-Allow-Origin': '*'
+    'AirScript-Token': token
   }
 })
 
@@ -114,15 +117,37 @@ async function kdocsHandler(options) {
     // 是否异步执行
     if (isAsync) {
       const response = await apiClient.post('', data)
-      return response?.data?.data?.result
+      const payload = response?.data
+      console.log('KDocs响应体(异步):', payload)
+      if (payload?.error) {
+        throw new Error(payload?.error_details?.msg || payload.error)
+      }
+      const result = payload?.data?.result ?? payload?.result ?? payload
+      return result
     } else {
       const response = await apiClient.post('/sync_task', data)
-      return response?.data?.data?.result
+      const payload = response?.data
+      console.log('KDocs响应体(同步):', payload)
+      if (payload?.error) {
+        throw new Error(payload?.error_details?.msg || payload.error)
+      }
+      const result = payload?.data?.result ?? payload?.result ?? payload
+      return result
     }
   } catch (error) {
     console.error('添加数据失败:', error)
     throw error
   }
+}
+
+
+// 测试
+async function test() {
+  const res = await fetch('https://env-00jxgx7alqyz.dev-hz.cloudbasefunction.cn/test_kdocs', {
+    method: 'get'
+  })
+  console.log(res)
+  return res
 }
 
 // 测试新增数据
@@ -151,4 +176,4 @@ async function kdocsHandler(options) {
 //   })
 
 // 导出
-export { kdocsHandler }
+export { kdocsHandler, test }

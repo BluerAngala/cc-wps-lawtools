@@ -142,6 +142,14 @@ async function getAvailableModels() {
 }
 
 
+// 测试
+async function test() {
+  const res = await fetch('https://env-00jxgx7alqyz.dev-hz.cloudbasefunction.cn/test_kdocs', {
+    method: 'get'
+  })
+  console.log(res)
+  return res
+}
 // // 测试
 // processContractElements({ content: '你好，我是DeepSeek-V3模型' }).then((result) => {
 //   console.log('合同要素识别结果:', result)
@@ -154,5 +162,6 @@ export {
   processDocumentContent,
   processContractElements, 
   getAvailableModels, 
-  apiClient 
+  apiClient,
+  test
 }
