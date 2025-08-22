@@ -75,21 +75,12 @@
       </p>
       <div>
         <label>白名单 (每行一个):</label>
-        <textarea
-          v-model="whitelist"
-          placeholder="请输入白名单项，每行一个"
-          rows="5"
-          style="width: 100%"
-        ></textarea>
+        <textarea v-model="whitelist" placeholder="请输入白名单项，每行一个" rows="5" style="width: 100%"></textarea>
       </div>
       <div>
         <label>自定义敏感词 (格式: 敏感词|替换词，每行一个):</label>
-        <textarea
-          v-model="customSensitiveWords"
-          placeholder="请输入自定义敏感词，格式: 敏感词|替换词，每行一个"
-          rows="5"
-          style="width: 100%"
-        ></textarea>
+        <textarea v-model="customSensitiveWords" placeholder="请输入自定义敏感词，格式: 敏感词|替换词，每行一个" rows="5"
+          style="width: 100%"></textarea>
       </div>
     </div>
 
@@ -99,20 +90,11 @@
       <h3>AI文本处理</h3>
       <div>
         <label>输入文本内容：</label>
-        <textarea
-          v-model="userInputText"
-          placeholder="请输入要处理的文本内容"
-          rows="5"
-          style="width: 100%"
-        ></textarea>
+        <textarea v-model="userInputText" placeholder="请输入要处理的文本内容" rows="5" style="width: 100%"></textarea>
       </div>
       <div>
         <label>处理要求：</label>
-        <input
-          v-model="userProcessRequest"
-          placeholder="请输入处理要求，例如：总结要点"
-          style="width: 100%"
-        />
+        <input v-model="userProcessRequest" placeholder="请输入处理要求，例如：总结要点" style="width: 100%" />
       </div>
       <button style="margin: 3px" @click="onProcessUserTextWithAI" :disabled="isProcessing">
         {{ isProcessing ? '处理中...' : 'AI处理' }}
@@ -126,162 +108,202 @@
   </div>
 </template>
 
-<script>
-import { onMounted } from 'vue'
+<script setup>
+import { ref, computed } from 'vue'
 import taskPane from '../backgroundjs/taskpane.js'
-import { processDocumentContent } from '../utils/siliconflow.js'
+import { processDocumentContent } from '../utils/ai/siliconflow.js'
 import { Desensitizer } from '../utils/desensitizeAdvanced.js'
 
 console.log('TaskPane组件已加载')
 console.log('当前打开的文档：', window.Application.ActiveDocument)
 
-export default {
-  name: 'TaskPane',
-  data() {
-    return {
-      DemoSpan: '',
-      docName: '',
-      extractedText: '',
-      aiProcessedText: '',
-      userInputText: '',
-      userProcessRequest: '',
-      isProcessing: false,
-      desensitizedText: '',
-      sensitiveInfoList: [],
-      whitelist: '',
-      customSensitiveWords: ''
-    }
-  },
-  computed: {
-    // 检查是否有有效的白名单
-    hasWhitelist() {
-      return this.parseTextArray(this.whitelist).length > 0
-    },
+// 响应式数据
+const DemoSpan = ref('')
+const docName = ref('')
+const extractedText = ref('')
+const aiProcessedText = ref('')
+const userInputText = ref('')
+const userProcessRequest = ref('')
+const isProcessing = ref(false)
+const desensitizedText = ref('')
+const sensitiveInfoList = ref([])
+const whitelist = ref('')
+const customSensitiveWords = ref('')
 
-    // 检查是否有有效的自定义敏感词
-    hasCustomSensitiveWords() {
-      return this.parseTextArray(this.customSensitiveWords).length > 0
-    },
+// 解析文本数组，过滤空行
+const parseTextArray = (text) => {
+  return text.split('\n').filter((item) => item.trim())
+}
 
-    // 检查是否有敏感信息需要应用
-    hasSensitiveInfo() {
-      return this.sensitiveInfoList?.length > 0
-    }
-  },
-  methods: {
-    // 统一的按钮点击处理
-    async onbuttonclick(id) {
-      const result = await taskPane.onbuttonclick(id)
-      console.log('doc text', result)
-      switch (id) {
-        case 'extractText':
-          this.extractedText = result
-          break
-        case 'processWithAI':
-          this.checkAndProcess(() => this.processWithAI(this.extractedText))
-          break
-        case 'desensitizeText':
-          this.checkAndProcess(() => this.processDesensitizeText(this.extractedText))
-          break
-        case 'renameDoc':
-          if (result) this.docName = result
-          break
-        case 'getDocName':
-          this.docName = result
-          break
-        case 'openWeb':
-          // 网页打开功能已在taskpane.js中处理
-          break
-      }
+// 计算属性
+const hasWhitelist = computed(() => {
+  return parseTextArray(whitelist.value).length > 0
+})
 
-      return result
-    },
+const hasCustomSensitiveWords = computed(() => {
+  return parseTextArray(customSensitiveWords.value).length > 0
+})
 
-    // 检查是否有提取的文本，如果有则执行处理函数
-    checkAndProcess(processFunc) {
-      if (!this.extractedText) {
-        alert('请先提取文档文本')
+const hasSensitiveInfo = computed(() => {
+  return sensitiveInfoList.value?.length > 0
+})
+
+// 统一的按钮点击处理
+const onbuttonclick = async (id) => {
+  let result
+
+  switch (id) {
+    // 点击AI处理按钮
+    case 'processWithAI':
+      console.log('点击AI处理按钮')
+      await processWithAI()
+      return
+    // 点击脱敏按钮
+    case 'desensitizeText': {
+      console.log('点击脱敏按钮')
+      const text = await getDocText()
+      if (!text) {
+        alert('当前没有打开任何文档或文本为空')
         return
       }
-      processFunc()
-    },
-
-    // 解析文本数组，过滤空行
-    parseTextArray(text) {
-      return text.split('\n').filter((item) => item.trim())
-    },
-
-    // 打开网页
-    onOpenWeb() {
-      taskPane.onbuttonclick('openWeb', this.DemoSpan)
-    },
-
-    // 统一的AI处理错误处理
-    async handleAIProcess(processFunc) {
-      try {
-        await processFunc()
-      } catch (error) {
-        console.error('AI处理失败:', error)
-        alert('AI处理失败，请查看控制台错误信息')
-      }
-    },
-
-    // AI处理文本
-    async processWithAI() {
-      const result = await taskPane.onbuttonclick('processWithAI')
-      console.log('result', result)
-
-      this.aiProcessedText = result
-    },
-
-    // 处理用户输入的AI文本
-    async onProcessUserTextWithAI() {
-      if (!this.userInputText || !this.userProcessRequest) {
-        alert('请输入文本内容和处理要求')
-        return
-      }
-
-      this.isProcessing = true
-      await this.handleAIProcess(async () => {
-        const fullPrompt = `${this.userProcessRequest}\n\n文本内容：\n${this.userInputText}`
-        this.aiProcessedText = await processDocumentContent(fullPrompt)
-      })
-      this.isProcessing = false
-    },
-
-    // 脱敏文本处理
-    processDesensitizeText(text) {
-      const whitelistArray = this.parseTextArray(this.whitelist)
-      const customWordsArray = this.parseTextArray(this.customSensitiveWords).map((item) => {
-        const [word, replacement] = item.split('|')
-        return { word: word.trim(), replacement: replacement?.trim() || '*' }
-      })
-
-      const desensitizer = new Desensitizer({
-        whitelist: whitelistArray,
-        customSensitiveWords: customWordsArray
-      })
-
-      const { desensitizedText, sensitiveInfoList } = desensitizer.desensitizeText(text)
-
-      this.sensitiveInfoList = sensitiveInfoList
-      this.desensitizedText = desensitizedText
-
-      if (sensitiveInfoList.length === 0) {
-        alert('未检测到敏感信息')
-      }
-    },
-
-    // 应用脱敏到文档
-    applyDesensitization() {
-      if (this.hasSensitiveInfo) {
-        taskPane.onbuttonclick('applyDesensitization', {
-          sensitiveInfoList: this.sensitiveInfoList
-        })
-        this.extractedText = this.desensitizedText
-        this.sensitiveInfoList = []
-      }
+      processDesensitizeText(text)
+      return
     }
+    // 点击提取文本按钮
+    case 'extractText':
+      console.log('点击提取文本按钮')
+      result = await taskPane.onbuttonclick(id)
+      extractedText.value = result
+      break
+
+    // 点击重命名按钮
+    case 'renameDoc':
+      console.log('点击重命名按钮')
+      result = await taskPane.onbuttonclick(id)
+      if (result) docName.value = result
+      break
+    // 点击获取文档名称按钮
+    case 'getDocName':
+      console.log('点击获取文档名称按钮')
+      result = await taskPane.onbuttonclick(id)
+      docName.value = result
+      break
+    // 点击打开网页按钮
+    case 'openWeb':
+      console.log('点击打开网页按钮')
+      // 网页打开功能已在taskpane.js中处理
+      result = await taskPane.onbuttonclick(id)
+      break
+    // 点击添加页眉按钮
+    case 'addHeader':
+      console.log('点击添加页眉按钮')
+      result = await taskPane.onbuttonclick(id, {
+        contractNumber: '测试页眉123'
+      })
+      break
+    //未定义 
+    default:
+      console.log('未定义指令， id', id)
+      break
+  }
+
+  return result
+}
+
+// 获取当前文档纯文本
+const getDocText = async () => {
+  const text = await taskPane.onbuttonclick('extractText')
+  if (typeof text === 'string' && text.trim()) {
+    extractedText.value = text
+    return text
+  }
+  return ''
+}
+
+// 打开网页
+const onOpenWeb = () => {
+  taskPane.onbuttonclick('openWeb', DemoSpan.value)
+}
+
+// 统一的AI处理错误处理
+const handleAIProcess = async (processFunc) => {
+  try {
+    await processFunc()
+  } catch (error) {
+    console.error('AI处理失败:', error)
+    alert('AI处理失败，请查看控制台错误信息')
+  }
+}
+
+// AI处理文本
+const processWithAI = async () => {
+  const result = await taskPane.onbuttonclick('processWithAI')
+  console.log('result', result)
+
+  // 获取到金山文档行记录id
+  let recordID = result?.id
+  console.log('recordID', recordID)
+
+  // 获取到审查编号
+  let contractNumber = result?.fields?.审查编号
+  console.log('contractNumber', contractNumber)
+
+  // 以修订模式，添加页眉（仅当有审查编号时）
+  if (contractNumber) {
+    taskPane.onbuttonclick('addHeader', {
+      contractNumber: contractNumber
+    })
+  } else {
+    console.warn('processWithAI: 未获取到审查编号，跳过添加页眉')
+  }
+}
+
+// 处理用户输入的AI文本
+const onProcessUserTextWithAI = async () => {
+  if (!userInputText.value || !userProcessRequest.value) {
+    alert('请输入文本内容和处理要求')
+    return
+  }
+
+  isProcessing.value = true
+  await handleAIProcess(async () => {
+    const fullPrompt = `${userProcessRequest.value}\n\n文本内容：\n${userInputText.value}`
+    aiProcessedText.value = await processDocumentContent(fullPrompt)
+  })
+  isProcessing.value = false
+}
+
+// 脱敏文本处理
+const processDesensitizeText = (text) => {
+  const whitelistArray = parseTextArray(whitelist.value)
+  const customWordsArray = parseTextArray(customSensitiveWords.value).map((item) => {
+    const [word, replacement] = item.split('|')
+    return { word: word.trim(), replacement: replacement?.trim() || '*' }
+  })
+
+  const desensitizer = new Desensitizer({
+    whitelist: whitelistArray,
+    customSensitiveWords: customWordsArray
+  })
+
+  const { desensitizedText: resultText, sensitiveInfoList: resultList } = desensitizer.desensitizeText(text)
+
+  sensitiveInfoList.value = resultList
+  desensitizedText.value = resultText
+
+  if (resultList.length === 0) {
+    alert('未检测到敏感信息')
+  }
+}
+
+// 应用脱敏到文档
+const applyDesensitization = () => {
+  if (hasSensitiveInfo.value) {
+    taskPane.onbuttonclick('applyDesensitization', {
+      sensitiveInfoList: sensitiveInfoList.value
+    })
+    extractedText.value = desensitizedText.value
+    sensitiveInfoList.value = []
   }
 }
 

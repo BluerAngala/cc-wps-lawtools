@@ -1,5 +1,6 @@
 // SiliconFlow AI 调用管理
 import axios from 'axios'
+import contractElementsPrompt from './prompt/提取合同要素.txt?raw'
 
 // 替换为你的 SiliconFlow API 密钥
 const API_KEY = import.meta.env.VITE_AI_API_KEY
@@ -111,12 +112,12 @@ async function processContractElements({ content, model = 'deepseek-ai/DeepSeek-
       messages: [
         {
           role: 'system',
-          content: '用户输入的合同文件内容：{{input}}\n\n提取出合同的基本信息，以 json 格式返回\n\n{\n合同名称\n甲方\n乙方\n合同金额\n合同期限\n合同摘要\n}\n\n\n如果字段无内容，默认设置为 null\n请直接返回结果，不需要解释说明。'
+          content: contractElementsPrompt.replace('{{input}}', content)
         },
-        {
-          role: 'user',
-          content: content
-        }
+        // {
+        //   role: 'user',
+        //   content: content
+        // }
       ]
     })
     // console.log(response.data.choices[0].message.content) 
@@ -150,12 +151,7 @@ async function test() {
   console.log(res)
   return res
 }
-// // 测试
-// processContractElements({ content: '你好，我是DeepSeek-V3模型' }).then((result) => {
-//   console.log('合同要素识别结果:', result)
-// }).catch((error) => {
-//   console.error('合同要素识别错误:', error)
-// })
+
 
 
 export { 

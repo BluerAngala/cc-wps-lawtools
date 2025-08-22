@@ -1,6 +1,6 @@
 import Util from './util.js'
 
-import { processContractElements } from '../utils/siliconflow.js'
+import { processContractElements } from '../utils/ai/siliconflow.js'
 
 // 引入金山文档工具
 import { kdocsHandler } from '../utils/kdocs.js'
@@ -27,11 +27,20 @@ async function onbuttonclick(idStr, param) {
       break
     }
     case 'addHeader': {
+      console.log('addHeader', param)
+
       const doc = window.Application.ActiveDocument
       if (!doc) {
         alert('当前没有打开任何文档')
         return
       }
+      
+      // 检查参数是否存在
+      if (!param || !param.contractNumber) {
+        console.warn('addHeader: 缺少contractNumber参数')
+        return
+      }
+      
       // 开启修订模式
       doc.TrackRevisions = true
 
@@ -41,8 +50,7 @@ async function onbuttonclick(idStr, param) {
         const range = header.Range
 
         // 在修订模式下添加内容
-        range.Text = new Date().toLocaleDateString() // 2025年7月25日 14:20:00这种格式
-        range.Text += ' ' + new Date().toLocaleTimeString()
+        range.Text = param.contractNumber
         range.Font.Name = '宋体'
         range.Font.Size = 12 // 小四对应12磅
         range.Paragraphs.Alignment = 2 // 2表示右对齐
@@ -284,7 +292,16 @@ async function onbuttonclick(idStr, param) {
         ]
       })
       console.log('res', res)
-      return res
+
+      // 获取到新建的行id
+      let recordID = res?.data?.[0]?.id
+      console.log('recordID', recordID)
+      if ( !recordID) {
+        alert('创建金山文档行记录失败或者没有返回id')
+        return
+      }
+
+      return res?.data?.[0]
     }
     case 'desensitizeText': {
       // 脱敏文本功能
