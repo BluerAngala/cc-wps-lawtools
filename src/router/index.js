@@ -22,6 +22,11 @@ const router = createRouter({
       path: '/taskpane',
       name: '任务窗格',
       component: () => import('../components/TaskPane.vue')
+    },
+    {
+      path: '/contractreview',
+      name: '合同审查',
+      component: () => import('../components/ContractReview.vue')
     }
   ]
 })

@@ -39,6 +39,25 @@ function OnAction(control) {
         }
       }
       break
+    case 'btnContractReview':
+      // 显示合同审查窗格
+      {
+        console.log('显示合同审查窗格!')
+        let tsId = window.Application.PluginStorage.getItem('contractreview_id')
+        if (!tsId) {
+          console.log('创建合同审查窗格!' , Util.GetUrlPath() + Util.GetRouterHash() + '/contractreview')
+          let tskpane = window.Application.CreateTaskPane(
+            Util.GetUrlPath() + Util.GetRouterHash() + '/contractreview'
+          )
+          let id = tskpane.ID
+          window.Application.PluginStorage.setItem('contractreview_id', id)
+          tskpane.Visible = true
+        } else {
+          let tskpane = window.Application.GetTaskPane(tsId)
+          tskpane.Visible = !tskpane.Visible
+        }
+      }
+      break
     default:
       break
   }
@@ -54,6 +73,8 @@ function GetImage(control) {
   switch (buttonId) {
     case 'btnShowAI':
       return './images/logo_card.png'
+    case 'btnContractReview':
+      return './images/3.svg'
     case 'btnAboutME':
       return './images/2.png'
     default:
