@@ -1,5 +1,5 @@
 import Util from './util.js'
-import { processContractElements } from '../utils/ai/siliconflow.js'
+import { processContractElements, processContractReview, processDocumentStructure } from '../utils/ai/siliconflow.js'
 import { kdocsHandler } from '../utils/kdocs.js'
 
 class TaskPaneHandler {
@@ -59,12 +59,14 @@ class TaskPaneHandler {
       getDocName: () => this.getDocName(),
       addComment: () => this.addComment(param),
       extractText: () => this.extractText(param),
+      contractReview: () => this.contractReview(param),
       extractFormatted: () => this.extractFormatted(),
       renameDoc: () => this.renameDoc(),
       updateDocumentText: () => this.updateDocumentText(param),
       processWithAI: () => this.processWithAI(),
       desensitizeText: () => this.desensitizeText(),
-      applyDesensitization: () => this.applyDesensitization(param)
+      applyDesensitization: () => this.applyDesensitization(param),
+      analyzeDocStructure: () => this.analyzeDocStructure()
     }
     return actions[idStr]
   }
@@ -175,15 +177,15 @@ class TaskPaneHandler {
   async extractText(param) {
     const doc = this.getActiveDoc()
     if (!doc) return
-    
+
     // 获取用户配置的提取标签
     const extractTags = param?.extractContent || ['甲方名称', '乙方名称', '合同金额']
     console.log('正在处理抽取文案，提取标签:', extractTags)
 
     const extractedText = doc.Range().Text
-    const result = await processContractElements({ 
-      content: extractedText, 
-      extractTags: extractTags 
+    const result = await processContractElements({
+      content: extractedText,
+      extractTags: extractTags
     })
     console.log(result)
 
@@ -200,6 +202,116 @@ class TaskPaneHandler {
     } catch (error) {
       console.error('AI处理结果 json parse error', error)
       return text
+    }
+  }
+
+  // AI合同预审
+  async contractReview(param) {
+    const doc = this.getActiveDoc()
+    if (!doc) return
+
+    // 获取用户配置的预审参数
+    const { reviewRules, reviewRequirements, actionType } = param
+    console.log('正在进行合同预审，参数:', { reviewRules, reviewRequirements, actionType })
+
+    const documentText = doc.Range().Text
+    const result = await processContractReview({
+      content: documentText,
+      reviewRules: reviewRules,
+      reviewRequirements: reviewRequirements,
+      actionType: actionType
+    })
+    console.log('AI预审结果:', result)
+
+    const text = result
+      .replace(/```json\n/g, '')
+      .replace(/\n```/g, '')
+      .replace(/[“”]/g, '"')
+      .replace(/'/g, '"')
+
+    let json = null
+    try {
+      json = JSON.parse(text)
+      console.log('AI处理结果 json', json)
+    } catch (error) {
+      console.error('AI处理结果 json parse error', error)
+      return text
+    }
+
+    // 根据执行动作类型处理预审结果
+    if (actionType === 'comment') {
+      await this.addReviewComments(doc, json)
+    } else if (actionType === 'revision') {
+      await this.addReviewRevisions(doc, json)
+    }
+
+    console.log('合同预审完成')
+  }
+
+  // 添加预审批注
+  async addReviewComments(doc, reviewData) {
+    if (!reviewData?.issues || !Array.isArray(reviewData.issues)) {
+      console.log('没有发现需要批注的问题')
+      return
+    }
+
+    let addedCount = 0
+    reviewData.issues.forEach(issue => {
+      const { keyword, comment, position } = issue
+      if (!keyword || !comment) return
+
+      const selection = doc.Range()
+      selection.Find?.ClearFormatting()
+      selection.Find.Text = keyword
+
+      if (selection.Find?.Execute()) {
+        const commentRange = selection.Duplicate
+        commentRange?.Collapse(0)
+        commentRange?.Comments?.Add(commentRange, comment)
+        addedCount++
+      }
+    })
+
+    if (addedCount > 0) {
+      console.log(`成功添加${addedCount}个预审批注`)
+    } else {
+      alert('未找到需要批注的内容')
+    }
+  }
+
+  // 添加预审修订
+  async addReviewRevisions(doc, reviewData) {
+    if (!reviewData?.revisions || !Array.isArray(reviewData.revisions)) {
+      console.log('没有发现需要修订的内容')
+      return
+    }
+
+    this.enableRevisionMode(doc)
+    let revisedCount = 0
+
+    reviewData.revisions.forEach(revision => {
+      const { original, suggested, reason } = revision
+      if (!original || !suggested) return
+
+      const selection = doc.Range()
+      selection.Find?.ClearFormatting()
+      selection.Find.Text = original
+
+      if (selection.Find?.Execute()) {
+        selection.Text = suggested
+        if (reason) {
+          const commentRange = selection.Duplicate
+          commentRange?.Collapse(0)
+          commentRange?.Comments?.Add(commentRange, `修订原因: ${reason}`)
+        }
+        revisedCount++
+      }
+    })
+
+    if (revisedCount > 0) {
+      console.log(`成功进行${revisedCount}处预审修订`)
+    } else {
+      alert('未找到需要修订的内容')
     }
   }
 
@@ -357,6 +469,27 @@ class TaskPaneHandler {
       console.log('脱敏文本已应用')
     } else {
       alert('请先选择要替换的文本区域')
+    }
+  }
+
+  async analyzeDocStructure() {
+    const doc = this.getActiveDoc()
+    if (!doc) return
+
+    try {
+      const content = doc.Range().Text
+
+      console.log('开始AI文档结构分析...', content)
+      
+      // 调用AI进行文档结构分析
+      const result = await processDocumentStructure({ content })
+      
+      // 显示AI分析结果
+      console.log('AI文档结构分析完成:', result)
+      
+    } catch (error) {
+      console.error('AI分析文档结构时出错:', error)
+      alert('AI分析文档结构时出错，请检查网络连接或稍后重试')
     }
   }
 }

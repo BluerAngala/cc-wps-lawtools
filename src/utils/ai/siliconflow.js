@@ -1,7 +1,7 @@
 // SiliconFlow AI 调用管理
 import axios from 'axios'
 import contractElementsPrompt from './prompt/提取合同要素.txt?raw'
-import { generateContractExtractionPrompt, validateExtractTags } from './promptGenerator.js'
+import { generateContractExtractionPrompt, validateExtractTags, generateContractReviewPrompt } from './promptGenerator.js'
 
 // 替换为你的 SiliconFlow API 密钥
 const API_KEY = import.meta.env.VITE_AI_API_KEY
@@ -150,6 +150,89 @@ async function processContractElements({ content, extractTags, model = 'deepseek
 }
 
 /**
+ * 文档结构分析处理
+ * @param {Object} params - 参数对象
+ * @param {string} params.content - 要分析的文档内容
+ * @param {string} params.model - 使用的模型名称
+ * @returns {Promise<string>} AI 处理后的结果
+ */
+async function processDocumentStructure({ content, model = 'deepseek-ai/DeepSeek-V3' }) {
+  try {
+    const promptContent = `请分析以下文档的内容结构，提取出所有的一级标题、二级标题、三级标题。
+
+要求：
+1. 识别文档中的标题层级结构
+2. 按照层级分类列出所有标题
+3. 如果没有明确的标题格式，请根据内容语义和格式特征推断标题
+4. 输出格式如下：
+
+一级标题
+二级标题
+
+---
+
+一级标题
+二级标题
+
+直接显示标题内容，不需要前缀。
+如果某个层级没有标题，则不显示该层级。
+
+文档内容：
+${content}`
+
+    const response = await apiClient.post('/chat/completions', {
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: promptContent
+        }
+      ]
+    })
+    
+    return response.data.choices[0].message.content
+  } catch (error) {
+    console.error('处理文档结构分析时出错:', error)
+    throw error
+  }
+}
+
+/**
+ * 合同预审处理
+ * @param {Object} params - 参数对象
+ * @param {string} params.content - 要审查的合同内容
+ * @param {string} params.reviewRules - 规则名称
+ * @param {string} params.reviewRequirements - 审查要求
+ * @param {string} params.actionType - 执行动作类型（批注/修订）
+ * @param {string} params.model - 使用的模型名称
+ * @returns {Promise<string>} AI 处理后的结果
+ */
+async function processContractReview({ content, reviewRules, reviewRequirements, actionType, model = 'deepseek-ai/DeepSeek-V3' }) {
+  try {
+    // 生成合同预审提示词
+    const promptContent = generateContractReviewPrompt(reviewRules, reviewRequirements, actionType)
+      .replace('{{input}}', content)
+    
+    console.log('合同预审提示词:', promptContent)
+    
+    const response = await apiClient.post('/chat/completions', {
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: promptContent
+        }
+      ]
+    })
+    
+    return response.data.choices[0].message.content
+  } catch (error) {
+    console.error('处理合同预审时出错:', error)
+    throw error
+  }
+}
+
+/**
  * 获取可用的模型列表
  * @returns {Promise<Array>} 可用模型列表
  */
@@ -177,7 +260,9 @@ async function test() {
 
 export { 
   processDocumentContent,
-  processContractElements, 
+  processContractElements,
+  processContractReview,
+  processDocumentStructure,
   getAvailableModels, 
   apiClient,
   test

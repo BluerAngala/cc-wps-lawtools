@@ -151,6 +151,32 @@ const DEFAULT_RULES = [
     }
   },
   {
+    name: 'contractReview',
+    icon: '⚖️',
+    title: 'AI合同预审',
+    description: 'AI预审合同，使用自定义规则更灵活',
+    configForm: {
+      reviewRules: {
+        label: '规则名称',
+        type: 'text',
+        value: '审查争议解决条款',
+        placeholder: '请输入预审规则名称'
+      },
+      reviewRequirements: {
+        label: '审查要求',
+        type: 'text',
+        value: '审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？',
+        placeholder: '请输入具体的审查要求'
+      },
+      actionType: {
+        label: '执行动作',
+        type: 'select',
+        value: '批注',
+        options: ['批注', '修订']
+      }
+    }
+  },
+  {
     name: 'addHeader',
     icon: '📄',
     title: '添加页眉',
@@ -193,6 +219,15 @@ const DEFAULT_RULES = [
       }
     }
   },
+  {
+    name: 'analyzeDocStructure',
+    icon: '📋',
+    title: '分析文档内容结构',
+    description: '自动抽取出文档的一级标题、二级标题、三级标题',
+    configForm: {
+      // 不需要配置具体内容，保持为空对象
+    }
+  }
 
 ]
 
@@ -203,7 +238,9 @@ const rules = ref(JSON.parse(JSON.stringify(DEFAULT_RULES)))
 const resultMessages = {
   addHeader: '页眉添加成功！',
   keywordComment: '关键词批注添加完成！',
-  extractText: 'AI合同信息抽取完成！'
+  extractText: 'AI合同信息抽取完成！',
+  contractReview: 'AI合同预审完成！',
+  analyzeDocStructure: '文档内容结构分析完成！'
 }
 
 // 执行规则
@@ -236,7 +273,13 @@ const executeRule = async (ruleType) => {
       }),
       extractText: () => taskPane.onbuttonclick('extractText', {
         extractContent: params.extractTags || []
-      })
+      }),
+      contractReview: () => taskPane.onbuttonclick('contractReview', {
+        reviewRules: params.reviewRules,
+        reviewRequirements: params.reviewRequirements,
+        actionType: params.actionType === '批注' ? 'comment' : 'revision'
+      }),
+      analyzeDocStructure: () => taskPane.onbuttonclick('analyzeDocStructure', {})
     }
 
     if (actionMap[ruleType]) {

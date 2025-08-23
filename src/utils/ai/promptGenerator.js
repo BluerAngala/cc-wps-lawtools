@@ -116,3 +116,62 @@ export function validateExtractTags(extractTags) {
 
   return result
 }
+
+/**
+ * 生成合同预审的AI提示词
+ * @param {string} reviewRules - 规则名称
+ * @param {string} reviewRequirements - 审查要求
+ * @param {string} actionType - 执行动作类型（批注/修订）
+ * @returns {string} 生成的提示词
+ */
+export function generateContractReviewPrompt(reviewRules, reviewRequirements, actionType) {
+  const isRevision = actionType === 'revision';
+  const actionDescription = isRevision 
+    ? '请直接提供修改后的条款内容'
+    : '请提供详细的批注说明和建议';
+    
+  const outputFormat = isRevision ? `{
+  "revisions": [
+    {
+      "original": "原始条款内容",
+      "suggested": "建议修改后的条款内容",
+      "reason": "修改原因"
+    }
+  ],
+  "summary": "整体审查总结"
+}` : `{
+  "issues": [
+    {
+      "keyword": "关键词或短语",
+      "comment": "批注内容和建议",
+      "position": "在文档中的位置描述"
+    }
+  ],
+  "summary": "整体审查总结"
+}`;
+    
+  return `你是一个专业的法律合同审查AI助手。请根据以下要求对合同进行预审分析。
+
+## 规则名称
+${reviewRules}
+
+## 审查要求
+${reviewRequirements}
+
+## 执行动作
+${actionDescription}
+
+## 输出要求
+请以JSON格式返回审查结果：
+${outputFormat}
+
+## 审查重点
+1. 法律风险识别：违法条款、无效条款、争议条款
+2. 权利义务平衡：双方权利义务是否对等
+3. 条款完整性：关键条款是否缺失或不明确
+4. 执行可行性：条款是否具有可操作性
+5. 风险防控：违约责任、争议解决等条款是否完善
+
+现在请审查以下合同内容：
+{{input}}`;
+}
