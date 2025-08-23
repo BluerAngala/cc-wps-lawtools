@@ -70,21 +70,19 @@
                     <!-- 标签输入框配置 -->
                     <div v-else-if="field.type === 'tags'" class="tags-config">
                       <div class="tags-display">
-                        <el-tag
-                          v-for="(tag, index) in field.value"
-                          :key="index"
-                          closable
-                          @close="removeTag(field, index)"
-                          class="tag-item">
+                        <el-tag v-for="(tag, index) in field.value" :key="index" closable
+                          @close="removeTag(field, index)" class="tag-item">
                           {{ tag }}
                         </el-tag>
                       </div>
-                      <el-input 
-                        v-model="field.inputValue" 
-                        placeholder="输入数据要素后按回车添加" 
-                        @keyup.enter="addTag(field)"
-                        class="tag-input">
-                      </el-input>
+                      <div class="tag-input-row">
+                        <el-input v-model="field.inputValue" placeholder="输入数据要素" @keyup.enter="addTag(field)"
+                          class="tag-input">
+                        </el-input>
+                        <el-button type="primary" @click="addTag(field)" :icon="Plus" size="small" class="add-tag-btn">
+                          添加
+                        </el-button>
+                      </div>
                     </div>
                   </el-form-item>
                 </el-form>
@@ -145,11 +143,11 @@ const DEFAULT_RULES = [
     description: '使用AI智能提取合同关键信息',
     configForm: {
       extractTags: {
-         label: '提取数据要素',
-         type: 'tags',
-         value: ['甲乙方信息', '合同金额', '履行期限', '违约条款', '付款方式'],
-         inputValue: ''
-       }
+        label: '提取数据要素',
+        type: 'tags',
+        value: ['甲方名称', '乙方名称', '合同金额'],
+        inputValue: ''
+      }
     }
   },
   {
@@ -518,8 +516,18 @@ onMounted(() => {
   display: none;
 }
 
+.tag-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .tag-input {
-  width: 100%;
+  flex: 1;
+}
+
+.add-tag-btn {
+  flex-shrink: 0;
 }
 
 .tag-item {

@@ -1,6 +1,7 @@
 // SiliconFlow AI 调用管理
 import axios from 'axios'
 import contractElementsPrompt from './prompt/提取合同要素.txt?raw'
+import { generateContractExtractionPrompt, validateExtractTags } from './promptGenerator.js'
 
 // 替换为你的 SiliconFlow API 密钥
 const API_KEY = import.meta.env.VITE_AI_API_KEY
@@ -99,31 +100,51 @@ async function processDocumentContent({ content, model = 'deepseek-ai/DeepSeek-V
 }
 
 /**
- * 识别合同要素
+ * 识别合同要素（支持动态提取标签）
  * @param {Object} params - 参数对象
  * @param {string} params.content - 要处理的文档内容
+ * @param {Array<string>} params.extractTags - 要提取的标签数组（可选）
  * @param {string} params.model - 使用的模型名称
- * @returns {Promise<string[]>} AI 处理后的结果
+ * @returns {Promise<string>} AI 处理后的结果
  */
-async function processContractElements({ content, model = 'deepseek-ai/DeepSeek-V3' }) {
+async function processContractElements({ content, extractTags, model = 'deepseek-ai/DeepSeek-V3' }) {
   try {
+    let promptContent
+    
+    // 如果提供了自定义提取标签，使用动态生成的提示词
+    if (extractTags && extractTags.length > 0) {
+      // 验证提取标签
+      const validation = validateExtractTags(extractTags)
+      if (!validation.isValid) {
+        throw new Error(`提取标签验证失败: ${validation.errors.join(', ')}`)
+      }
+      
+      // 输出警告信息
+      if (validation.warnings.length > 0) {
+        console.warn('提取标签警告:', validation.warnings.join(', '))
+      }
+      
+      console.log('使用动态提示词，提取标签:', extractTags)
+      promptContent = generateContractExtractionPrompt(extractTags, content)
+    } else {
+      // 使用默认的固定提示词
+      console.log('使用默认提示词')
+      promptContent = contractElementsPrompt.replace('{{input}}', content)
+    }
+
     const response = await apiClient.post('/chat/completions', {
       model: model,
       messages: [
         {
           role: 'system',
-          content: contractElementsPrompt.replace('{{input}}', content)
-        },
-        // {
-        //   role: 'user',
-        //   content: content
-        // }
+          content: promptContent
+        }
       ]
     })
-    // console.log(response.data.choices[0].message.content) 
+    
     return response.data.choices[0].message.content
   } catch (error) {
-    console.error('批量处理文档内容时出错:', error)
+    console.error('处理合同要素时出错:', error)
     throw error
   }
 }

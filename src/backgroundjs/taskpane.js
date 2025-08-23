@@ -58,7 +58,7 @@ class TaskPaneHandler {
       addString: () => this.addString(),
       getDocName: () => this.getDocName(),
       addComment: () => this.addComment(param),
-      extractText: () => this.extractText(),
+      extractText: () => this.extractText(param),
       extractFormatted: () => this.extractFormatted(),
       renameDoc: () => this.renameDoc(),
       updateDocumentText: () => this.updateDocumentText(param),
@@ -172,12 +172,35 @@ class TaskPaneHandler {
   }
 
   // 抽取文档中的特定数据要素
-  extractText() {
+  async extractText(param) {
     const doc = this.getActiveDoc()
     if (!doc) return
-    // 构建抽取合同要素的提示词
-    console.log('正在处理抽取文案~未完待续~')
     
+    // 获取用户配置的提取标签
+    const extractTags = param?.extractContent || ['甲方名称', '乙方名称', '合同金额']
+    console.log('正在处理抽取文案，提取标签:', extractTags)
+
+    const extractedText = doc.Range().Text
+    const result = await processContractElements({ 
+      content: extractedText, 
+      extractTags: extractTags 
+    })
+    console.log(result)
+
+    const text = result
+      .replace(/```json\n/g, '')
+      .replace(/\n```/g, '')
+      .replace(/[“”]/g, '"')
+      .replace(/'/g, '"')
+
+    let json = null
+    try {
+      json = JSON.parse(text)
+      console.log('AI处理结果 json', json)
+    } catch (error) {
+      console.error('AI处理结果 json parse error', error)
+      return text
+    }
   }
 
   extractFormatted() {
