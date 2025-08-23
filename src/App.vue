@@ -8,7 +8,7 @@
 import { ref, onMounted } from 'vue'
 
 // 引入ribbon.js 主要的逻辑
-import ribbon from './backgroundjs/ribbon.js'
+import ribbon from './services/wps/ribbon.js'
 
 
 

@@ -11,22 +11,22 @@ const router = createRouter({
     {
       path: '/',
       name: '默认页',
-      component: () => import('../components/Root.vue')
+      component: () => import('../components/layout/Root.vue')
     },
     {
       path: '/dialog',
       name: '对话框',
-      component: () => import('../components/Dialog.vue')
+      component: () => import('../components/common/Dialog.vue')
     },
     {
       path: '/taskpane',
       name: '任务窗格',
-      component: () => import('../components/TaskPane.vue')
+      component: () => import('../components/business/TaskPane.vue')
     },
     {
       path: '/contractreview',
       name: '合同审查',
-      component: () => import('../components/ContractReview.vue')
+      component: () => import('../components/business/ContractReview.vue')
     }
   ]
 })

@@ -32,7 +32,7 @@
 
 <script>
 import { onMounted } from 'vue'
-import dlgFunc from '../backgroundjs/dialog.js'
+import dlgFunc from '../../services/wps/dialog.js'
 import axios from 'axios'
 export default {
   name: 'DemoDialog',

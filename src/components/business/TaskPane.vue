@@ -110,12 +110,18 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import taskPane from '../backgroundjs/taskpane.js'
-import { processDocumentContent } from '../utils/ai/siliconflow.js'
-import { Desensitizer } from '../utils/desensitizeAdvanced.js'
+import taskPane from '../../services/wps/taskpane.js'
+import { Desensitizer } from '../../utils/desensitizeAdvanced.js'
+import TaskScheduler from '../../services/ai/TaskScheduler.js'
+import { getOptimalConfig } from '../../services/ai/config/performance-config.js'
 
 console.log('TaskPane组件已加载')
 console.log('当前打开的文档：', window.Application.ActiveDocument)
+
+// 初始化AI框架
+const optimalConfig = getOptimalConfig()
+const taskScheduler = new TaskScheduler(optimalConfig)
+console.log('TaskPane AI框架已初始化')
 
 // 响应式数据
 const DemoSpan = ref('')
@@ -267,8 +273,39 @@ const onProcessUserTextWithAI = async () => {
 
   isProcessing.value = true
   await handleAIProcess(async () => {
-    const fullPrompt = `${userProcessRequest.value}\n\n文本内容：\n${userInputText.value}`
-    aiProcessedText.value = await processDocumentContent(fullPrompt)
+    // 创建AI任务配置
+    const taskConfig = {
+      type: 'customTextProcess',
+      priority: 'high',
+      content: userInputText.value,
+      options: {
+        processRequest: userProcessRequest.value
+      }
+    }
+
+    // 添加任务到调度器
+    const taskId = taskScheduler.addTask(taskConfig)
+    
+    // 监听任务完成事件
+    const handleTaskComplete = (task) => {
+      if (task.id === taskId) {
+        if (task.result && task.result.data) {
+          aiProcessedText.value = task.result.data
+        }
+        taskScheduler.off('taskComplete', handleTaskComplete)
+      }
+    }
+    
+    const handleTaskError = (task, error) => {
+      if (task.id === taskId) {
+        console.error('AI处理失败:', error)
+        alert('AI处理失败，请查看控制台错误信息')
+        taskScheduler.off('taskError', handleTaskError)
+      }
+    }
+    
+    taskScheduler.on('taskComplete', handleTaskComplete)
+    taskScheduler.on('taskError', handleTaskError)
   })
   isProcessing.value = false
 }

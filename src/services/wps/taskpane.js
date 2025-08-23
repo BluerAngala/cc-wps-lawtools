@@ -1,10 +1,15 @@
 import Util from './util.js'
-import { processContractElements, processContractReview, processDocumentStructure } from '../utils/ai/siliconflow.js'
-import { kdocsHandler } from '../utils/kdocs.js'
+import { kdocsHandler } from '../../utils/kdocs.js'
+import TaskScheduler from '../ai/TaskScheduler.js'
+import { getOptimalConfig } from '../ai/config/performance-config.js'
 
 class TaskPaneHandler {
   constructor() {
     this.initializeEnum()
+    // 初始化AI框架
+    const optimalConfig = getOptimalConfig()
+    this.taskScheduler = new TaskScheduler(optimalConfig)
+    console.log('TaskPaneHandler AI框架已初始化')
   }
 
   initializeEnum() {
@@ -14,11 +19,23 @@ class TaskPaneHandler {
   }
 
   getActiveDoc() {
-    const doc = window.Application?.ActiveDocument
-    if (!doc) {
-      alert('当前没有打开任何文档')
+    console.log('getActiveDoc: 检查WPS应用程序状态')
+    console.log('window.Application:', !!window.Application)
+    
+    if (!window.Application) {
+      console.error('getActiveDoc: WPS Application对象不存在，插件可能未正确加载')
       return null
     }
+    
+    const doc = window.Application.ActiveDocument
+    console.log('getActiveDoc: ActiveDocument:', !!doc)
+    
+    if (!doc) {
+      console.error('getActiveDoc: 当前没有打开任何文档')
+      return null
+    }
+    
+    console.log('getActiveDoc: 成功获取活动文档')
     return doc
   }
 
@@ -176,32 +193,114 @@ class TaskPaneHandler {
   // 抽取文档中的特定数据要素
   async extractText(param) {
     const doc = this.getActiveDoc()
-    if (!doc) return
+    if (!doc) {
+      console.error('extractText: 无法获取活动文档')
+      return ''
+    }
+
+    // 如果只是获取文档内容，直接返回
+    if (!param || Object.keys(param).length === 0) {
+      try {
+        // 调试文档对象的可用方法
+        console.log('extractText: 文档对象可用方法检查')
+        console.log('doc.Range:', typeof doc.Range)
+        console.log('doc.Content:', typeof doc.Content)
+        console.log('window.Application.Selection:', !!window.Application?.Selection)
+        
+        // 尝试多种方式获取文档内容
+        let extractedText = ''
+        
+        // 方法1: 使用Range获取全部内容
+        if (doc.Range) {
+          console.log('extractText: 尝试使用Range方法')
+          try {
+            extractedText = doc.Range().Text
+            console.log('extractText: Range方法成功，内容长度:', extractedText?.length || 0)
+          } catch (rangeError) {
+            console.error('extractText: Range方法失败:', rangeError)
+          }
+        }
+        
+        // 方法2: 如果Range方法失败，尝试使用Content
+        if (!extractedText && doc.Content) {
+          console.log('extractText: 尝试使用Content方法')
+          try {
+            extractedText = doc.Content.Text
+            console.log('extractText: Content方法成功，内容长度:', extractedText?.length || 0)
+          } catch (contentError) {
+            console.error('extractText: Content方法失败:', contentError)
+          }
+        }
+        
+        // 方法3: 如果还是失败，尝试使用Selection
+        if (!extractedText && window.Application?.Selection) {
+          console.log('extractText: 尝试使用Selection方法')
+          try {
+            // 先选择全部内容
+            window.Application.Selection.WholeStory()
+            extractedText = window.Application.Selection.Text
+            console.log('extractText: Selection方法成功，内容长度:', extractedText?.length || 0)
+          } catch (selectionError) {
+            console.error('extractText: Selection方法失败:', selectionError)
+          }
+        }
+        
+        console.log('获取文档内容，长度:', extractedText?.length || 0)
+        console.log('文档内容预览:', extractedText?.substring(0, 100) + '...')
+        
+        if (!extractedText || extractedText.trim().length === 0) {
+          console.warn('extractText: 文档内容为空，可能文档未正确加载或没有内容')
+          return ''
+        }
+        
+        return extractedText
+      } catch (error) {
+        console.error('extractText: 获取文档内容时出错:', error)
+        return ''
+      }
+    }
 
     // 获取用户配置的提取标签
     const extractTags = param?.extractContent || ['甲方名称', '乙方名称', '合同金额']
     console.log('正在处理抽取文案，提取标签:', extractTags)
 
     const extractedText = doc.Range().Text
-    const result = await processContractElements({
-      content: extractedText,
-      extractTags: extractTags
-    })
-    console.log(result)
-
-    const text = result
-      .replace(/```json\n/g, '')
-      .replace(/\n```/g, '')
-      .replace(/[“”]/g, '"')
-      .replace(/'/g, '"')
-
-    let json = null
+    
     try {
-      json = JSON.parse(text)
-      console.log('AI处理结果 json', json)
+      // 使用新的AI框架
+      const taskConfig = {
+        type: 'extractText',
+        content: extractedText,
+        options: { extractTags }
+      }
+      
+      const taskId = await this.taskScheduler.addTask(taskConfig)
+      
+      // 监听任务完成
+      this.taskScheduler.on('taskCompleted', (completedTaskId, result) => {
+        if (completedTaskId === taskId) {
+          console.log('AI处理结果:', result)
+          
+          try {
+            const json = typeof result.content === 'string' ? JSON.parse(result.content) : result.content
+            console.log('AI处理结果 json', json)
+          } catch (error) {
+            console.error('AI处理结果 json parse error', error)
+          }
+        }
+      })
+      
+      // 监听任务错误
+      this.taskScheduler.on('taskError', (errorTaskId, error) => {
+        if (errorTaskId === taskId) {
+          console.error('AI处理出错:', error)
+          alert('AI处理出错，请稍后重试')
+        }
+      })
+      
     } catch (error) {
-      console.error('AI处理结果 json parse error', error)
-      return text
+      console.error('创建AI任务失败:', error)
+      alert('创建AI任务失败，请稍后重试')
     }
   }
 
@@ -210,24 +309,53 @@ class TaskPaneHandler {
     const doc = this.getActiveDoc()
     if (!doc) return
 
-    // 获取用户配置的预审参数
-    const { reviewRules, reviewRequirements, actionType } = param
-    console.log('正在进行合同预审，参数:', { reviewRules, reviewRequirements, actionType })
+    const { actionType = 'comment' } = param || {}
+    console.log('开始合同预审，操作类型:', actionType)
 
-    const documentText = doc.Range().Text
-    const result = await processContractReview({
-      content: documentText,
-      reviewRules: reviewRules,
-      reviewRequirements: reviewRequirements,
-      actionType: actionType
-    })
-    console.log('AI预审结果:', result)
+    const extractedText = doc.Range().Text
+    console.log('提取的文档内容:', extractedText)
 
-    const text = result
-      .replace(/```json\n/g, '')
-      .replace(/\n```/g, '')
-      .replace(/[“”]/g, '"')
-      .replace(/'/g, '"')
+    try {
+      // 使用新的AI框架进行合同预审
+      const taskId = await this.taskScheduler.addTask({
+        type: 'contractReview',
+        content: extractedText,
+        options: { actionType }
+      })
+
+      // 监听任务完成
+      this.taskScheduler.on('taskCompleted', (completedTaskId, result) => {
+        if (completedTaskId === taskId) {
+          try {
+            const reviewData = result.data
+            console.log('AI预审结果:', reviewData)
+
+            if (actionType === 'comment') {
+              this.addReviewComments(doc, reviewData)
+            } else if (actionType === 'revision') {
+              this.addReviewRevisions(doc, reviewData)
+            }
+
+            console.log('合同预审完成')
+          } catch (error) {
+            console.error('处理AI预审结果时出错:', error)
+            alert('处理AI预审结果时出错，请稍后重试')
+          }
+        }
+      })
+
+      // 监听任务错误
+      this.taskScheduler.on('taskError', (errorTaskId, error) => {
+        if (errorTaskId === taskId) {
+          console.error('AI预审任务失败:', error)
+          alert('AI预审失败，请稍后重试')
+        }
+      })
+
+    } catch (error) {
+      console.error('创建AI预审任务失败:', error)
+      alert('创建AI预审任务失败，请稍后重试')
+    }
 
     let json = null
     try {
@@ -377,57 +505,75 @@ class TaskPaneHandler {
     if (!doc) return
 
     const extractedText = doc.Range().Text
-    const result = await processContractElements({ content: extractedText })
-    console.log(result)
+    console.log('开始AI处理合同元素提取')
 
-    const text = result
-      .replace(/```json\n/g, '')
-      .replace(/\n```/g, '')
-      .replace(/[“”]/g, '"')
-      .replace(/'/g, '"')
-
-    let json = null
     try {
-      json = JSON.parse(text)
-      console.log('AI处理结果 json', json)
+      // 使用新的AI框架进行合同元素提取
+      const taskId = await this.taskScheduler.addTask({
+        type: 'extractText',
+        content: extractedText
+      })
+
+      // 监听任务完成
+      this.taskScheduler.on('taskCompleted', async (completedTaskId, result) => {
+        if (completedTaskId === taskId) {
+          try {
+            const extractedData = result.data
+            console.log('AI提取结果:', extractedData)
+
+            // 处理合同金额
+            let amount = extractedData?.合同金额
+            if (typeof amount === 'string') {
+              const matched = amount.match(/\d+(?:\.\d+)?/)
+              amount = matched ? parseFloat(matched[0]) : NaN
+            }
+
+            const fields = {
+              合同名称: extractedData?.合同名称 ?? '',
+              甲方: extractedData?.甲方 ?? '',
+              乙方: extractedData?.乙方 ?? '',
+              合同期限: extractedData?.合同期限 ?? '',
+              合同摘要: extractedData?.合同摘要 ?? ''
+            }
+            if (typeof amount === 'number' && !Number.isNaN(amount)) {
+              fields['合同金额'] = amount
+            }
+
+            console.log('创建金山文档行记录 fields', fields)
+            const res = await kdocsHandler({
+              type: 'createRecords',
+              sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID),
+              inputData: [{ fields }]
+            })
+            console.log('res', res)
+
+            const recordID = res?.data?.[0]?.id
+            console.log('recordID', recordID)
+            if (!recordID) {
+              alert('创建金山文档行记录失败或者没有返回id')
+              return
+            }
+
+            return res?.data?.[0]
+          } catch (error) {
+            console.error('处理AI提取结果时出错:', error)
+            alert('处理AI提取结果时出错，请稍后重试')
+          }
+        }
+      })
+
+      // 监听任务错误
+      this.taskScheduler.on('taskError', (errorTaskId, error) => {
+        if (errorTaskId === taskId) {
+          console.error('AI处理任务失败:', error)
+          alert('AI处理失败，请稍后重试')
+        }
+      })
+
     } catch (error) {
-      console.error('AI处理结果 json parse error', error)
-      return text
+      console.error('创建AI处理任务失败:', error)
+      alert('创建AI处理任务失败，请稍后重试')
     }
-
-    let amount = json?.合同金额
-    if (typeof amount === 'string') {
-      const matched = amount.match(/\d+(?:\.\d+)?/)
-      amount = matched ? parseFloat(matched[0]) : NaN
-    }
-
-    const fields = {
-      合同名称: json?.合同名称 ?? '',
-      甲方: json?.甲方 ?? '',
-      乙方: json?.乙方 ?? '',
-      合同期限: json?.合同期限 ?? '',
-      合同摘要: json?.合同摘要 ?? ''
-    }
-    if (typeof amount === 'number' && !Number.isNaN(amount)) {
-      fields['合同金额'] = amount
-    }
-
-    console.log('创建金山文档行记录 fields', fields)
-    const res = await kdocsHandler({
-      type: 'createRecords',
-      sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID),
-      inputData: [{ fields }]
-    })
-    console.log('res', res)
-
-    const recordID = res?.data?.[0]?.id
-    console.log('recordID', recordID)
-    if (!recordID) {
-      alert('创建金山文档行记录失败或者没有返回id')
-      return
-    }
-
-    return res?.data?.[0]
   }
 
   desensitizeText() {
@@ -476,20 +622,42 @@ class TaskPaneHandler {
     const doc = this.getActiveDoc()
     if (!doc) return
 
-    try {
-      const content = doc.Range().Text
+    const content = doc.Range().Text
+    console.log('开始AI文档结构分析...')
 
-      console.log('开始AI文档结构分析...', content)
-      
-      // 调用AI进行文档结构分析
-      const result = await processDocumentStructure({ content })
-      
-      // 显示AI分析结果
-      console.log('AI文档结构分析完成:', result)
-      
+    try {
+      // 使用新的AI框架进行文档结构分析
+      const taskId = await this.taskScheduler.addTask({
+        type: 'analyzeStructure',
+        content: content
+      })
+
+      // 监听任务完成
+      this.taskScheduler.on('taskCompleted', (completedTaskId, result) => {
+        if (completedTaskId === taskId) {
+          try {
+            const structureData = result.data
+            console.log('AI文档结构分析完成:', structureData)
+            // 这里可以根据需要处理结构分析结果
+            alert('文档结构分析完成，请查看控制台输出')
+          } catch (error) {
+            console.error('处理AI结构分析结果时出错:', error)
+            alert('处理AI结构分析结果时出错，请稍后重试')
+          }
+        }
+      })
+
+      // 监听任务错误
+      this.taskScheduler.on('taskError', (errorTaskId, error) => {
+        if (errorTaskId === taskId) {
+          console.error('AI文档结构分析任务失败:', error)
+          alert('AI文档结构分析失败，请稍后重试')
+        }
+      })
+
     } catch (error) {
-      console.error('AI分析文档结构时出错:', error)
-      alert('AI分析文档结构时出错，请检查网络连接或稍后重试')
+      console.error('创建AI文档结构分析任务失败:', error)
+      alert('创建AI文档结构分析任务失败，请稍后重试')
     }
   }
 }
