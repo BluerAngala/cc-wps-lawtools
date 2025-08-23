@@ -1,7 +1,7 @@
 <template>
   <el-card class="rules-card" shadow="hover">
     <template #header>
-      <h3>常用审查规则</h3>
+      <h3>审查规则（单项执行）</h3>
     </template>
     <el-collapse v-model="activeRules" accordion>
       <el-collapse-item v-for="rule in rules" :key="rule.name" :name="rule.name">

@@ -113,14 +113,16 @@ import { ref, computed } from 'vue'
 import taskPane from '../../services/wps/taskpane.js'
 import { desensitizeText } from '../../utils/desensitize.js'
 import TaskScheduler from '../../services/ai/TaskScheduler.js'
-import { getOptimalConfig } from '../../services/ai/config/performance-config.js'
 
 console.log('TaskPane组件已加载')
 console.log('当前打开的文档：', window.Application.ActiveDocument)
 
 // 初始化AI框架
-const optimalConfig = getOptimalConfig()
-const taskScheduler = new TaskScheduler(optimalConfig)
+const taskScheduler = new TaskScheduler({
+  maxConcurrentTasks: 3,
+  taskTimeout: 30000,
+  retryAttempts: 2
+})
 console.log('TaskPane AI框架已初始化')
 
 // 响应式数据

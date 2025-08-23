@@ -46,13 +46,11 @@ export class TaskScheduler {
       queueEmpty: []
     }
     
-    // 性能统计
+    // 简化统计
     this.stats = {
       totalTasks: 0,
       completedTasks: 0,
-      failedTasks: 0,
-      averageProcessingTime: 0,
-      cacheHitRate: 0
+      failedTasks: 0
     }
   }
 
@@ -158,8 +156,7 @@ export class TaskScheduler {
       this.completedTasks.set(task.id, task)
       this.stats.completedTasks++
       
-      // 更新平均处理时间
-      this.updateAverageProcessingTime(processingTime)
+
       
       console.log(`任务完成: ${task.id} (耗时: ${processingTime}ms)`)
       this.emit('taskComplete', task)
@@ -282,7 +279,9 @@ export class TaskScheduler {
   generatePrompt(content, analysisType, options) {
     switch (analysisType) {
       case 'extractText':
-        return generateContractExtractionPrompt(content, options)
+        // extractTags 应该是第一个参数，content 是第二个参数
+        const extractTags = options.extractTags || ['甲方名称', '乙方名称', '合同金额']
+        return generateContractExtractionPrompt(extractTags, content)
       case 'contractReview':
         return generateContractReviewPrompt(content, options)
       default:
@@ -298,14 +297,14 @@ export class TaskScheduler {
     
     for (let attempt = 0; attempt < this.aiConfig.maxRetries; attempt++) {
       try {
-        const response = await apiClient.chat.completions.create({
+        const response = await apiClient.post('/chat/completions', {
           model,
           messages: [{ role: 'user', content: prompt }],
           max_tokens: this.aiConfig.maxTokensPerChunk,
           temperature: 0.1
         })
         
-        return response.choices[0].message.content
+        return response.data.choices[0].message.content
       } catch (error) {
         console.error(`AI调用失败 (尝试 ${attempt + 1}/${this.aiConfig.maxRetries}):`, error)
         if (attempt < this.aiConfig.maxRetries - 1) {
@@ -537,77 +536,15 @@ export class TaskScheduler {
   }
 
   /**
-   * 更新平均处理时间
-   * @param {number} processingTime - 处理时间
-   */
-  updateAverageProcessingTime(processingTime) {
-    const totalCompleted = this.stats.completedTasks
-    const currentAverage = this.stats.averageProcessingTime
-    
-    this.stats.averageProcessingTime = 
-      (currentAverage * (totalCompleted - 1) + processingTime) / totalCompleted
-  }
-
-  /**
-   * 获取调度器统计信息
+   * 获取基本统计信息
    * @returns {Object} 统计信息
    */
   getStats() {
-    const cacheStats = this.cacheManager.getStats()
-    
     return {
       ...this.stats,
       queueLength: this.taskQueue.length,
-      runningTasksCount: this.runningTasks.size,
-      cacheHitRate: cacheStats.hitRate,
-      uptime: Date.now() - (this.startTime || Date.now()),
-      config: this.config
+      runningTasksCount: this.runningTasks.size
     }
-  }
-
-  /**
-   * 获取队列状态
-   * @returns {Object} 队列状态
-   */
-  getQueueStatus() {
-    return {
-      pending: this.taskQueue.map(task => ({
-        id: task.id,
-        type: task.type,
-        priority: task.priority,
-        createdAt: task.createdAt
-      })),
-      running: Array.from(this.runningTasks.values()).map(task => ({
-        id: task.id,
-        type: task.type,
-        priority: task.priority,
-        startTime: task.startTime,
-        progress: this.calculateTaskProgress(task)
-      })),
-      completed: Array.from(this.completedTasks.values()).slice(-10).map(task => ({
-        id: task.id,
-        type: task.type,
-        processingTime: task.processingTime,
-        completedAt: task.completedAt
-      })),
-      failed: Array.from(this.failedTasks.values()).slice(-10).map(task => ({
-        id: task.id,
-        type: task.type,
-        error: task.error,
-        failedAt: task.failedAt
-      }))
-    }
-  }
-
-  /**
-   * 计算任务进度（简单估算）
-   * @param {Object} task - 任务对象
-   * @returns {number} 进度百分比
-   */
-  calculateTaskProgress(task) {
-    const elapsed = Date.now() - task.startTime
-    const estimated = this.stats.averageProcessingTime || 10000
-    return Math.min(Math.round((elapsed / estimated) * 100), 95)
   }
 
   /**

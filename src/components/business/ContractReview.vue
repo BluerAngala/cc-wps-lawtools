@@ -5,21 +5,8 @@
       <template #header>
         <div class="card-header">
           <span>智能合同审查</span>
-          <div class="header-actions">
-            <el-button type="info" @click="showStats = !showStats" :icon="DataAnalysis">
-              统计信息
-            </el-button>
-          </div>
         </div>
       </template>
-      
-      <!-- 统计信息面板组件 -->
-      <StatsPanel 
-        :visible="showStats"
-        :stats="stats"
-        :queue-status="queueStatus"
-        @clear-completed="clearCompletedTasks"
-      />
       
       <!-- 操作按钮 -->
       <div class="action-bar-center">
@@ -30,7 +17,9 @@
           <el-button type="warning" @click="resetConfig" :icon="Refresh">
             重置配置
           </el-button>
-
+          <el-button type="danger" @click="clearCache" :icon="Delete">
+            清除缓存
+          </el-button>
         </el-space>
       </div>
     </el-card>
@@ -51,44 +40,23 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import { ElMessage, ElNotification } from 'element-plus'
-import { Document, Refresh, DataAnalysis } from '@element-plus/icons-vue'
+import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
+import { Document, Refresh, Delete } from '@element-plus/icons-vue'
 import taskPane from '../../services/wps/taskpane.js'
 import TaskScheduler from '../../services/ai/TaskScheduler.js'
-import { getOptimalConfig, getPerformanceRecommendations, PERFORMANCE_MONITORING } from '../../services/ai/config/performance-config.js'
-import StatsPanel from '../common/StatsPanel.vue'
 import RulesConfig from './RulesConfig.vue'
 
 console.log('合同审查组件已加载')
 
 // 响应式数据
-const showStats = ref(false)
 const processingRules = ref(new Set())
 
-
-
-// 统计信息
-const stats = ref({
-  totalTasks: 0,
-  completedTasks: 0,
-  cacheHitRate: 0,
-  averageProcessingTime: 0
+// 初始化TaskScheduler（使用简化配置）
+const taskScheduler = new TaskScheduler({
+  maxConcurrentTasks: 2,
+  taskTimeout: 30000,
+  retryAttempts: 2
 })
-
-// 任务队列状态
-const queueStatus = ref({
-  running: [],
-  pending: [],
-  completed: []
-})
-
-// 获取最佳配置
-const optimalConfig = getOptimalConfig('production', 'normal', {
-  // 可以在这里添加自定义配置覆盖
-})
-
-// 初始化TaskScheduler
-const taskScheduler = new TaskScheduler(optimalConfig)
 
 // 默认规则配置
 const DEFAULT_RULES = [
@@ -323,7 +291,7 @@ const executeRule = async (ruleType) => {
     // 创建事件监听器
     createTaskListeners(taskId, ruleType, params)
      
-    ElMessage.info('任务已添加到队列，正在处理中...')
+    ElMessage.info('任务正在处理中...')
   } catch (error) {
     console.error('规则执行失败:', error)
     ElMessage.error('规则执行失败，请检查文档状态。')
@@ -347,6 +315,31 @@ const resetConfig = () => {
   rules.value = JSON.parse(JSON.stringify(DEFAULT_RULES))
   localStorage.removeItem(STORAGE_KEY)
   ElMessage.success('配置已重置为默认值')
+}
+
+// 清除缓存
+const clearCache = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要清除所有AI分析缓存吗？此操作不可恢复。',
+      '清除缓存确认',
+      {
+        confirmButtonText: '确定清除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    
+    // 通过TaskScheduler访问CacheManager
+    if (taskScheduler && taskScheduler.cacheManager) {
+      taskScheduler.cacheManager.clear()
+      ElMessage.success('缓存已清除')
+    } else {
+      ElMessage.warning('缓存管理器不可用')
+    }
+  } catch {
+    // 用户取消操作
+  }
 }
 
 // 本地存储键名
@@ -398,75 +391,7 @@ watch(rules, () => {
 
 
 
-// 统计信息缓存
-let statsCache = null
-let queueStatusCache = null
-let lastUpdateTime = 0
-const UPDATE_INTERVAL = 1000 // 1秒更新间隔
 
-// 防抖更新统计信息
-const updateStats = () => {
-  const now = Date.now()
-  if (now - lastUpdateTime < UPDATE_INTERVAL && statsCache) {
-    stats.value = statsCache
-    return
-  }
-  
-  if (!taskScheduler) return
-  
-  const schedulerStats = taskScheduler.getStats()
-  
-  // 安全处理缓存命中率，避免NaN
-  let cacheHitRate = schedulerStats.cacheHitRate || 0
-  if (isNaN(cacheHitRate) || !isFinite(cacheHitRate)) {
-    cacheHitRate = 0
-  }
-  
-  // 安全处理平均处理时间
-  let averageProcessingTime = schedulerStats.averageProcessingTime || 0
-  if (isNaN(averageProcessingTime) || !isFinite(averageProcessingTime)) {
-    averageProcessingTime = 0
-  }
-  
-  statsCache = {
-    totalTasks: schedulerStats.totalTasks || 0,
-    completedTasks: schedulerStats.completedTasks || 0,
-    failedTasks: schedulerStats.failedTasks || 0,
-    cacheHitRate: Math.round(cacheHitRate),
-    averageProcessingTime: Math.round(averageProcessingTime),
-    runningTasks: schedulerStats.runningTasksCount || 0,
-    queueLength: schedulerStats.queueLength || 0,
-    incremental: schedulerStats.incremental || {},
-    errorRate: schedulerStats.failedTasks / Math.max(schedulerStats.totalTasks, 1)
-  }
-  stats.value = statsCache
-  lastUpdateTime = now
-  
-  // 检查性能并提供建议
-  checkPerformanceAndNotify()
-}
-
-// 防抖更新队列状态
-const updateQueueStatus = () => {
-  const now = Date.now()
-  if (now - lastUpdateTime < UPDATE_INTERVAL && queueStatusCache) {
-    queueStatus.value = queueStatusCache
-    return
-  }
-  
-  if (!taskScheduler) return
-  
-  const status = taskScheduler.getQueueStatus()
-  queueStatusCache = {
-    running: status.running || [],
-    pending: status.pending || [],
-    completed: status.completed || []
-  }
-  queueStatus.value = queueStatusCache
-  lastUpdateTime = now
-  
-
-}
 
 // 任务结果处理器映射
 const taskResultHandlers = {
@@ -538,117 +463,21 @@ const handleTaskResult = async (ruleType, result, params) => {
 }
 
 
-
-// 清理已完成任务
-const clearCompletedTasks = () => {
-  queueStatus.value.completed = []
-  ElMessage.success('已清理完成的任务')
-}
-
-
-
-// 计算已完成任务数量（使用缓存）
-const completedTasksCount = computed(() => {
-  return queueStatus.value.completed.length
-})
-
-// 检查是否有已完成的任务（使用缓存）
-const hasCompletedTasks = computed(() => {
-  return queueStatus.value.completed.length > 0
-})
-
-// 开始快速分析
-const startQuickAnalysis = () => {
-  // 添加一些常用的分析任务
-  const quickTasks = [
-    { type: 'extractText', name: 'AI文本抽取', priority: 'high' },
-    { type: 'contractReview', name: 'AI合同预审', priority: 'high' },
-    { type: 'analyzeDocStructure', name: '文档结构分析', priority: 'medium' }
-  ]
-  
-  quickTasks.forEach(task => {
-    const rule = {
-      id: Date.now() + Math.random(),
-      name: task.name,
-      type: task.type,
-      priority: task.priority,
-      enabled: true
-    }
-    executeRule(rule)
-  })
-  
-  ElMessage.success('已启动快速分析任务')
-}
-
-// 性能监控
-const performanceCheckCount = ref(0)
-const lastPerformanceCheck = ref(Date.now())
-
-// 检查性能并提供建议（已禁用通知）
-const checkPerformanceAndNotify = () => {
-  performanceCheckCount.value++
-  
-  // 性能优化建议已禁用
-  // 如需重新启用，可以取消下面代码的注释
-  /*
-  if (performanceCheckCount.value % 5 === 0) {
-    const recommendations = getPerformanceRecommendations(stats.value)
-    
-    if (recommendations.length > 0) {
-      const highPriorityRecs = recommendations.filter(rec => rec.priority === 'high')
-      
-      if (highPriorityRecs.length > 0) {
-        ElNotification({
-          title: '性能优化建议',
-          message: highPriorityRecs[0].message,
-          type: 'warning',
-          duration: 8000,
-          position: 'bottom-right'
-        })
-      }
-    }
-  }
-  */
-}
-
-// 定时器引用
-let updateInterval = null
-
 // 组件挂载时的初始化
 onMounted(() => {
   console.log('合同审查组件已挂载')
-  console.log('使用配置:', optimalConfig)
   
   // 加载本地保存的配置
   loadConfigFromLocal()
-  
-  // 定期更新统计信息和队列状态（降低频率）
-  updateInterval = setInterval(() => {
-    updateStats()
-    updateQueueStatus()
-  }, 2000) // 从1秒改为2秒
-  
-  // 初始化统计信息
-  updateStats()
-  updateQueueStatus()
 })
 
 // 组件卸载时清理资源
 onUnmounted(() => {
-  if (updateInterval) {
-    clearInterval(updateInterval)
-    updateInterval = null
-  }
-  
   // 清理所有任务监听器
   taskListeners.forEach((_, taskId) => {
     cleanupTaskListeners(taskId)
   })
   taskListeners.clear()
-  
-  // 清理缓存
-  statsCache = null
-  queueStatusCache = null
 })
 </script>
 
@@ -725,7 +554,6 @@ onUnmounted(() => {
 .action-bar-center {
   display: flex;
   justify-content: center;
-  margin-bottom: 20px;
 }
 
 .card-header {
@@ -733,53 +561,5 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-}
-
-.header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.stats-panel {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.progress-item {
-  margin-bottom: 8px;
-}
-
-.progress-label {
-  font-size: 12px;
-  color: #606266;
-  margin-bottom: 4px;
-}
-
-.percentage-value {
-  font-weight: bold;
-  color: #409EFF;
-}
-
-.queue-overview {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.rule-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.queue-card {
-  margin-top: 20px;
-}
-
-.queue-card .el-table {
-  margin-top: 16px;
 }
 </style>

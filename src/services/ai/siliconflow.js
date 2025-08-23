@@ -38,7 +38,7 @@ apiClient.interceptors.request.use(
 // 响应拦截器
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('收到响应:', response.status, response.config.url)
+    console.log('收到响应:', response.status, response.config.url, response.data)
     return response
   },
   (error) => {

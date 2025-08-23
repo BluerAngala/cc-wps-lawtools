@@ -1,14 +1,16 @@
 import Util from './util.js'
 import { kdocsHandler } from '../../utils/kdocs.js'
 import TaskScheduler from '../ai/TaskScheduler.js'
-import { getOptimalConfig } from '../ai/config/performance-config.js'
 
 class TaskPaneHandler {
   constructor() {
     this.wpsService = Util.wpsService
     // 初始化AI框架
-    const optimalConfig = getOptimalConfig()
-    this.taskScheduler = new TaskScheduler(optimalConfig)
+    this.taskScheduler = new TaskScheduler({
+      maxConcurrentTasks: 3,
+      taskTimeout: 30000,
+      retryAttempts: 2
+    })
     console.log('TaskPaneHandler AI框架已初始化')
   }
 
