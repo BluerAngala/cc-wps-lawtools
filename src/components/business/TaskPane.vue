@@ -111,7 +111,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import taskPane from '../../services/wps/taskpane.js'
-import { Desensitizer } from '../../utils/desensitizeAdvanced.js'
+import { desensitizeText } from '../../utils/desensitize.js'
 import TaskScheduler from '../../services/ai/TaskScheduler.js'
 import { getOptimalConfig } from '../../services/ai/config/performance-config.js'
 
@@ -318,12 +318,7 @@ const processDesensitizeText = (text) => {
     return { word: word.trim(), replacement: replacement?.trim() || '*' }
   })
 
-  const desensitizer = new Desensitizer({
-    whitelist: whitelistArray,
-    customSensitiveWords: customWordsArray
-  })
-
-  const { desensitizedText: resultText, sensitiveInfoList: resultList } = desensitizer.desensitizeText(text)
+  const { desensitizedText: resultText, sensitiveInfoList: resultList } = desensitizeText(text)
 
   sensitiveInfoList.value = resultList
   desensitizedText.value = resultText

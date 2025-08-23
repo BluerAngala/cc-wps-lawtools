@@ -17,9 +17,8 @@
       <StatsPanel 
         :visible="showStats"
         :stats="stats"
-        :overall-progress="overallProgress"
-        :overall-progress-status="overallProgressStatus"
         :queue-status="queueStatus"
+        @clear-completed="clearCompletedTasks"
       />
       
       <!-- 操作按钮 -->
@@ -31,9 +30,7 @@
           <el-button type="warning" @click="resetConfig" :icon="Refresh">
             重置配置
           </el-button>
-          <el-button type="info" @click="showQueueStatus = !showQueueStatus" :icon="List">
-            任务队列
-          </el-button>
+
         </el-space>
       </div>
     </el-card>
@@ -48,35 +45,25 @@
       />
     </div>
     
-    <!-- 任务队列状态组件 -->
-    <QueueStatus 
-      :visible="showQueueStatus"
-      :queue-status="queueStatus"
-      @close="showQueueStatus = false"
-      @clear-completed="clearCompletedTasks"
-    />
+
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { ElMessage, ElNotification } from 'element-plus'
-import { Document, Refresh, DataAnalysis, List } from '@element-plus/icons-vue'
+import { Document, Refresh, DataAnalysis } from '@element-plus/icons-vue'
 import taskPane from '../../services/wps/taskpane.js'
 import TaskScheduler from '../../services/ai/TaskScheduler.js'
 import { getOptimalConfig, getPerformanceRecommendations, PERFORMANCE_MONITORING } from '../../services/ai/config/performance-config.js'
 import StatsPanel from '../common/StatsPanel.vue'
 import RulesConfig from './RulesConfig.vue'
-import QueueStatus from '../common/QueueStatus.vue'
 
 console.log('合同审查组件已加载')
 
 // 响应式数据
 const showStats = ref(false)
-const showQueueStatus = ref(false)
 const processingRules = ref(new Set())
-const overallProgress = ref(0)
-const overallProgressStatus = ref('')
 
 
 
@@ -125,23 +112,21 @@ const DEFAULT_RULES = [
     title: 'AI合同预审',
     description: 'AI预审合同，使用自定义规则更灵活',
     configForm: {
-      reviewRules: {
-        label: '规则名称',
-        type: 'text',
-        value: '审查争议解决条款',
-        placeholder: '请输入预审规则名称'
-      },
-      reviewRequirements: {
-        label: '审查要求',
-        type: 'text',
-        value: '审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？',
-        placeholder: '请输入具体的审查要求'
-      },
-      actionType: {
-        label: '执行动作',
-        type: 'select',
-        value: '批注',
-        options: ['批注', '修订']
+      contractReviewRules: {
+        label: 'AI合同预审规则',
+        type: 'contractReviewList',
+        value: [
+          {
+            reviewRules: '审查争议解决条款',
+            reviewRequirements: '审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？',
+            actionType: '批注'
+          },
+          {
+            reviewRules: '审查违约责任条款',
+            reviewRequirements: '审查合同中违约责任条款是否明确，违约金或赔偿标准是否合理，是否存在免责条款？',
+            actionType: '批注'
+          }
+        ]
       }
     }
   },
@@ -220,9 +205,17 @@ const extractRuleParams = (ruleType) => {
   const currentRule = rules.value.find(rule => rule.name === ruleType)
   const config = currentRule?.configForm || {}
   const params = {}
+  
   Object.keys(config).forEach(key => {
-    params[key] = config[key].value
+    const field = config[key]
+    if (field.type === 'contractReviewList') {
+      // 对于contractReviewList类型，将规则数组转换为合适的格式
+      params.reviewRules = field.value
+    } else {
+      params[key] = field.value
+    }
   })
+  
   return params
 }
 
@@ -472,8 +465,7 @@ const updateQueueStatus = () => {
   queueStatus.value = queueStatusCache
   lastUpdateTime = now
   
-  // 更新整体进度
-  calculateOverallProgress()
+
 }
 
 // 任务结果处理器映射
@@ -553,47 +545,7 @@ const clearCompletedTasks = () => {
   ElMessage.success('已清理完成的任务')
 }
 
-// 计算整体进度
-const calculateOverallProgress = () => {
-  const total = queueStatus.value.running.length + queueStatus.value.pending.length + queueStatus.value.completed.length
-  
-  // 如果没有任务，显示100%完成状态
-  if (total === 0) {
-    overallProgress.value = 100
-    overallProgressStatus.value = 'success'
-    return
-  }
-  
-  const completed = queueStatus.value.completed.length
-  const running = queueStatus.value.running.length
-  const pending = queueStatus.value.pending.length
-  
-  // 计算运行中任务的平均进度（假设每个运行中的任务完成了50%）
-  let runningProgress = 0
-  if (running > 0) {
-    // 如果任务有progress属性则使用，否则假设运行中任务完成了50%
-    const totalRunningProgress = queueStatus.value.running.reduce((sum, task) => {
-      const taskProgress = task.progress !== undefined ? task.progress : 50
-      return sum + taskProgress
-    }, 0)
-    runningProgress = totalRunningProgress / running / 100
-  }
-  
-  // 计算总进度：已完成 + 运行中任务的进度
-  const progress = Math.round(((completed + runningProgress) / total) * 100)
-  overallProgress.value = Math.max(0, Math.min(100, progress))
-  
-  // 设置进度状态
-  if (overallProgress.value === 100) {
-    overallProgressStatus.value = 'success'
-  } else if (running > 0) {
-    overallProgressStatus.value = ''
-  } else if (pending > 0) {
-    overallProgressStatus.value = 'warning'
-  } else {
-    overallProgressStatus.value = 'exception'
-  }
-}
+
 
 // 计算已完成任务数量（使用缓存）
 const completedTasksCount = computed(() => {
@@ -769,102 +721,6 @@ onUnmounted(() => {
   margin-top: 16px;
 }
 
-.keyword-list-config {
-  width: 100%;
-}
-
-.keyword-item {
-  margin-bottom: 8px;
-  padding: 8px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  position: relative;
-}
-
-.keyword-item:last-child {
-  margin-bottom: 0;
-}
-
-.keyword-title,
-.comment-title {
-  font-size: 11px;
-  color: #606266;
-  margin-bottom: 2px;
-  font-weight: 500;
-}
-
-.keyword-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.keyword-input {
-  flex: 1;
-  margin-right: 30px;
-}
-
-.delete-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-}
-
-.comment-input {
-  width: 100%;
-  margin-top: 2px;
-}
-
-.add-keyword-btn {
-  margin-top: 12px;
-  width: 100%;
-}
-
-.tags-config {
-  width: 100%;
-}
-
-.tags-display {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
-  min-height: 40px;
-  background: #f8f9fa;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  margin-bottom: 8px;
-  align-items: flex-start;
-  align-content: flex-start;
-}
-
-.tags-display:empty {
-  display: none;
-}
-
-.tag-input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.tag-input {
-  flex: 1;
-}
-
-.add-tag-btn {
-  flex-shrink: 0;
-}
-
-.tag-item {
-  margin: 2px;
-  font-size: 12px;
-}
 
 .action-bar-center {
   display: flex;

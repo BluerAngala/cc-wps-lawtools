@@ -5,48 +5,24 @@ import { getOptimalConfig } from '../ai/config/performance-config.js'
 
 class TaskPaneHandler {
   constructor() {
-    this.initializeEnum()
+    this.wpsService = Util.wpsService
     // 初始化AI框架
     const optimalConfig = getOptimalConfig()
     this.taskScheduler = new TaskScheduler(optimalConfig)
     console.log('TaskPaneHandler AI框架已初始化')
   }
 
-  initializeEnum() {
-    if (typeof window.Application.Enum != 'object') {
-      window.Application.Enum = Util.WPS_Enum
-    }
-  }
-
+  // 使用统一的WPS服务
   getActiveDoc() {
-    console.log('getActiveDoc: 检查WPS应用程序状态')
-    console.log('window.Application:', !!window.Application)
-    
-    if (!window.Application) {
-      console.error('getActiveDoc: WPS Application对象不存在，插件可能未正确加载')
-      return null
-    }
-    
-    const doc = window.Application.ActiveDocument
-    console.log('getActiveDoc: ActiveDocument:', !!doc)
-    
-    if (!doc) {
-      console.error('getActiveDoc: 当前没有打开任何文档')
-      return null
-    }
-    
-    console.log('getActiveDoc: 成功获取活动文档')
-    return doc
+    return this.wpsService.getActiveDoc()
   }
 
   getTaskPane() {
-    const tsId = window.Application?.PluginStorage?.getItem('taskpane_id')
-    return tsId ? window.Application?.GetTaskPane(tsId) : null
+    return this.wpsService.getTaskPane()
   }
 
   enableRevisionMode(doc) {
-    doc.TrackRevisions = true
-    doc.ShowRevisions = true
+    this.wpsService.enableRevisionMode(doc)
   }
 
   async onbuttonclick(idStr, param) {
@@ -67,18 +43,18 @@ class TaskPaneHandler {
 
   getAction(idStr, param) {
     const actions = {
-      insertDateTime: () => this.insertDateTime(),
+      insertDateTime: () => this.wpsService.insertDateTime(),
       addHeader: () => this.addHeader(param),
-      dockLeft: () => this.dock('left'),
-      dockRight: () => this.dock('right'),
-      hideTaskPane: () => this.hideTaskPane(),
-      addString: () => this.addString(),
-      getDocName: () => this.getDocName(),
+      dockLeft: () => this.wpsService.dockTaskPane('left'),
+      dockRight: () => this.wpsService.dockTaskPane('right'),
+      hideTaskPane: () => this.wpsService.hideTaskPane(),
+      addString: () => this.wpsService.addStringToDoc(),
+      getDocName: () => this.wpsService.getDocName(),
       addComment: () => this.addComment(param),
       extractText: () => this.extractText(param),
       contractReview: () => this.contractReview(param),
       extractFormatted: () => this.extractFormatted(),
-      renameDoc: () => this.renameDoc(),
+      renameDoc: () => this.wpsService.renameDoc(),
       updateDocumentText: () => this.updateDocumentText(param),
       processWithAI: () => this.processWithAI(),
       desensitizeText: () => this.desensitizeText(),
@@ -86,16 +62,6 @@ class TaskPaneHandler {
       analyzeDocStructure: () => this.analyzeDocStructure()
     }
     return actions[idStr]
-  }
-
-  insertDateTime() {
-    const doc = this.getActiveDoc()
-    if (!doc) return
-
-    const selection = window.Application.Selection
-    if (selection) {
-      selection.Text = new Date().toLocaleString()
-    }
   }
 
   async addHeader(param) {
@@ -120,36 +86,7 @@ class TaskPaneHandler {
     await new Promise(resolve => setTimeout(resolve, 200))
   }
 
-  dock(position) {
-    const taskPane = this.getTaskPane()
-    if (taskPane) {
-      const dockPosition = position === 'left'
-        ? window.Application?.Enum?.msoCTPDockPositionLeft
-        : window.Application?.Enum?.msoCTPDockPositionRight
-      taskPane.DockPosition = dockPosition
-    }
-  }
 
-  hideTaskPane() {
-    const taskPane = this.getTaskPane()
-    if (taskPane) {
-      taskPane.Visible = false
-    }
-  }
-
-  addString() {
-    const doc = this.getActiveDoc()
-    if (!doc) return
-
-    doc.Range(0, 0).Text = 'Hello, wps加载项!'
-    const rgSel = window.Application?.Selection?.Range
-    rgSel?.Select()
-  }
-
-  getDocName() {
-    const doc = this.getActiveDoc()
-    return doc?.Name || '当前没有打开任何文档'
-  }
 
   async addComment(param) {
     const doc = this.getActiveDoc()
@@ -472,21 +409,7 @@ class TaskPaneHandler {
     }
   }
 
-  renameDoc() {
-    const doc = this.getActiveDoc()
-    if (!doc) return
 
-    const currentName = doc.Name
-    const newName = '「已修订」' + currentName
-    const newFullPath = doc.Path + '\\' + newName
-
-    doc.SaveAs2(newFullPath)
-    doc.Close()
-    window.Application.Documents.Open(newFullPath)
-
-    alert('文件已重命名为：' + newName)
-    return newName
-  }
 
   updateDocumentText(param) {
     const doc = this.getActiveDoc()

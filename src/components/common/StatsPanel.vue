@@ -1,11 +1,12 @@
 <template>
   <el-collapse-transition>
     <div v-show="visible" class="stats-panel">
+      <el-divider content-position="left">性能统计</el-divider>
       <el-row :gutter="16">
         <el-col :span="6">
           <el-statistic title="总任务数" :value="stats.totalTasks">
             <template #suffix>
-              <el-icon color="#409EFF"><DataAnalysis /></el-icon>
+              <el-icon><DataAnalysis /></el-icon>
             </template>
           </el-statistic>
         </el-col>
@@ -19,14 +20,14 @@
         <el-col :span="6">
           <el-statistic title="缓存命中率" :value="stats.cacheHitRate" suffix="%">
             <template #suffix>
-              <el-icon :color="stats.cacheHitRate > 50 ? '#67C23A' : '#F56C6C'"><TrendCharts /></el-icon>
+              <el-icon color="#E6A23C"><TrendCharts /></el-icon>
             </template>
           </el-statistic>
         </el-col>
         <el-col :span="6">
           <el-statistic title="平均处理时间" :value="stats.averageProcessingTime" suffix="ms">
             <template #suffix>
-              <el-icon color="#E6A23C"><Timer /></el-icon>
+              <el-icon color="#409EFF"><Timer /></el-icon>
             </template>
           </el-statistic>
         </el-col>
@@ -77,42 +78,147 @@
           show-icon
         />
       </template>
+      
+      <!-- 队列详情 - 集成QueueStatus功能 -->
+      <template v-if="showQueueDetails && hasActiveTasks">
+        <el-divider content-position="left">队列详情</el-divider>
+        <el-tabs v-model="activeQueueTab" size="small">
+          <el-tab-pane name="running" :label="`运行中 (${queueStatus.running.length})`">
+            <el-table :data="queueStatus.running" size="small" max-height="200">
+              <el-table-column prop="id" label="任务ID" width="120" />
+              <el-table-column prop="type" label="类型" width="100">
+                <template #default="{ row }">
+                  <el-tag size="small">{{ getTaskTypeLabel(row.type) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="progress" label="进度" width="120">
+                <template #default="{ row }">
+                  <el-progress :percentage="row.progress || 0" size="small" />
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
+          <el-tab-pane name="pending" :label="`等待中 (${queueStatus.pending.length})`">
+            <el-table :data="queueStatus.pending" size="small" max-height="200">
+              <el-table-column prop="id" label="任务ID" width="120" />
+              <el-table-column prop="type" label="类型" width="100">
+                <template #default="{ row }">
+                  <el-tag size="small">{{ getTaskTypeLabel(row.type) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="priority" label="优先级" width="80">
+                <template #default="{ row }">
+                  <el-tag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
+        </el-tabs>
+        <div style="text-align: center; margin-top: 10px;">
+          <el-button size="small" @click="showQueueDetails = false">收起详情</el-button>
+          <el-button size="small" type="primary" @click="$emit('clear-completed')" :disabled="queueStatus.completed.length === 0">
+            清理已完成 ({{ queueStatus.completed.length }})
+          </el-button>
+        </div>
+      </template>
+      
+      <!-- 显示队列详情按钮 -->
+      <template v-else-if="hasActiveTasks">
+        <div style="text-align: center; margin-top: 10px;">
+          <el-button size="small" type="text" @click="showQueueDetails = true">
+            查看队列详情 <el-icon><ArrowDown /></el-icon>
+          </el-button>
+        </div>
+      </template>
     </div>
   </el-collapse-transition>
 </template>
 
-<script setup>
-import { computed } from 'vue'
-import { DataAnalysis, Check, TrendCharts, Timer, Loading, Clock } from '@element-plus/icons-vue'
+<script>
+import { DataAnalysis, Check, TrendCharts, Timer, Loading, Clock, ArrowDown } from '@element-plus/icons-vue'
 
-// Props
-const props = defineProps({
-  visible: {
-    type: Boolean,
-    default: false
+export default {
+  name: 'StatsPanel',
+  components: {
+    DataAnalysis,
+    Check,
+    TrendCharts,
+    Timer,
+    Loading,
+    Clock,
+    ArrowDown
   },
-  stats: {
-    type: Object,
-    required: true
+  props: {
+    visible: {
+      type: Boolean,
+      default: true
+    },
+    stats: {
+      type: Object,
+      default: () => ({
+        totalTasks: 0,
+        completedTasks: 0,
+        cacheHitRate: 0,
+        averageProcessingTime: 0
+      })
+    },
+    queueStatus: {
+      type: Object,
+      default: () => ({
+        running: [],
+        pending: [],
+        completed: []
+      })
+    }
   },
-  overallProgress: {
-    type: Number,
-    default: 0
+  data() {
+    return {
+      showQueueDetails: false,
+      activeQueueTab: 'running'
+    }
   },
-  overallProgressStatus: {
-    type: String,
-    default: ''
+  computed: {
+    hasActiveTasks() {
+      return this.queueStatus.running.length > 0 || this.queueStatus.pending.length > 0
+    },
+    overallProgress() {
+      const total = this.stats.totalTasks
+      if (total === 0) return 0
+      return Math.round((this.stats.completedTasks / total) * 100)
+    },
+    overallProgressStatus() {
+      if (this.overallProgress === 100) return 'success'
+      if (this.overallProgress > 50) return 'warning'
+      return 'exception'
+    }
   },
-  queueStatus: {
-    type: Object,
-    required: true
+  methods: {
+    getTaskTypeLabel(type) {
+      const typeMap = {
+        'contract_review': '合同审查',
+        'risk_analysis': '风险分析',
+        'clause_extraction': '条款提取',
+        'compliance_check': '合规检查'
+      }
+      return typeMap[type] || type
+    },
+    getPriorityType(priority) {
+      const priorityMap = {
+        'high': 'danger',
+        'medium': 'warning',
+        'low': 'info'
+      }
+      return priorityMap[priority] || 'info'
+    }
+  },
+  watch: {
+    hasActiveTasks(newVal) {
+      if (!newVal) {
+        this.showQueueDetails = false
+      }
+    }
   }
-})
-
-// 计算是否有活跃任务
-const hasActiveTasks = computed(() => {
-  return props.queueStatus.running.length > 0 || props.queueStatus.pending.length > 0
-})
+}
 </script>
 
 <style scoped>

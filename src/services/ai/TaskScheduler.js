@@ -1,23 +1,26 @@
 /**
- * 任务调度器 - 智能任务分发和并行处理
- * 协调文档解析、缓存管理和AI服务的工作流程
+ * 任务调度器 - 简化的AI服务统一入口
+ * 集成文档解析、缓存管理和AI调用功能
  */
 
-import { AIServiceManager } from './AIServiceManager.js'
 import { DocumentParser } from './DocumentParser.js'
 import { CacheManager } from './CacheManager.js'
-import { IncrementalAnalyzer } from './IncrementalAnalyzer.js'
+import { apiClient } from './siliconflow.js'
+import { generateContractExtractionPrompt, generateContractReviewPrompt } from './promptGenerator.js'
 
 export class TaskScheduler {
   constructor(options = {}) {
-    this.aiService = new AIServiceManager(options.ai)
     this.documentParser = new DocumentParser()
     this.cacheManager = new CacheManager(options.cache)
-    this.incrementalAnalyzer = new IncrementalAnalyzer({
-      ai: options.ai,
-      cache: options.cache,
-      ...options.incremental
-    })
+    
+    // AI服务配置
+    this.aiConfig = {
+      maxTokensPerChunk: options.maxTokensPerChunk || 3000,
+      defaultModel: options.defaultModel || 'deepseek-ai/DeepSeek-V3',
+      maxRetries: options.maxRetries || 3,
+      retryDelay: options.retryDelay || 1000,
+      ...options.ai
+    }
     
     // 调度器配置
     this.config = {
@@ -202,74 +205,145 @@ export class TaskScheduler {
    * @returns {Promise<any>} 任务结果
    */
   async executeTaskByType(task) {
-    // 检查是否启用增量分析
-    const useIncremental = task.options?.enableIncremental !== false && 
-                          ['extractText', 'contractReview', 'analyzeStructure'].includes(task.type)
+    const { type, content, options = {} } = task
     
-    if (useIncremental && task.content) {
-      // 使用增量分析
-      const documentId = task.options?.documentId || 'default'
-      return await this.incrementalAnalyzer.analyzeIncremental(
-        task.content,
-        task.type,
-        task.options,
-        documentId
-      )
-    }
-    
-    // 传统处理方式
-    switch (task.type) {
+    switch (type) {
       case 'extractText':
-        return await this.aiService.analyzeContent(
-          task.content,
-          'extractText',
-          task.options
-        )
-      
+        return await this.analyzeContent(content, 'extractText', options)
+        
       case 'contractReview':
-        return await this.aiService.analyzeContent(
-          task.content,
-          'contractReview',
-          task.options
-        )
-      
+        return await this.analyzeContent(content, 'contractReview', options)
+        
       case 'analyzeStructure':
-        return await this.aiService.analyzeContent(
-          task.content,
-          'analyzeStructure',
-          task.options
-        )
-      
+        return await this.analyzeContent(content, 'analyzeStructure', options)
+        
       case 'keywordComment':
-        return await this.aiService.analyzeContent(
-          task.content,
-          'keywordComment',
-          task.options
-        )
-      
+        return await this.analyzeContent(content, 'keywordComment', options)
+        
       case 'parseDocument':
-        return this.documentParser.parseDocument(task.content)
-      
+        return this.documentParser.parseDocument(content)
+        
       case 'detectChanges':
         return this.documentParser.detectChanges(
-          task.options.oldContent,
-          task.content
+          options.oldContent,
+          content
         )
-      
+        
       case 'batchProcess':
         return await this.executeBatchTask(task)
-      
+        
       case 'addHeader':
         // 处理添加页眉任务 - 返回参数供前端处理
         return {
           success: true,
-          data: task.options,
+          data: options,
           message: '页眉参数已准备完成'
         }
-      
+        
       default:
-        throw new Error(`未知的任务类型: ${task.type}`)
+        throw new Error(`未知的任务类型: ${type}`)
     }
+  }
+
+  /**
+   * 分析内容的核心方法
+   * @param {string} content - 内容
+   * @param {string} analysisType - 分析类型
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 分析结果
+   */
+  async analyzeContent(content, analysisType, options = {}) {
+    // 检查缓存
+    const contentHash = this.documentParser.generateContentHash(content)
+    const cached = this.cacheManager.get(contentHash, analysisType, options)
+    if (cached) {
+      console.log(`缓存命中: ${analysisType}`)
+      return cached
+    }
+
+    // 生成提示词
+    const prompt = this.generatePrompt(content, analysisType, options)
+    
+    // 调用AI服务
+    const response = await this.callAI(prompt, options)
+    
+    // 解析响应
+    const result = this.parseAIResponse(response, analysisType)
+    
+    // 保存到缓存
+    this.cacheManager.set(contentHash, analysisType, result, options)
+    
+    return result
+  }
+
+  /**
+   * 生成AI提示词
+   */
+  generatePrompt(content, analysisType, options) {
+    switch (analysisType) {
+      case 'extractText':
+        return generateContractExtractionPrompt(content, options)
+      case 'contractReview':
+        return generateContractReviewPrompt(content, options)
+      default:
+        return `请分析以下内容：\n\n${content}`
+    }
+  }
+
+  /**
+   * 调用AI服务
+   */
+  async callAI(prompt, options = {}) {
+    const model = options.model || this.aiConfig.defaultModel
+    
+    for (let attempt = 0; attempt < this.aiConfig.maxRetries; attempt++) {
+      try {
+        const response = await apiClient.chat.completions.create({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: this.aiConfig.maxTokensPerChunk,
+          temperature: 0.1
+        })
+        
+        return response.choices[0].message.content
+      } catch (error) {
+        console.error(`AI调用失败 (尝试 ${attempt + 1}/${this.aiConfig.maxRetries}):`, error)
+        if (attempt < this.aiConfig.maxRetries - 1) {
+          await this.delay(this.aiConfig.retryDelay * (attempt + 1))
+        } else {
+          throw error
+        }
+      }
+    }
+  }
+
+  /**
+   * 解析AI响应
+   */
+  parseAIResponse(response, analysisType) {
+    try {
+      // 尝试解析JSON
+      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || 
+                       response.match(/{[\s\S]*}/)
+      
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[1] || jsonMatch[0]
+        return JSON.parse(jsonStr)
+      }
+      
+      // 如果不是JSON格式，返回原始文本
+      return { content: response, type: analysisType }
+    } catch (error) {
+      console.error('解析AI响应失败:', error)
+      return { content: response, type: analysisType, error: '解析失败' }
+    }
+  }
+
+  /**
+   * 延迟函数
+   */
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms))
   }
 
   /**
@@ -480,7 +554,6 @@ export class TaskScheduler {
    */
   getStats() {
     const cacheStats = this.cacheManager.getStats()
-    const incrementalStats = this.incrementalAnalyzer.getStats()
     
     return {
       ...this.stats,
@@ -488,7 +561,6 @@ export class TaskScheduler {
       runningTasksCount: this.runningTasks.size,
       cacheHitRate: cacheStats.hitRate,
       uptime: Date.now() - (this.startTime || Date.now()),
-      incremental: incrementalStats,
       config: this.config
     }
   }
@@ -553,12 +625,8 @@ export class TaskScheduler {
       queueEmpty: []
     }
     
-    if (this.aiService) {
-      this.aiService.cleanup()
-    }
-    
-    if (this.incrementalAnalyzer) {
-      this.incrementalAnalyzer.cleanup()
+    if (this.cacheManager) {
+      this.cacheManager.cleanup()
     }
     
     console.log('任务调度器资源已清理')

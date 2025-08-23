@@ -201,17 +201,31 @@ ${content}`
  * 合同预审处理
  * @param {Object} params - 参数对象
  * @param {string} params.content - 要审查的合同内容
- * @param {string} params.reviewRules - 规则名称
- * @param {string} params.reviewRequirements - 审查要求
- * @param {string} params.actionType - 执行动作类型（批注/修订）
+ * @param {Array|string} params.reviewRules - 规则数组或单个规则
+ * @param {string} params.reviewRequirements - 审查要求（兼容旧格式）
+ * @param {string} params.actionType - 执行动作类型（兼容旧格式）
  * @param {string} params.model - 使用的模型名称
  * @returns {Promise<string>} AI 处理后的结果
  */
 async function processContractReview({ content, reviewRules, reviewRequirements, actionType, model = 'deepseek-ai/DeepSeek-V3' }) {
   try {
-    // 生成合同预审提示词
-    const promptContent = generateContractReviewPrompt(reviewRules, reviewRequirements, actionType)
-      .replace('{{input}}', content)
+    let promptContent
+    
+    // 处理新的规则数组格式
+    if (Array.isArray(reviewRules)) {
+      // 合并所有规则为一个综合提示词
+      const allRules = reviewRules.map((rule, index) => 
+        `## 规则${index + 1}: ${rule.reviewRules}\n审查要求: ${rule.reviewRequirements}\n执行动作: ${rule.actionType}`
+      ).join('\n\n')
+      
+      const actionType = reviewRules[0]?.actionType || '批注'
+      promptContent = generateContractReviewPrompt('综合预审规则', allRules, actionType)
+        .replace('{{input}}', content)
+    } else {
+      // 兼容旧的单规则格式
+      promptContent = generateContractReviewPrompt(reviewRules, reviewRequirements, actionType)
+        .replace('{{input}}', content)
+    }
     
     console.log('合同预审提示词:', promptContent)
     
