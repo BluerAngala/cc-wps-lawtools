@@ -11,7 +11,8 @@ import { generateContractExtractionPrompt, generateContractReviewPrompt } from '
 export class TaskScheduler {
   constructor(options = {}) {
     this.documentParser = new DocumentParser()
-    this.cacheManager = new CacheManager(options.cache)
+    // 优先使用传入的缓存管理器实例，否则使用全局实例，最后才创建新实例
+    this.cacheManager = options.cacheManager || window.cacheManager || new CacheManager(options.cache)
     
     // AI服务配置
     this.aiConfig = {

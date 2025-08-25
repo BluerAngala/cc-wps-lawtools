@@ -68,24 +68,57 @@ class TaskPaneHandler {
 
   async addHeader(param) {
     const doc = this.getActiveDoc()
-    if (!doc || !param?.headerText) return
-
-    this.enableRevisionMode(doc)
-
-    const sections = doc.Sections
-    if (sections.Count > 0) {
-      const header = sections.Item(1).Headers.Item(1)
-      const range = header.Range
-
-      range.Text = param.headerText
-      range.Font.Name = '宋体'
-      range.Font.Size = parseInt(param.fontSize) || 12
-
-      const alignmentMap = { '左对齐': 0, '居中': 1, '右对齐': 2 }
-      range.Paragraphs.Alignment = alignmentMap[param.alignment] ?? 1
+    if (!doc || !param?.headerText) {
+      return { success: false, message: '文档不存在或页眉文本为空' }
     }
 
-    await new Promise(resolve => setTimeout(resolve, 200))
+    try {
+      this.enableRevisionMode(doc)
+
+      const sections = doc.Sections
+      if (sections.Count > 0) {
+        const header = sections.Item(1).Headers.Item(1)
+        const range = header.Range
+
+        // 检查是否已有页眉内容
+        const existingText = range.Text?.trim() || ''
+        let newHeaderText = param.headerText
+
+        // 如果已有页眉内容，将新内容追加到现有内容后面
+        if (existingText && existingText !== param.headerText) {
+          // 检查是否已包含要添加的内容，避免重复
+          if (!existingText.includes(param.headerText)) {
+            newHeaderText = existingText + '\t' + param.headerText
+          } else {
+            // 如果已包含相同内容，直接返回成功
+            return { success: true, message: '页眉内容已存在，无需重复添加' }
+          }
+        }
+
+        range.Text = newHeaderText
+        range.Font.Name = '宋体'
+        range.Font.Size = parseInt(param.fontSize) || 12
+
+        const alignmentMap = { '左对齐': 0, '居中': 1, '右对齐': 2 }
+        range.Paragraphs.Alignment = alignmentMap[param.alignment] ?? 1
+
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        return { 
+          success: true, 
+          message: '页眉添加成功',
+          headerText: newHeaderText
+        }
+      } else {
+        return { success: false, message: '文档中没有找到节或页眉' }
+      }
+    } catch (error) {
+      console.error('添加页眉时出错:', error)
+      return { 
+        success: false, 
+        message: `添加页眉失败: ${error.message}` 
+      }
+    }
   }
 
 

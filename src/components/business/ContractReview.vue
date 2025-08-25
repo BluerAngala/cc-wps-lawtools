@@ -7,7 +7,7 @@
           <span>智能合同审查</span>
         </div>
       </template>
-      
+
       <!-- 操作按钮 -->
       <div class="action-bar-center">
         <el-space size="large">
@@ -22,18 +22,25 @@
           </el-button>
         </el-space>
       </div>
+      
+      <!-- 缓存状态信息 -->
+      <el-divider content-position="center">
+        <el-text type="info" size="small">缓存状态</el-text>
+      </el-divider>
+      <div class="cache-info">
+        <el-text size="small" type="info">{{ getCacheInfo() }}</el-text>
+      </div>
     </el-card>
 
     <div class="content">
       <!-- 规则配置组件 -->
-      <RulesConfig 
-        :rules="rules"
-        :processing-rules="processingRules"
-        @execute-rule="executeRule"
-        @update-rule-config="updateRuleConfig"
-      />
+      <RulesConfig :rules="rules" :processing-rules="processingRules" :extracted-data="extractedData"
+        :active-extracted-items="activeExtractedItems" :submitting="submitting" @execute-rule="executeRule"
+        @update-rule-config="updateRuleConfig" @submit-extracted-data="submitExtractedData"
+        @update:active-extracted-items="activeExtractedItems = $event"
+        @update:extracted-data="extractedData = $event" />
     </div>
-    
+
 
   </div>
 </template>
@@ -45,11 +52,15 @@ import { Document, Refresh, Delete } from '@element-plus/icons-vue'
 import taskPane from '../../services/wps/taskpane.js'
 import TaskScheduler from '../../services/ai/TaskScheduler.js'
 import RulesConfig from './RulesConfig.vue'
+import { kdocsHandler } from '../../utils/kdocs.js'
 
 console.log('合同审查组件已加载')
 
 // 响应式数据
 const processingRules = ref(new Set())
+const extractedData = ref(null) // 存储抽取的合同信息
+const activeExtractedItems = ref([]) // 控制折叠面板展开状态
+const submitting = ref(false) // 提交状态
 
 // 初始化TaskScheduler（使用简化配置）
 const taskScheduler = new TaskScheduler({
@@ -69,8 +80,30 @@ const DEFAULT_RULES = [
       extractTags: {
         label: '提取数据要素',
         type: 'tags',
-        value: ['甲方名称', '乙方名称', '合同金额'],
+        value: ["合同名称", '甲方', '乙方', '其他方', '合同金额'],
         inputValue: ''
+      }
+    }
+  }, {
+    name: 'keywordComment',
+    icon: '🔍',
+    title: '关键词批注',
+    description: '识别关键词并添加批注',
+    configForm: {
+      keywordList: {
+        type: 'keywordList',
+        value: [
+          { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。' },
+          { keyword: '付款方式', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。' },
+          { keyword: '费用', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。' },
+          { keyword: '验收', comment: '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。' },
+          { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误' },
+          { keyword: '仲裁', comment: '建议约定统一约定法院管辖' },
+          { keyword: '“广东特支计划”', comment: '提醒确认项目名称以及期数是否准确无误' },
+          { keyword: '培养期为', comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！' },
+          { keyword: '资金发放安排', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。' },
+          { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。' },
+        ]
       }
     }
   },
@@ -124,23 +157,7 @@ const DEFAULT_RULES = [
       }
     }
   },
-  {
-    name: 'keywordComment',
-    icon: '🔍',
-    title: '关键词批注',
-    description: '识别关键词并添加批注',
-    configForm: {
-      keywordList: {
-        type: 'keywordList',
-        value: [
-          { keyword: '违约', comment: '此处涉及违约条款，需重点关注' },
-          { keyword: '责任', comment: '责任条款，请仔细审查' },
-          { keyword: '赔偿', comment: '赔偿相关条款，注意金额和条件' },
-          { keyword: '终止', comment: '合同终止条件，需明确约定' }
-        ]
-      }
-    }
-  },
+
   {
     name: 'analyzeDocStructure',
     icon: '📋',
@@ -173,7 +190,7 @@ const extractRuleParams = (ruleType) => {
   const currentRule = rules.value.find(rule => rule.name === ruleType)
   const config = currentRule?.configForm || {}
   const params = {}
-  
+
   Object.keys(config).forEach(key => {
     const field = config[key]
     if (field.type === 'contractReviewList') {
@@ -183,7 +200,7 @@ const extractRuleParams = (ruleType) => {
       params[key] = field.value
     }
   })
-  
+
   return params
 }
 
@@ -205,14 +222,14 @@ const cleanupTaskListeners = (taskId) => {
 const createTaskListeners = (taskId, ruleType, params) => {
   // 清理可能存在的旧监听器
   cleanupTaskListeners(taskId)
-  
+
   const handleTaskComplete = (task) => {
     if (task.id === taskId) {
       handleTaskResult(ruleType, task.result, params)
       cleanupTaskListeners(taskId)
     }
   }
-  
+
   const handleTaskError = (task, error) => {
     if (task.id === taskId) {
       console.error('任务执行失败:', error)
@@ -220,13 +237,13 @@ const createTaskListeners = (taskId, ruleType, params) => {
       cleanupTaskListeners(taskId)
     }
   }
-  
+
   // 存储监听器引用
   taskListeners.set(taskId, {
     onComplete: handleTaskComplete,
     onError: handleTaskError
   })
-  
+
   taskScheduler.on('taskComplete', handleTaskComplete)
   taskScheduler.on('taskError', handleTaskError)
 }
@@ -234,7 +251,7 @@ const createTaskListeners = (taskId, ruleType, params) => {
 // 执行规则
 const executeRule = async (ruleType) => {
   console.log('执行规则:', ruleType)
-  
+
   // 防止重复执行
   if (processingRules.value.has(ruleType)) {
     ElMessage.warning('该规则正在执行中，请稍候...')
@@ -242,7 +259,7 @@ const executeRule = async (ruleType) => {
   }
 
   processingRules.value.add(ruleType)
-  
+
   try {
     // 提取配置参数
     const params = extractRuleParams(ruleType)
@@ -260,7 +277,7 @@ const executeRule = async (ruleType) => {
     console.log('获取到的文档内容:', documentContent)
     console.log('文档内容类型:', typeof documentContent)
     console.log('文档内容长度:', documentContent?.length || 0)
-    
+
     // 检查是否成功获取到文档内容
     if (!documentContent || typeof documentContent !== 'string' || !documentContent.trim()) {
       console.error('文档内容获取失败:', {
@@ -268,7 +285,7 @@ const executeRule = async (ruleType) => {
         type: typeof documentContent,
         length: documentContent?.length || 0
       })
-      
+
       ElMessage.error({
         message: '无法获取文档内容，请检查以下几点：\n1. 确保已在WPS中打开文档\n2. 确保文档中有内容\n3. 尝试刷新页面重新加载插件',
         duration: 5000,
@@ -276,7 +293,7 @@ const executeRule = async (ruleType) => {
       })
       return
     }
-    
+
     // 创建任务配置
     const taskConfig = {
       type: ruleType,
@@ -287,10 +304,10 @@ const executeRule = async (ruleType) => {
 
     // 添加任务到调度器
     const taskId = taskScheduler.addTask(taskConfig)
-    
+
     // 创建事件监听器
     createTaskListeners(taskId, ruleType, params)
-     
+
     ElMessage.info('任务正在处理中...')
   } catch (error) {
     console.error('规则执行失败:', error)
@@ -320,8 +337,15 @@ const resetConfig = () => {
 // 清除缓存
 const clearCache = async () => {
   try {
+    const cacheManager = window.cacheManager || (taskScheduler && taskScheduler.cacheManager)
+    
+    if (!cacheManager) {
+      ElMessage.warning('缓存管理器不可用')
+      return
+    }
+
     await ElMessageBox.confirm(
-      '确定要清除所有AI分析缓存吗？此操作不可恢复。',
+      '确定要清除所有AI分析缓存吗？此操作不可恢复。\n\n注意：现在每次打开新文档时会自动清除缓存，缓存时长已调整为30分钟。',
       '清除缓存确认',
       {
         confirmButtonText: '确定清除',
@@ -329,17 +353,28 @@ const clearCache = async () => {
         type: 'warning',
       }
     )
-    
-    // 通过TaskScheduler访问CacheManager
-    if (taskScheduler && taskScheduler.cacheManager) {
-      taskScheduler.cacheManager.clear()
-      ElMessage.success('缓存已清除')
-    } else {
-      ElMessage.warning('缓存管理器不可用')
-    }
+
+    cacheManager.clear()
+    ElMessage.success('缓存已清除')
   } catch {
     // 用户取消操作
   }
+}
+
+// 获取缓存状态信息
+const getCacheInfo = () => {
+  const cacheManager = window.cacheManager || (taskScheduler && taskScheduler.cacheManager)
+  const documentWatcher = window.documentWatcher
+  
+  if (!cacheManager) {
+    return '缓存管理器不可用'
+  }
+  
+  const memorySize = cacheManager.memoryCache ? cacheManager.memoryCache.size : 0
+  const maxAge = Math.round(cacheManager.maxCacheAge / (60 * 1000)) // 转换为分钟
+  const currentDoc = documentWatcher ? documentWatcher.getCurrentDocumentInfo() : null
+  
+  return `当前缓存: ${memorySize} 条 | 过期时间: ${maxAge} 分钟 | 文档监听: ${currentDoc?.isWatching ? '已启用' : '未启用'}`
 }
 
 // 本地存储键名
@@ -396,14 +431,65 @@ watch(rules, () => {
 // 任务结果处理器映射
 const taskResultHandlers = {
   extractText: async (result, params) => {
-    if (result?.data) {
-      await taskPane.onbuttonclick('extractText', {
-        extractContent: params.extractTags || [],
-        aiResult: result.data
+    console.log('extractText 完整结果:', result)
+    console.log('result类型:', typeof result)
+
+    // TaskScheduler的parseAIResponse直接返回解析后的JSON对象
+    if (result && typeof result === 'object' && !result.error) {
+      // 过滤掉非数据字段
+      const filteredData = {}
+      Object.keys(result).forEach(key => {
+        if (key !== 'content' && key !== 'type' && key !== 'error') {
+          filteredData[key] = result[key]
+        }
       })
+
+      console.log('过滤后的抽取信息:', filteredData)
+
+      // 如果过滤后有数据，使用过滤后的数据，否则使用原始数据
+      let finalData = Object.keys(filteredData).length > 0 ? filteredData : result
+
+      // 确保包含所有必需字段
+      const requiredFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额']
+      requiredFields.forEach(field => {
+        if (!finalData[field]) {
+          finalData[field] = '' // 为缺失字段设置空字符串
+        }
+      })
+      
+      // 对接客户字段默认为空
+      finalData['对接客户'] = ''
+
+      console.log('补充字段后的数据:', finalData)
+
+      // 检查合同名称，如果是人才培养协议或含有"揭榜挂帅"，则交换乙方和丙方
+      const contractName = finalData['合同名称'] || ''
+      if (contractName.includes('人才培养协议') || contractName.includes('揭榜挂帅')) {
+        console.log('检测到特殊合同类型，交换乙方和丙方:', contractName)
+        
+        // 交换乙方和丙方（其他方）
+        const tempPartyB = finalData['乙方']
+        finalData['乙方'] = finalData['其他方'] || finalData['丙方'] || ''
+        finalData['其他方'] = tempPartyB
+        
+        // 如果存在丙方字段，也进行相应处理
+        if (finalData['丙方']) {
+          finalData['丙方'] = tempPartyB
+        }
+        
+        console.log('交换后的数据:', finalData)
+      }
+
+      // 将抽取的数据存储到响应式变量中
+      extractedData.value = finalData
+      // 默认展开所有项目
+      activeExtractedItems.value = Object.keys(finalData)
+      console.log('已设置extractedData.value:', extractedData.value)
+    } else {
+      console.warn('未找到有效的抽取数据或存在错误:', result)
     }
   },
-  
+
   contractReview: async (result, params) => {
     if (result?.data) {
       await taskPane.onbuttonclick('contractReview', {
@@ -414,7 +500,7 @@ const taskResultHandlers = {
       })
     }
   },
-  
+
   analyzeDocStructure: async (result, params) => {
     if (result?.data) {
       await taskPane.onbuttonclick('analyzeDocStructure', {
@@ -422,13 +508,13 @@ const taskResultHandlers = {
       })
     }
   },
-  
+
   keywordComment: async (result, params) => {
     await taskPane.onbuttonclick('addComment', {
       keywordList: params.keywordList
     })
   },
-  
+
   addHeader: async (result, params) => {
     await taskPane.onbuttonclick('addHeader', {
       headerText: params.headerText,
@@ -438,11 +524,103 @@ const taskResultHandlers = {
   }
 }
 
+// 提交抽取的数据
+const submitExtractedData = async () => {
+  if (!extractedData.value) {
+    ElMessage.warning('没有可提交的数据')
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    // 1. 保存到本地存储
+    const storageKey = 'contract_extracted_data'
+    const dataToSave = {
+      data: extractedData.value,
+      timestamp: Date.now(),
+      id: Date.now().toString()
+    }
+
+    // 获取现有数据
+    const existingData = JSON.parse(localStorage.getItem(storageKey) || '[]')
+    existingData.push(dataToSave)
+    localStorage.setItem(storageKey, JSON.stringify(existingData))
+
+    console.log('数据已保存到本地存储')
+
+    // 2. 数据验证和处理
+    const fields = { ...extractedData.value }
+
+    // 确保所有字段都存在，为空字段设置空字符串
+    const allFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额', '对接客户']
+    allFields.forEach(field => {
+      if (!fields[field] || fields[field].trim() === '') {
+        fields[field] = '' // 为空字段设置空字符串
+      }
+    })
+    
+    // 对接客户字段强制设置为空
+    fields['对接客户'] = ''
+
+    console.log('处理后的字段数据:', fields)
+
+    // 3. 调用金山文档接口创建记录
+    console.log('创建金山文档行记录 fields', fields)
+
+    const res = await kdocsHandler({
+      type: 'createRecords',
+      sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID),
+      inputData: [{ fields }]
+    })
+
+    console.log('res', res)
+
+    const 审查编号 = res?.data?.[0]?.fields?.审查编号
+    console.log('审查编号', 审查编号)
+
+    if (!审查编号) {
+      ElMessage.error('创建金山文档行记录失败或者没有返回id')
+      return
+    }
+
+    // 4. 添加页眉 - 将审查编号添加到页眉
+    try {
+      const headerRes = await taskPane.onbuttonclick('addHeader', {
+        headerText: `文件编号：${审查编号}`,
+        fontSize: '12', // 小四号字体
+        alignment: '右对齐'
+      })
+      console.log('页眉添加结果', headerRes)
+      
+      if (headerRes?.success) {
+        ElMessage.success(headerRes.message || '页眉添加成功')
+      } else {
+        ElMessage.warning(headerRes?.message || '页眉添加失败')
+      }
+    } catch (headerError) {
+      console.error('添加页眉失败:', headerError)
+      ElMessage.error('添加页眉时发生错误')
+      // 页眉添加失败不影响整体流程，只记录错误
+    }
+
+    ElMessage.success('数据提交成功！')
+
+    return res?.data?.[0]
+
+  } catch (error) {
+    console.error('提交数据失败:', error)
+    ElMessage.error(`提交失败: ${error.message}`)
+  } finally {
+    submitting.value = false
+  }
+}
+
 // 处理任务结果
 const handleTaskResult = async (ruleType, result, params) => {
   try {
     console.log('处理任务结果:', ruleType, result)
-    
+
     // 获取对应的处理器
     const handler = taskResultHandlers[ruleType]
     if (handler) {
@@ -450,12 +628,12 @@ const handleTaskResult = async (ruleType, result, params) => {
     } else {
       console.warn('未知的规则类型:', ruleType)
     }
-    
+
     // 等待WPS完成渲染
     await new Promise(resolve => setTimeout(resolve, 500))
-    
+
     ElMessage.success(resultMessages[ruleType] || '规则执行完成！')
-    
+
   } catch (error) {
     console.error('处理任务结果失败:', error)
     ElMessage.error('处理结果时发生错误')
@@ -466,7 +644,7 @@ const handleTaskResult = async (ruleType, result, params) => {
 // 组件挂载时的初始化
 onMounted(() => {
   console.log('合同审查组件已挂载')
-  
+
   // 加载本地保存的配置
   loadConfigFromLocal()
 })
@@ -516,6 +694,14 @@ onUnmounted(() => {
 
 .action-bar {
   margin-bottom: 20px;
+}
+
+.cache-info {
+  text-align: center;
+  padding: 8px 0;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin-top: 8px;
 }
 
 .rules-card {
