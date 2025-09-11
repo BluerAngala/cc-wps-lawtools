@@ -22,7 +22,7 @@
           </el-button>
         </el-space>
       </div>
-      
+
       <!-- 缓存状态信息 -->
       <el-divider content-position="center">
         <el-text type="info" size="small">缓存状态</el-text>
@@ -338,7 +338,7 @@ const resetConfig = () => {
 const clearCache = async () => {
   try {
     const cacheManager = window.cacheManager || (taskScheduler && taskScheduler.cacheManager)
-    
+
     if (!cacheManager) {
       ElMessage.warning('缓存管理器不可用')
       return
@@ -365,15 +365,15 @@ const clearCache = async () => {
 const getCacheInfo = () => {
   const cacheManager = window.cacheManager || (taskScheduler && taskScheduler.cacheManager)
   const documentWatcher = window.documentWatcher
-  
+
   if (!cacheManager) {
     return '缓存管理器不可用'
   }
-  
+
   const memorySize = cacheManager.memoryCache ? cacheManager.memoryCache.size : 0
   const maxAge = Math.round(cacheManager.maxCacheAge / (60 * 1000)) // 转换为分钟
   const currentDoc = documentWatcher ? documentWatcher.getCurrentDocumentInfo() : null
-  
+
   return `当前缓存: ${memorySize} 条 | 过期时间: ${maxAge} 分钟 | 文档监听: ${currentDoc?.isWatching ? '已启用' : '未启用'}`
 }
 
@@ -456,7 +456,7 @@ const taskResultHandlers = {
           finalData[field] = '' // 为缺失字段设置空字符串
         }
       })
-      
+
       // 对接客户字段默认为空
       finalData['对接客户'] = ''
 
@@ -466,17 +466,17 @@ const taskResultHandlers = {
       const contractName = finalData['合同名称'] || ''
       if (contractName.includes('人才培养协议') || contractName.includes('揭榜挂帅')) {
         console.log('检测到特殊合同类型，交换乙方和丙方:', contractName)
-        
+
         // 交换乙方和丙方（其他方）
         const tempPartyB = finalData['乙方']
         finalData['乙方'] = finalData['其他方'] || finalData['丙方'] || ''
         finalData['其他方'] = tempPartyB
-        
+
         // 如果存在丙方字段，也进行相应处理
         if (finalData['丙方']) {
           finalData['丙方'] = tempPartyB
         }
-        
+
         console.log('交换后的数据:', finalData)
       }
 
@@ -559,7 +559,7 @@ const submitExtractedData = async () => {
         fields[field] = '' // 为空字段设置空字符串
       }
     })
-    
+
     // 对接客户字段强制设置为空
     fields['对接客户'] = ''
 
@@ -576,12 +576,22 @@ const submitExtractedData = async () => {
 
     console.log('res', res)
 
-    const 审查编号 = res?.data?.[0]?.fields?.审查编号
+    let 审查编号 = res?.data?.[0]?.fields?.审查编号
     console.log('审查编号', 审查编号)
 
     if (!审查编号) {
-      ElMessage.error('创建金山文档行记录失败或者没有返回id')
-      return
+      const 编号 = res?.data?.[0]?.fields?.编号
+      // 是否存在编号
+      if (编号) {
+        // 自定义构建审查编号 SWXCBHT-年份-编号
+        审查编号 = `SWXCBHT-${new Date().getFullYear()}-${编号}`
+        console.log('审查编号', 审查编号)
+      } else {
+
+        ElMessage.error('创建金山文档行记录失败或者没有返回id')
+        return
+      }
+
     }
 
     // 4. 添加页眉 - 将审查编号添加到页眉
@@ -592,7 +602,7 @@ const submitExtractedData = async () => {
         alignment: '右对齐'
       })
       console.log('页眉添加结果', headerRes)
-      
+
       if (headerRes?.success) {
         ElMessage.success(headerRes.message || '页眉添加成功')
       } else {
