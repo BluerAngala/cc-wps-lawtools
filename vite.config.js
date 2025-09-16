@@ -40,7 +40,10 @@ export default defineConfig(({ mode }) => {
               configure: (proxy) => {
                 // 允许自定义 header 透传
                 proxy.on('proxyReq', (proxyReq) => {
+                  // 自定义 origin 为 https://www.kdocs.cn/
                   proxyReq.setHeader('Origin', new URL(kdocsTarget).origin)
+                  // 自定义cookie 为 123
+                  proxyReq.setHeader('Cookie', '123')
                 })
               }
             }
