@@ -4,6 +4,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
+	"packageManager": "pnpm@latest",
 	"scripts": {
 		"dev": "vite --port 3889",
 		"build": "vite build",
