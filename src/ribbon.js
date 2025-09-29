@@ -1,6 +1,6 @@
 // ribbon.js 初始化 wps 加载项
 
-import routeManager from './services/wps/RouteManager.js'
+import routeManager from './wps/RouteManager.js'
 
 console.log('ribbon.js 已加载并初始化')
 

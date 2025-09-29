@@ -128,9 +128,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import taskPane from '../../services/wps/taskpane.js'
-import { desensitizeText } from '../../utils/desensitize.js'
-import TaskScheduler from '../../services/ai/TaskScheduler.js'
+import taskPane from '../wps/taskpane.js'
+import { desensitizeText } from '../utils/desensitize.js'
+import TaskScheduler from '../services/ai/TaskScheduler.js'
 
 console.log('TaskPane组件已加载')
 console.log('当前打开的文档：', window.Application.ActiveDocument)

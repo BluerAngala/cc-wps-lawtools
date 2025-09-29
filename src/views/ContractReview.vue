@@ -50,10 +50,10 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Refresh, Delete } from '@element-plus/icons-vue'
-import taskPane from '../../services/wps/taskpane.js'
-import TaskScheduler from '../../services/ai/TaskScheduler.js'
+import taskPane from '../wps/taskpane.js'
+import TaskScheduler from '../services/ai/TaskScheduler.js'
 import RulesConfig from './RulesConfig.vue'
-import { kdocsHandler } from '../../utils/kdocs.js'
+import { kdocsHandler } from '../utils/kdocs.js'
 
 console.log('合同审查组件已加载')
 

@@ -104,7 +104,7 @@
 <script setup>
 import { ref } from 'vue'
 import { VideoPlay, Document, Edit, Upload } from '@element-plus/icons-vue'
-import ConfigForm from '../common/ConfigForm.vue'
+import ConfigForm from '../components/ConfigForm.vue'
 
 // Props
 const props = defineProps({

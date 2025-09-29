@@ -1,6 +1,6 @@
 import Util from './util.js'
-import { kdocsHandler } from '../../utils/kdocs.js'
-import TaskScheduler from '../ai/TaskScheduler.js'
+import { kdocsHandler } from '../utils/kdocs.js'
+import TaskScheduler from '../services/ai/TaskScheduler.js'
 
 class TaskPaneHandler {
   constructor() {
