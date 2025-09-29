@@ -128,7 +128,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import taskPane from '../wps/taskpane.js'
+import taskPane from '../wps/TestPage.js'
 import { desensitizeText } from '../utils/desensitize.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
 

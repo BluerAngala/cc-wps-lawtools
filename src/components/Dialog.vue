@@ -17,9 +17,13 @@
       <hr class="wps-divider" />
       <div class="ml-1 mb-18 text-base break-words">
         <button class="btn-secondary m-1" @click="onDocNameClick()">取文件名</button>
-        <button class="btn-secondary m-1" @click="onbuttonclick('createTaskPane')">创建任务窗格</button>
+        <button class="btn-secondary m-1" @click="onbuttonclick('createTaskPane')">
+          创建任务窗格
+        </button>
         <button class="btn-secondary m-1" @click="onbuttonclick('newDoc')">新建文件</button>
-        <button class="btn-secondary m-1" @click="onbuttonclick('addString')">文档开头添加字符串</button>
+        <button class="btn-secondary m-1" @click="onbuttonclick('addString')">
+          文档开头添加字符串
+        </button>
         <button class="btn-secondary m-1" @click="onbuttonclick('closeDoc')">关闭文件</button>
       </div>
       <hr class="wps-divider" />

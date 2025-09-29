@@ -2,6 +2,7 @@ import Util from './util.js'
 import { kdocsHandler } from '../utils/kdocs.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
 
+// 任务窗格处理类 负责处理任务窗格的各个操作
 class TaskPaneHandler {
   constructor() {
     this.wpsService = Util.wpsService
@@ -19,14 +20,17 @@ class TaskPaneHandler {
     return this.wpsService.getActiveDoc()
   }
 
+  // 获取任务窗格
   getTaskPane() {
     return this.wpsService.getTaskPane()
   }
 
+  // 启用修订模式
   enableRevisionMode(doc) {
     this.wpsService.enableRevisionMode(doc)
   }
 
+  // 处理按钮点击事件
   async onbuttonclick(idStr, param) {
     console.log('idStr', idStr, 'param', param)
 
@@ -43,6 +47,7 @@ class TaskPaneHandler {
     }
   }
 
+  // 获取操作
   getAction(idStr, param) {
     const actions = {
       insertDateTime: () => this.wpsService.insertDateTime(),
@@ -66,6 +71,7 @@ class TaskPaneHandler {
     return actions[idStr]
   }
 
+  // 添加页眉
   async addHeader(param) {
     const doc = this.getActiveDoc()
     if (!doc || !param?.headerText) {
@@ -121,6 +127,7 @@ class TaskPaneHandler {
     }
   }
 
+  // 添加批注
   async addComment(param) {
     const doc = this.getActiveDoc()
     if (!doc) return

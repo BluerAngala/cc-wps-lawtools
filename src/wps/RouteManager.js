@@ -2,6 +2,7 @@
 
 import Util from './util.js'
 
+// wps 路由管理类，负责管理wps的各个路由
 class RouteManager {
   constructor() {
     this.routes = {

@@ -2,12 +2,6 @@
   <div class="contract-review p-2.5 h-screen overflow-y-auto">
     <!-- 主控制面板 -->
     <el-card class="wps-section" shadow="never">
-      <template #header>
-        <div class="wps-header">
-          <span class="wps-title">智能合同审查</span>
-        </div>
-      </template>
-
       <!-- 操作按钮 -->
       <div class="flex justify-center">
         <el-space size="large">
@@ -19,13 +13,6 @@
         </el-space>
       </div>
 
-      <!-- 缓存状态信息 -->
-      <el-divider content-position="center">
-        <el-text type="info" size="small">缓存状态</el-text>
-      </el-divider>
-      <div class="text-center py-2 bg-wps-light rounded mt-2">
-        <el-text size="small" type="info">{{ getCacheInfo() }}</el-text>
-      </div>
     </el-card>
 
     <div class="content">
@@ -50,7 +37,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Refresh, Delete } from '@element-plus/icons-vue'
-import taskPane from '../wps/taskpane.js'
+import taskPane from '../wps/TestPage.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
 import RulesConfig from './RulesConfig.vue'
 import { kdocsHandler } from '../utils/kdocs.js'
@@ -152,42 +139,6 @@ const DEFAULT_RULES = [
           }
         ]
       }
-    }
-  },
-  {
-    name: 'addHeader',
-    icon: '📄',
-    title: '添加页眉',
-    description: '为文档添加标准页眉信息',
-    configForm: {
-      headerText: {
-        label: '页眉文本',
-        type: 'text',
-        value: '合同编号',
-        placeholder: '请输入页眉文本'
-      },
-      fontSize: {
-        label: '字体大小',
-        type: 'select',
-        value: '12pt',
-        options: ['10pt', '12pt', '14pt', '16pt']
-      },
-      alignment: {
-        label: '对齐方式',
-        type: 'select',
-        value: '右对齐',
-        options: ['左对齐', '居中', '右对齐']
-      }
-    }
-  },
-
-  {
-    name: 'analyzeDocStructure',
-    icon: '📋',
-    title: '分析文档内容结构',
-    description: '自动抽取出文档的一级标题、二级标题、三级标题',
-    configForm: {
-      // 不需要配置具体内容，保持为空对象
     }
   }
 ]
@@ -379,22 +330,6 @@ const clearCache = async () => {
   } catch {
     // 用户取消操作
   }
-}
-
-// 获取缓存状态信息
-const getCacheInfo = () => {
-  const cacheManager = window.cacheManager || (taskScheduler && taskScheduler.cacheManager)
-  const documentWatcher = window.documentWatcher
-
-  if (!cacheManager) {
-    return '缓存管理器不可用'
-  }
-
-  const memorySize = cacheManager.memoryCache ? cacheManager.memoryCache.size : 0
-  const maxAge = Math.round(cacheManager.maxCacheAge / (60 * 1000)) // 转换为分钟
-  const currentDoc = documentWatcher ? documentWatcher.getCurrentDocumentInfo() : null
-
-  return `当前缓存: ${memorySize} 条 | 过期时间: ${maxAge} 分钟 | 文档监听: ${currentDoc?.isWatching ? '已启用' : '未启用'}`
 }
 
 // 本地存储键名
@@ -697,17 +632,4 @@ onUnmounted(() => {
   display: none;
   /* Chrome, Safari and Opera */
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 </style>

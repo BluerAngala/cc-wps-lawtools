@@ -231,28 +231,13 @@ const removeReviewRule = (field, index) => {
   width: 100%;
 }
 
-
-
 .keyword-list-container::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
 
-
-
-
-
-
-
-
-
-
-
 .tags-display:empty {
   display: none;
 }
-
-
-
 
 .tag-item {
   margin: 2px;
