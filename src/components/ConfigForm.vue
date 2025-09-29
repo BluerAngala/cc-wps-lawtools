@@ -61,13 +61,13 @@
             />
           </div>
         </div>
-          <el-button
-            type="primary"
-            @click="addKeyword(field)"
-            :icon="Plus"
-            size="small"
-            class="add-rule-btn"
-          >
+        <el-button
+          type="primary"
+          @click="addKeyword(field)"
+          :icon="Plus"
+          size="small"
+          class="add-rule-btn"
+        >
           添加关键词
         </el-button>
       </div>

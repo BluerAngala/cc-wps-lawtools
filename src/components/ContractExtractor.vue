@@ -21,12 +21,9 @@
       <!-- 配置区域 -->
       <div class="mb-5">
         <el-alert title="使用AI智能提取合同关键信息" type="info" :closable="false" show-icon />
-        
+
         <div class="mt-4">
-          <ConfigForm
-            :config="configForm"
-            @update-config="updateConfig"
-          />
+          <ConfigForm :config="configForm" @update-config="updateConfig" />
         </div>
       </div>
 
@@ -43,14 +40,11 @@
             <div class="flex items-center gap-2">
               <el-icon class="text-primary-500"><Edit /></el-icon>
               <span class="font-semibold text-wps-text">合同信息编辑</span>
-              <el-tag size="small" type="success">{{ Object.keys(extractedData).length }} 项</el-tag>
+              <el-tag size="small" type="success"
+                >{{ Object.keys(extractedData).length }} 项</el-tag
+              >
             </div>
-            <el-button
-              type="primary"
-              size="small"
-              @click="submitData"
-              :loading="submitting"
-            >
+            <el-button type="primary" size="small" @click="submitData" :loading="submitting">
               <el-icon><Upload /></el-icon>
               {{ submitting ? '提交中...' : '提交' }}
             </el-button>
@@ -60,12 +54,7 @@
           <div class="p-4">
             <el-form label-position="top">
               <el-row :gutter="16">
-                <el-col
-                  v-for="(value, key) in extractedData"
-                  :key="key"
-                  :span="12"
-                  class="mb-2"
-                >
+                <el-col v-for="(value, key) in extractedData" :key="key" :span="12" class="mb-2">
                   <el-form-item :label="key" class="mb-4">
                     <el-input
                       :model-value="extractedData[key]"
@@ -111,12 +100,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits([
-  'execute',
-  'submit-data',
-  'update:extracted-data',
-  'update-config'
-])
+const emit = defineEmits(['execute', 'submit-data', 'update:extracted-data', 'update-config'])
 
 // 配置表单
 const configForm = reactive({
@@ -141,12 +125,18 @@ const updateConfig = (configData) => {
   emit('update-config', configForm)
 }
 
-const submitData = () => {
+const submitData = async () => {
   if (!props.extractedData) {
     ElMessage.warning('没有可提交的数据')
     return
   }
-  emit('submit-data')
+
+  try {
+    emit('submit-data')
+  } catch (error) {
+    console.error('提交数据时出错:', error)
+    ElMessage.error('提交数据失败')
+  }
 }
 
 const updateExtractedItem = (key, value) => {
@@ -155,4 +145,3 @@ const updateExtractedItem = (key, value) => {
   emit('update:extracted-data', updatedData)
 }
 </script>
-
