@@ -1,17 +1,17 @@
 <template>
-  <div class="global">
-    <div class="divItem">
-      这是一个网页，按<span style="font-weight: bolder">"F12"</span>可以打开调试器。
+  <div class="text-base min-h-95%">
+    <div class="ml-1 mb-18 text-base break-words">
+      这是一个网页，按<span class="font-bold">"F12"</span>可以打开调试器。
     </div>
-    <div class="divItem">
+    <div class="ml-1 mb-18 text-base break-words">
       这个示例展示了wps加载项的相关基础能力，与B/S业务系统的交互，请用浏览器打开：
-      <span style="font-weight: bolder; color: slateblue; cursor: pointer" @click="onOpenWeb()">{{
+      <span class="font-bold text-slate-600 cursor-pointer" @click="onOpenWeb()">{{
         DemoSpan
       }}</span>
     </div>
-    <div class="divItem">
+    <div class="ml-1 mb-18 text-base break-words">
       开发文档:
-      <span style="font-weight: bolder; color: slateblue">https://open.wps.cn/docs/office</span>
+      <span class="font-bold text-slate-600">https://open.wps.cn/docs/office</span>
     </div>
     <hr />
     <div class="divItem">
@@ -344,25 +344,7 @@ const applyDesensitization = () => {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-.global {
-  font-size: 15px;
-  min-height: 95%;
-}
-
-.divItem {
-  margin-left: 5px;
-  margin-bottom: 18px;
-  font-size: 15px;
-  word-wrap: break-word;
-}
-
-.divItem h3 {
-  margin-top: 10px;
-  margin-bottom: 5px;
-  font-size: 16px;
-  font-weight: bold;
-}
-
+/* TaskPane 样式已迁移到 UnoCSS 类 */
 .divItem pre {
   background-color: #f5f5f5;
   border: 1px solid #ddd;

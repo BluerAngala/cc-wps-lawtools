@@ -1,14 +1,14 @@
 <template>
-  <el-card class="rules-card" shadow="hover">
+  <el-card class="wps-section" shadow="hover">
     <template #header>
       <h3>审查规则（单项执行）</h3>
     </template>
     <el-collapse v-model="activeRules" accordion>
       <el-collapse-item v-for="rule in rules" :key="rule.name" :name="rule.name">
         <template #title>
-          <div class="collapse-header">
-            <span class="rule-title">{{ rule.icon }} {{ rule.title }}</span>
-            <div class="rule-status">
+          <div class="wps-header pr-2.5">
+            <span class="wps-subtitle">{{ rule.icon }} {{ rule.title }}</span>
+            <div class="flex items-center gap-2">
               <el-tag v-if="isRuleProcessing(rule.name)" type="warning" size="small">
                 处理中
               </el-tag>
@@ -86,10 +86,10 @@
           </el-card>
         </div>
 
-        <div class="rule-content">
+        <div class="py-4">
           <!-- 规则描述 -->
           <el-alert :title="rule.description" type="info" :closable="false" show-icon />
-          <div class="rule-config" v-if="rule.configForm">
+          <div class="mt-4" v-if="rule.configForm">
             <ConfigForm
               :config="rule.configForm"
               @update-config="updateRuleConfig(rule.name, $event)"

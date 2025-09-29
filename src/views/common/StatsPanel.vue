@@ -38,22 +38,22 @@
         <el-divider content-position="left">实时状态</el-divider>
         <el-row :gutter="16">
           <el-col :span="12">
-            <div class="progress-item">
-              <div class="progress-label">整体进度</div>
+            <div class="mb-2">
+              <div class="text-xs text-wps-text-light mb-1">整体进度</div>
               <el-progress
                 :percentage="overallProgress"
                 :status="overallProgressStatus"
                 :stroke-width="8"
               >
                 <template #default="{ percentage }">
-                  <span class="percentage-value">{{ percentage }}%</span>
+                  <span class="font-bold text-blue-500">{{ percentage }}%</span>
                 </template>
               </el-progress>
             </div>
           </el-col>
           <el-col :span="12">
-            <div class="progress-item">
-              <div class="progress-label">队列状态</div>
+            <div class="mb-2">
+              <div class="text-xs text-wps-text-light mb-1">队列状态</div>
               <el-tag v-if="queueStatus.running.length > 0" type="warning" size="large">
                 <el-icon><Loading /></el-icon>
                 {{ queueStatus.running.length }} 个任务运行中
@@ -237,25 +237,5 @@ export default {
 </script>
 
 <style scoped>
-.stats-panel {
-  margin-bottom: 16px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.progress-item {
-  margin-bottom: 8px;
-}
-
-.progress-label {
-  font-size: 12px;
-  color: #606266;
-  margin-bottom: 4px;
-}
-
-.percentage-value {
-  font-weight: bold;
-  color: #409eff;
-}
+/* StatsPanel 样式已迁移到 UnoCSS 类 */
 </style>

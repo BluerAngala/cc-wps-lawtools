@@ -1,9 +1,9 @@
 <template>
-  <div class="wps-actions">
+  <div class="wps-section">
     <el-card shadow="never">
       <template #header>
-        <div class="card-header">
-          <span>WPS操作</span>
+        <div class="wps-header">
+          <span class="wps-title">WPS操作</span>
         </div>
       </template>
 
@@ -51,7 +51,7 @@
 
       <el-divider />
 
-      <div class="doc-info">
+      <div class="flex items-center gap-2 mt-2">
         <el-text>当前文档：{{ docName || '未获取' }}</el-text>
         <el-button size="small" type="text" @click="refreshDocName" :icon="Refresh">
           刷新
@@ -150,20 +150,5 @@ export default {
 </script>
 
 <style scoped>
-.wps-actions {
-  margin-bottom: 16px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.doc-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
+/* WPS操作组件样式已迁移到 UnoCSS 类 */
 </style>

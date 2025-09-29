@@ -28,8 +28,8 @@
       />
 
       <!-- 关键词列表配置 -->
-      <div v-else-if="field.type === 'keywordList'" class="keyword-list-config">
-        <div class="keyword-list-container">
+      <div v-else-if="field.type === 'keywordList'" class="mt-2.5 w-full">
+        <div class="scroll-container border border-wps-blue rounded mb-3 keyword-list-container">
           <div v-for="(item, index) in field.value" :key="index" class="keyword-item">
             <div class="keyword-title">{{ index + 1 }}. 关键词</div>
             <el-button
@@ -40,21 +40,23 @@
               circle
               class="delete-btn"
             />
-            <div class="keyword-row">
+            <div class="flex items-center gap-1.5 mb-1.5">
               <el-input
                 v-model="item.keyword"
                 placeholder="请输入关键词"
                 size="small"
-                class="keyword-input"
+                class="w-full"
                 @input="updateConfig"
               />
             </div>
-            <div class="comment-title">- 批注内容</div>
+            <div class="keyword-title">- 批注内容</div>
             <el-input
               v-model="item.comment"
               placeholder="请输入批注内容"
               size="small"
-              class="comment-input"
+              type="textarea"
+              :rows="2"
+              class="w-full mt-0.5"
               @input="updateConfig"
             />
           </div>
@@ -64,7 +66,7 @@
           @click="addKeyword(field)"
           :icon="Plus"
           size="small"
-          class="add-keyword-btn"
+          class="mt-3 w-full"
         >
           添加关键词
         </el-button>
@@ -129,7 +131,7 @@
       </div>
 
       <!-- 标签输入框配置 -->
-      <div v-else-if="field.type === 'tags'" class="tags-config">
+      <div v-else-if="field.type === 'tags'" class="w-full">
         <div class="tags-display">
           <el-tag
             v-for="(tag, index) in field.value"
@@ -146,14 +148,14 @@
             v-model="field.inputValue"
             placeholder="输入数据要素"
             @keyup.enter="addTag(field)"
-            class="tag-input"
+            class="flex-1"
           />
           <el-button
             type="primary"
             @click="addTag(field)"
             :icon="Plus"
             size="small"
-            class="add-tag-btn"
+            class="flex-shrink-0"
           >
             添加
           </el-button>
@@ -229,113 +231,28 @@ const removeReviewRule = (field, index) => {
   width: 100%;
 }
 
-.keyword-list-config {
-  margin-top: 10px;
-  width: 100%;
-}
 
-.keyword-list-container {
-  max-height: 300px;
-  overflow-y: auto;
-  margin-bottom: 12px;
-
-  /* 添加边框 */
-  border: 1px solid #4d7dee;
-  border-radius: 4px;
-}
 
 .keyword-list-container::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
 
-.keyword-item {
-  position: relative;
-  padding: 12px;
-  margin-bottom: 12px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  background: #f8f9fa;
-}
 
-.keyword-title {
-  font-size: 12px;
-  color: #606266;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
 
-.comment-title {
-  font-size: 12px;
-  color: #606266;
-  margin: 8px 0 6px 0;
-  font-weight: 500;
-}
 
-.keyword-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
 
-.delete-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-}
 
-.keyword-input {
-  width: 100%;
-}
 
-.comment-input {
-  width: 100%;
-  margin-top: 2px;
-}
 
-.add-keyword-btn {
-  margin-top: 12px;
-  width: 100%;
-}
 
-.tags-config {
-  width: 100%;
-}
 
-.tags-display {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
-  min-height: 40px;
-  background: #f8f9fa;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  margin-bottom: 8px;
-  align-items: flex-start;
-  align-content: flex-start;
-}
 
 .tags-display:empty {
   display: none;
 }
 
-.tag-input-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
 
-.tag-input {
-  flex: 1;
-}
 
-.add-tag-btn {
-  flex-shrink: 0;
-}
 
 .tag-item {
   margin: 2px;

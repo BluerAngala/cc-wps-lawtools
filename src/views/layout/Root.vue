@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <h1>{{ msg }}</h1>
+  <div class="flex-center min-h-screen">
+    <h1 class="wps-title text-center">{{ msg }}</h1>
   </div>
 </template>
 

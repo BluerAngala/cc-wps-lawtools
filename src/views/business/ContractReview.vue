@@ -1,15 +1,15 @@
 <template>
-  <div class="contract-review">
+  <div class="contract-review p-2.5 h-screen overflow-y-auto">
     <!-- 主控制面板 -->
-    <el-card class="header-card" shadow="never">
+    <el-card class="wps-section" shadow="never">
       <template #header>
-        <div class="card-header">
-          <span>智能合同审查</span>
+        <div class="wps-header">
+          <span class="wps-title">智能合同审查</span>
         </div>
       </template>
 
       <!-- 操作按钮 -->
-      <div class="action-bar-center">
+      <div class="flex justify-center">
         <el-space size="large">
           <el-button type="success" @click="() => saveConfigToLocal(true)" :icon="Document">
             保存配置
@@ -23,7 +23,7 @@
       <el-divider content-position="center">
         <el-text type="info" size="small">缓存状态</el-text>
       </el-divider>
-      <div class="cache-info">
+      <div class="text-center py-2 bg-wps-light rounded mt-2">
         <el-text size="small" type="info">{{ getCacheInfo() }}</el-text>
       </div>
     </el-card>
@@ -686,10 +686,7 @@ onUnmounted(() => {
 
 <style scoped>
 .contract-review {
-  padding: 10px;
-  height: 100vh;
-  overflow-y: auto;
-  /* 隐藏滚动条但保持滚动功能 */
+  /* 只保留滚动条隐藏样式 */
   scrollbar-width: none;
   /* Firefox */
   -ms-overflow-style: none;
@@ -701,75 +698,16 @@ onUnmounted(() => {
   /* Chrome, Safari and Opera */
 }
 
-.header-card {
-  margin-bottom: 20px;
-}
 
-.header-card h2 {
-  color: #333;
-  margin: 0 0 10px 0;
-  font-size: 24px;
-}
 
-.header-card p {
-  color: #666;
-  margin: 0;
-  font-size: 14px;
-}
 
-.action-bar {
-  margin-bottom: 20px;
-}
 
-.cache-info {
-  text-align: center;
-  padding: 8px 0;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  margin-top: 8px;
-}
 
-.rules-card {
-  margin-bottom: 20px;
-}
 
-.rules-card h3 {
-  color: #333;
-  margin: 0;
-  font-size: 18px;
-}
 
-.collapse-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding-right: 10px;
-}
 
-.rule-title {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
 
-.rule-content {
-  padding: 16px 0;
-}
 
-.rule-config {
-  margin-top: 16px;
-}
 
-.action-bar-center {
-  display: flex;
-  justify-content: center;
-}
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
 </style>
