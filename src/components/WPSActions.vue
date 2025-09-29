@@ -78,8 +78,8 @@ import {
   Close,
   Refresh
 } from '@element-plus/icons-vue'
-import { wpsService } from '../../services/wps/util.js'
-import routeManager from '../../services/wps/RouteManager.js'
+import { wpsService } from '../wps/util.js'
+import routeManager from '../wps/RouteManager.js'
 
 export default {
   name: 'WPSActions',
