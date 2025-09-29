@@ -1,33 +1,43 @@
 <template>
-  <div class="contract-review p-2.5 h-screen overflow-y-auto">
+  <div class="p-2.5 h-screen overflow-y-auto scrollbar-none">
     <!-- 主控制面板 -->
-    <el-card class="wps-section" shadow="never">
+    <div class="wps-card wps-section">
       <!-- 操作按钮 -->
-      <div class="flex justify-center">
-        <el-space size="large">
+      <div class="flex-center">
+        <div class="flex gap-4">
           <el-button type="success" @click="() => saveConfigToLocal(true)" :icon="Document">
             保存配置
           </el-button>
           <el-button type="warning" @click="resetConfig" :icon="Refresh"> 重置配置 </el-button>
           <el-button type="danger" @click="clearCache" :icon="Delete"> 清除缓存 </el-button>
-        </el-space>
+        </div>
       </div>
+    </div>
 
-    </el-card>
-
-    <div class="content">
-      <!-- 规则配置组件 -->
-      <RulesConfig
-        :rules="rules"
-        :processing-rules="processingRules"
+    <div class="space-y-4">
+      <!-- AI合同信息抽取组件 -->
+      <ContractExtractor
+        :processing="processingRules.has('extractText')"
         :extracted-data="extractedData"
-        :active-extracted-items="activeExtractedItems"
         :submitting="submitting"
-        @execute-rule="executeRule"
-        @update-rule-config="updateRuleConfig"
-        @submit-extracted-data="submitExtractedData"
-        @update:active-extracted-items="activeExtractedItems = $event"
+        @execute="executeExtraction"
+        @submit-data="submitExtractedData"
         @update:extracted-data="extractedData = $event"
+        @update-config="updateExtractorConfig"
+      />
+
+      <!-- 关键词批注组件 -->
+      <KeywordCommenter
+        :processing="processingRules.has('keywordComment')"
+        @execute="executeKeywordComment"
+        @update-config="updateKeywordConfig"
+      />
+
+      <!-- AI合同预审组件 -->
+      <ContractReviewer
+        :processing="processingRules.has('contractReview')"
+        @execute="executeContractReview"
+        @update-config="updateReviewConfig"
       />
     </div>
   </div>
@@ -39,7 +49,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Refresh, Delete } from '@element-plus/icons-vue'
 import taskPane from '../wps/TestPage.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
-import RulesConfig from './RulesConfig.vue'
+import ContractExtractor from '../components/ContractExtractor.vue'
+import KeywordCommenter from '../components/KeywordCommenter.vue'
+import ContractReviewer from '../components/ContractReviewer.vue'
 import { kdocsHandler } from '../utils/kdocs.js'
 
 console.log('合同审查组件已加载')
@@ -57,94 +69,10 @@ const taskScheduler = new TaskScheduler({
   retryAttempts: 2
 })
 
-// 默认规则配置
-const DEFAULT_RULES = [
-  {
-    name: 'extractText',
-    icon: '🤖',
-    title: 'AI抽取合同信息',
-    description: '使用AI智能提取合同关键信息',
-    configForm: {
-      extractTags: {
-        label: '提取数据要素',
-        type: 'tags',
-        value: ['合同名称', '甲方', '乙方', '其他方', '合同金额'],
-        inputValue: ''
-      }
-    }
-  },
-  {
-    name: 'keywordComment',
-    icon: '🔍',
-    title: '关键词批注',
-    description: '识别关键词并添加批注',
-    configForm: {
-      keywordList: {
-        type: 'keywordList',
-        value: [
-          { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。' },
-          {
-            keyword: '付款方式',
-            comment:
-              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。'
-          },
-          {
-            keyword: '费用',
-            comment:
-              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。'
-          },
-          {
-            keyword: '验收',
-            comment:
-              '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。'
-          },
-          { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误' },
-          { keyword: '仲裁', comment: '建议约定统一约定法院管辖' },
-          { keyword: '“广东特支计划”', comment: '提醒确认项目名称以及期数是否准确无误' },
-          {
-            keyword: '培养期为',
-            comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！'
-          },
-          {
-            keyword: '资金发放安排',
-            comment:
-              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。'
-          },
-          { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。' }
-        ]
-      }
-    }
-  },
-  {
-    name: 'contractReview',
-    icon: '⚖️',
-    title: 'AI合同预审',
-    description: 'AI预审合同，使用自定义规则更灵活',
-    configForm: {
-      contractReviewRules: {
-        label: 'AI合同预审规则',
-        type: 'contractReviewList',
-        value: [
-          {
-            reviewRules: '审查争议解决条款',
-            reviewRequirements:
-              '审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？',
-            actionType: '批注'
-          },
-          {
-            reviewRules: '审查违约责任条款',
-            reviewRequirements:
-              '审查合同中违约责任条款是否明确，违约金或赔偿标准是否合理，是否存在免责条款？',
-            actionType: '批注'
-          }
-        ]
-      }
-    }
-  }
-]
-
-// 规则配置
-const rules = ref(JSON.parse(JSON.stringify(DEFAULT_RULES)))
+// 配置数据
+const extractorConfig = ref({})
+const keywordConfig = ref({})
+const reviewConfig = ref({})
 
 // 执行结果映射
 const resultMessages = {
@@ -158,23 +86,32 @@ const resultMessages = {
 // 需要AI处理的规则类型
 const AI_RULE_TYPES = ['extractText', 'contractReview', 'analyzeDocStructure']
 
-// 提取规则配置参数
-const extractRuleParams = (ruleType) => {
-  const currentRule = rules.value.find((rule) => rule.name === ruleType)
-  const config = currentRule?.configForm || {}
-  const params = {}
+// 新的组件事件处理方法
+const executeExtraction = async (config) => {
+  await executeRule('extractText', config)
+}
 
-  Object.keys(config).forEach((key) => {
-    const field = config[key]
-    if (field.type === 'contractReviewList') {
-      // 对于contractReviewList类型，将规则数组转换为合适的格式
-      params.reviewRules = field.value
-    } else {
-      params[key] = field.value
-    }
-  })
+const executeKeywordComment = async (config) => {
+  await executeRule('keywordComment', config)
+}
 
-  return params
+const executeContractReview = async (config) => {
+  await executeRule('contractReview', config)
+}
+
+const updateExtractorConfig = (config) => {
+  extractorConfig.value = config
+  saveConfigToLocal()
+}
+
+const updateKeywordConfig = (config) => {
+  keywordConfig.value = config
+  saveConfigToLocal()
+}
+
+const updateReviewConfig = (config) => {
+  reviewConfig.value = config
+  saveConfigToLocal()
 }
 
 // 任务监听器管理
@@ -221,8 +158,8 @@ const createTaskListeners = (taskId, ruleType, params) => {
 }
 
 // 执行规则
-const executeRule = async (ruleType) => {
-  console.log('执行规则:', ruleType)
+const executeRule = async (ruleType, params = {}) => {
+  console.log('执行规则:', ruleType, params)
 
   // 防止重复执行
   if (processingRules.value.has(ruleType)) {
@@ -233,10 +170,6 @@ const executeRule = async (ruleType) => {
   processingRules.value.add(ruleType)
 
   try {
-    // 提取配置参数
-    const params = extractRuleParams(ruleType)
-    console.log('执行参数:', params)
-
     // 对于不需要AI处理的规则，直接执行
     if (!AI_RULE_TYPES.includes(ruleType)) {
       console.log('执行非AI规则:', ruleType)
@@ -290,17 +223,11 @@ const executeRule = async (ruleType) => {
   }
 }
 
-// 更新规则配置
-const updateRuleConfig = (ruleName, configKey, value) => {
-  const rule = rules.value.find((r) => r.name === ruleName)
-  if (rule && rule.configForm && rule.configForm[configKey]) {
-    rule.configForm[configKey].value = value
-  }
-}
-
 // 重置配置到默认值
 const resetConfig = () => {
-  rules.value = JSON.parse(JSON.stringify(DEFAULT_RULES))
+  extractorConfig.value = {}
+  keywordConfig.value = {}
+  reviewConfig.value = {}
   localStorage.removeItem(STORAGE_KEY)
   ElMessage.success('配置已重置为默认值')
 }
@@ -339,7 +266,9 @@ const STORAGE_KEY = 'contract_review_rules_config'
 const saveConfigToLocal = (showMessage = false) => {
   try {
     const configData = {
-      rules: rules.value,
+      extractorConfig: extractorConfig.value,
+      keywordConfig: keywordConfig.value,
+      reviewConfig: reviewConfig.value,
       timestamp: Date.now()
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(configData))
@@ -361,8 +290,10 @@ const loadConfigFromLocal = () => {
     const savedData = localStorage.getItem(STORAGE_KEY)
     if (savedData) {
       const configData = JSON.parse(savedData)
-      if (configData.rules && Array.isArray(configData.rules)) {
-        rules.value = configData.rules
+      if (configData) {
+        extractorConfig.value = configData.extractorConfig || {}
+        keywordConfig.value = configData.keywordConfig || {}
+        reviewConfig.value = configData.reviewConfig || {}
         console.log('已从本地存储加载配置')
         ElMessage.success('已加载上次保存的配置')
         return true
@@ -374,9 +305,9 @@ const loadConfigFromLocal = () => {
   return false
 }
 
-// 监听规则配置变化，自动保存
+// 监听配置变化，自动保存
 watch(
-  rules,
+  [extractorConfig, keywordConfig, reviewConfig],
   () => {
     saveConfigToLocal()
   },
@@ -448,9 +379,7 @@ const taskResultHandlers = {
   contractReview: async (result, params) => {
     if (result?.data) {
       await taskPane.onbuttonclick('contractReview', {
-        reviewRules: params.reviewRules,
-        reviewRequirements: params.reviewRequirements,
-        actionType: params.actionType === '批注' ? 'comment' : 'revision',
+        reviewRules: params.reviewRules || params.contractReviewRules,
         aiResult: result.data
       })
     }
@@ -619,17 +548,3 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
-.contract-review {
-  /* 只保留滚动条隐藏样式 */
-  scrollbar-width: none;
-  /* Firefox */
-  -ms-overflow-style: none;
-  /* IE and Edge */
-}
-
-.contract-review::-webkit-scrollbar {
-  display: none;
-  /* Chrome, Safari and Opera */
-}
-</style>

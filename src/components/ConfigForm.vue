@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="auto" label-position="top" style="width: 100%">
+  <el-form label-width="auto" label-position="top" class="w-full">
     <el-form-item v-for="(field, key) in config" :key="key" :label="field.label">
       <!-- 文本输入框 -->
       <el-input
@@ -13,7 +13,7 @@
       <el-select
         v-else-if="field.type === 'select'"
         v-model="field.value"
-        style="width: 100%"
+        class="w-full"
         @change="updateConfig"
       >
         <el-option v-for="option in field.options" :key="option" :label="option" :value="option" />
@@ -28,8 +28,8 @@
       />
 
       <!-- 关键词列表配置 -->
-      <div v-else-if="field.type === 'keywordList'" class="mt-2.5 w-full">
-        <div class="scroll-container border border-wps-blue rounded mb-3 keyword-list-container">
+      <div v-else-if="field.type === 'keywordList'" class="contract-review-config">
+        <div class="scroll-container border border-wps-blue rounded mb-3 scrollbar-none">
           <div v-for="(item, index) in field.value" :key="index" class="keyword-item">
             <div class="keyword-title">{{ index + 1 }}. 关键词</div>
             <el-button
@@ -61,20 +61,20 @@
             />
           </div>
         </div>
-        <el-button
-          type="primary"
-          @click="addKeyword(field)"
-          :icon="Plus"
-          size="small"
-          class="mt-3 w-full"
-        >
+          <el-button
+            type="primary"
+            @click="addKeyword(field)"
+            :icon="Plus"
+            size="small"
+            class="add-rule-btn"
+          >
           添加关键词
         </el-button>
       </div>
 
       <!-- AI合同预审规则列表配置 -->
-      <div v-else-if="field.type === 'contractReviewList'" class="contract-review-list-config">
-        <div class="review-list-container">
+      <div v-else-if="field.type === 'contractReviewList'" class="contract-review-config">
+        <div class="max-h-400px overflow-y-auto scrollbar-none border border-wps-blue rounded mb-3">
           <div v-for="(rule, index) in field.value" :key="index" class="review-rule-item">
             <div class="rule-title">{{ index + 1 }}. 预审规则</div>
             <el-button
@@ -112,7 +112,7 @@
             <!-- 执行动作 -->
             <div class="config-section">
               <div class="section-title">⚙️ 执行动作</div>
-              <el-select v-model="rule.actionType" style="width: 100%" @change="updateConfig">
+              <el-select v-model="rule.actionType" class="w-full" @change="updateConfig">
                 <el-option label="批注" value="批注" />
                 <el-option label="修订" value="修订" />
               </el-select>
@@ -223,6 +223,7 @@ const removeReviewRule = (field, index) => {
 </script>
 
 <style scoped>
+/* Element Plus 深度样式覆盖 - 这些需要保留因为UnoCSS无法处理deep选择器 */
 :deep(.el-form-item) {
   width: 100%;
 }
@@ -231,91 +232,8 @@ const removeReviewRule = (field, index) => {
   width: 100%;
 }
 
-.keyword-list-container::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
-}
-
+/* 隐藏空的标签显示区域 */
 .tags-display:empty {
   display: none;
-}
-
-.tag-item {
-  margin: 2px;
-  font-size: 12px;
-}
-
-/* AI合同预审规则列表配置样式 */
-.contract-review-list-config {
-  margin-top: 10px;
-  width: 100%;
-}
-
-.review-list-container {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-bottom: 12px;
-  border: 1px solid #4d7dee;
-  border-radius: 4px;
-}
-
-.review-list-container::-webkit-scrollbar {
-  display: none;
-}
-
-.review-rule-item {
-  position: relative;
-  padding: 16px;
-  margin-bottom: 12px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  background: #f8f9fa;
-}
-
-.rule-title {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 12px;
-  font-weight: 500;
-}
-
-.config-section {
-  margin-bottom: 12px;
-}
-
-.config-section:last-child {
-  margin-bottom: 0;
-}
-
-.section-title {
-  font-size: 12px;
-  color: #606266;
-  margin-bottom: 6px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.delete-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-}
-
-.add-rule-btn {
-  margin-top: 12px;
-  width: 100%;
-}
-
-.contract-review-list-config .el-input,
-.contract-review-list-config .el-select {
-  width: 100%;
-}
-
-.contract-review-list-config .el-textarea {
-  width: 100%;
 }
 </style>

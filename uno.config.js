@@ -46,6 +46,14 @@ export default defineConfig({
     'form-input': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500',
     'form-textarea': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-vertical',
     
+    // ConfigForm 特定样式
+    'review-rule-item': 'relative p-4 mb-3 border border-gray-300 rounded bg-gray-50',
+    'rule-title': 'text-sm text-gray-600 mb-3 font-medium',
+    'config-section': 'mb-3 last:mb-0',
+    'section-title': 'text-xs text-gray-600 mb-1.5 font-medium flex items-center gap-1.5',
+    'add-rule-btn': 'mt-3 w-full',
+    'contract-review-config': 'mt-2.5 w-full',
+    
     // 按钮变体
     'btn-danger': 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded cursor-pointer',
     'btn-success': 'bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded cursor-pointer',
@@ -61,6 +69,7 @@ export default defineConfig({
     // 布局相关
     'container-fluid': 'w-full px-4',
     'scroll-container': 'max-h-300px overflow-y-auto',
+    'scrollbar-none': '[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
     'keyword-item': 'relative p-3 mb-3 border border-gray-300 rounded bg-gray-50',
     'keyword-title': 'text-xs text-gray-600 mb-1.5 font-medium',
     'delete-btn': 'absolute top-2 right-2 w-6 h-6 p-0',
@@ -68,6 +77,7 @@ export default defineConfig({
     // 标签相关
     'tags-display': 'flex flex-wrap gap-1.5 p-2 min-h-10 bg-gray-50 border border-gray-300 rounded mb-2',
     'tag-input-row': 'flex gap-2 items-center',
+    'tag-item': 'm-0.5 text-xs',
     
     // 统计面板
     'stats-panel': 'mb-4 p-4 bg-gray-50 rounded',
@@ -107,6 +117,7 @@ export default defineConfig({
     },
     maxHeight: {
       '300px': '300px',
+      '400px': '400px',
     }
   },
 })
