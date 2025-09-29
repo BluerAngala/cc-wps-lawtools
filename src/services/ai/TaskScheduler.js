@@ -6,14 +6,18 @@
 import { DocumentParser } from './DocumentParser.js'
 import { CacheManager } from './CacheManager.js'
 import { apiClient } from './siliconflow.js'
-import { generateContractExtractionPrompt, generateContractReviewPrompt } from './promptGenerator.js'
+import {
+  generateContractExtractionPrompt,
+  generateContractReviewPrompt
+} from './promptGenerator.js'
 
 export class TaskScheduler {
   constructor(options = {}) {
     this.documentParser = new DocumentParser()
     // 优先使用传入的缓存管理器实例，否则使用全局实例，最后才创建新实例
-    this.cacheManager = options.cacheManager || window.cacheManager || new CacheManager(options.cache)
-    
+    this.cacheManager =
+      options.cacheManager || window.cacheManager || new CacheManager(options.cache)
+
     // AI服务配置
     this.aiConfig = {
       maxTokensPerChunk: options.maxTokensPerChunk || 3000,
@@ -22,7 +26,7 @@ export class TaskScheduler {
       retryDelay: options.retryDelay || 1000,
       ...options.ai
     }
-    
+
     // 调度器配置
     this.config = {
       maxConcurrentTasks: options.maxConcurrentTasks || 3,
@@ -31,14 +35,14 @@ export class TaskScheduler {
       priorityLevels: ['high', 'medium', 'low'],
       ...options
     }
-    
+
     // 任务队列和状态管理
     this.taskQueue = []
     this.runningTasks = new Map()
     this.completedTasks = new Map()
     this.failedTasks = new Map()
     this.taskCounter = 0
-    
+
     // 事件监听器
     this.listeners = {
       taskStart: [],
@@ -46,7 +50,7 @@ export class TaskScheduler {
       taskError: [],
       queueEmpty: []
     }
-    
+
     // 简化统计
     this.stats = {
       totalTasks: 0,
@@ -62,7 +66,7 @@ export class TaskScheduler {
    */
   addTask(taskConfig) {
     const taskId = `task_${++this.taskCounter}_${Date.now()}`
-    
+
     const task = {
       id: taskId,
       type: taskConfig.type,
@@ -74,16 +78,16 @@ export class TaskScheduler {
       retryCount: 0,
       ...taskConfig
     }
-    
+
     // 按优先级插入队列
     this.insertTaskByPriority(task)
     this.stats.totalTasks++
-    
+
     console.log(`任务已添加: ${taskId} (${task.type}, 优先级: ${task.priority})`)
-    
+
     // 尝试立即处理任务
     this.processQueue()
-    
+
     return taskId
   }
 
@@ -93,7 +97,7 @@ export class TaskScheduler {
    */
   insertTaskByPriority(task) {
     const priorityIndex = this.config.priorityLevels.indexOf(task.priority)
-    
+
     let insertIndex = this.taskQueue.length
     for (let i = 0; i < this.taskQueue.length; i++) {
       const queueTaskPriority = this.config.priorityLevels.indexOf(this.taskQueue[i].priority)
@@ -102,7 +106,7 @@ export class TaskScheduler {
         break
       }
     }
-    
+
     this.taskQueue.splice(insertIndex, 0, task)
   }
 
@@ -115,7 +119,7 @@ export class TaskScheduler {
       const task = this.taskQueue.shift()
       this.executeTask(task)
     }
-    
+
     // 如果队列为空且没有运行中的任务，触发队列空事件
     if (this.taskQueue.length === 0 && this.runningTasks.size === 0) {
       this.emit('queueEmpty')
@@ -130,69 +134,65 @@ export class TaskScheduler {
     const startTime = Date.now()
     task.status = 'running'
     task.startTime = startTime
-    
+
     this.runningTasks.set(task.id, task)
     this.emit('taskStart', task)
-    
+
     try {
       console.log(`开始执行任务: ${task.id} (${task.type})`)
-      
+
       // 设置任务超时
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('任务执行超时')), this.config.taskTimeout)
       })
-      
+
       // 执行任务
       const taskPromise = this.executeTaskByType(task)
       const result = await Promise.race([taskPromise, timeoutPromise])
-      
+
       // 任务完成
       const processingTime = Date.now() - startTime
       task.status = 'completed'
       task.result = result
       task.processingTime = processingTime
       task.completedAt = Date.now()
-      
+
       this.runningTasks.delete(task.id)
       this.completedTasks.set(task.id, task)
       this.stats.completedTasks++
-      
 
-      
       console.log(`任务完成: ${task.id} (耗时: ${processingTime}ms)`)
       this.emit('taskComplete', task)
-      
     } catch (error) {
       console.error(`任务执行失败: ${task.id}`, error)
-      
+
       // 重试逻辑
       if (task.retryCount < this.config.retryAttempts) {
         task.retryCount++
         task.status = 'retrying'
-        
+
         console.log(`任务重试: ${task.id} (第${task.retryCount}次重试)`)
-        
+
         // 延迟后重新加入队列
         setTimeout(() => {
           task.status = 'pending'
           this.insertTaskByPriority(task)
           this.processQueue()
         }, 1000 * task.retryCount)
-        
       } else {
         // 重试次数用尽，标记为失败
         task.status = 'failed'
         task.error = error.message
         task.failedAt = Date.now()
-        
+
         this.runningTasks.delete(task.id)
         this.failedTasks.set(task.id, task)
         this.stats.failedTasks++
-        
+
         this.emit('taskError', task, error)
       }
     }
-    
+
     // 继续处理队列
     this.processQueue()
   }
@@ -204,32 +204,29 @@ export class TaskScheduler {
    */
   async executeTaskByType(task) {
     const { type, content, options = {} } = task
-    
+
     switch (type) {
       case 'extractText':
         return await this.analyzeContent(content, 'extractText', options)
-        
+
       case 'contractReview':
         return await this.analyzeContent(content, 'contractReview', options)
-        
+
       case 'analyzeStructure':
         return await this.analyzeContent(content, 'analyzeStructure', options)
-        
+
       case 'keywordComment':
         return await this.analyzeContent(content, 'keywordComment', options)
-        
+
       case 'parseDocument':
         return this.documentParser.parseDocument(content)
-        
+
       case 'detectChanges':
-        return this.documentParser.detectChanges(
-          options.oldContent,
-          content
-        )
-        
+        return this.documentParser.detectChanges(options.oldContent, content)
+
       case 'batchProcess':
         return await this.executeBatchTask(task)
-        
+
       case 'addHeader':
         // 处理添加页眉任务 - 返回参数供前端处理
         return {
@@ -237,7 +234,7 @@ export class TaskScheduler {
           data: options,
           message: '页眉参数已准备完成'
         }
-        
+
       default:
         throw new Error(`未知的任务类型: ${type}`)
     }
@@ -261,16 +258,16 @@ export class TaskScheduler {
 
     // 生成提示词
     const prompt = this.generatePrompt(content, analysisType, options)
-    
+
     // 调用AI服务
     const response = await this.callAI(prompt, options)
-    
+
     // 解析响应
     const result = this.parseAIResponse(response, analysisType)
-    
+
     // 保存到缓存
     this.cacheManager.set(contentHash, analysisType, result, options)
-    
+
     return result
   }
 
@@ -279,10 +276,11 @@ export class TaskScheduler {
    */
   generatePrompt(content, analysisType, options) {
     switch (analysisType) {
-      case 'extractText':
+      case 'extractText': {
         // extractTags 应该是第一个参数，content 是第二个参数
         const extractTags = options.extractTags || ['甲方名称', '乙方名称', '合同金额']
         return generateContractExtractionPrompt(extractTags, content)
+      }
       case 'contractReview':
         return generateContractReviewPrompt(content, options)
       default:
@@ -295,7 +293,7 @@ export class TaskScheduler {
    */
   async callAI(prompt, options = {}) {
     const model = options.model || this.aiConfig.defaultModel
-    
+
     for (let attempt = 0; attempt < this.aiConfig.maxRetries; attempt++) {
       try {
         const response = await apiClient.post('/chat/completions', {
@@ -304,7 +302,7 @@ export class TaskScheduler {
           max_tokens: this.aiConfig.maxTokensPerChunk,
           temperature: 0.1
         })
-        
+
         return response.data.choices[0].message.content
       } catch (error) {
         console.error(`AI调用失败 (尝试 ${attempt + 1}/${this.aiConfig.maxRetries}):`, error)
@@ -323,14 +321,13 @@ export class TaskScheduler {
   parseAIResponse(response, analysisType) {
     try {
       // 尝试解析JSON
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       response.match(/{[\s\S]*}/)
-      
+      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/{[\s\S]*}/)
+
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[0]
         return JSON.parse(jsonStr)
       }
-      
+
       // 如果不是JSON格式，返回原始文本
       return { content: response, type: analysisType }
     } catch (error) {
@@ -343,7 +340,7 @@ export class TaskScheduler {
    * 延迟函数
    */
   delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   /**
@@ -354,7 +351,7 @@ export class TaskScheduler {
   async executeBatchTask(task) {
     const { items, batchType, batchOptions } = task.options
     const results = []
-    
+
     // 为每个项目创建子任务
     const subTasks = items.map((item, index) => ({
       id: `${task.id}_sub_${index}`,
@@ -364,14 +361,12 @@ export class TaskScheduler {
       priority: task.priority,
       parentTaskId: task.id
     }))
-    
+
     // 并行执行子任务
-    const subTaskPromises = subTasks.map(subTask => 
-      this.executeTaskByType(subTask)
-    )
-    
+    const subTaskPromises = subTasks.map((subTask) => this.executeTaskByType(subTask))
+
     const subResults = await Promise.allSettled(subTaskPromises)
-    
+
     // 整理结果
     subResults.forEach((result, index) => {
       if (result.status === 'fulfilled') {
@@ -388,11 +383,11 @@ export class TaskScheduler {
         })
       }
     })
-    
+
     return {
       totalItems: items.length,
-      successCount: results.filter(r => r.success).length,
-      failureCount: results.filter(r => !r.success).length,
+      successCount: results.filter((r) => r.success).length,
+      failureCount: results.filter((r) => !r.success).length,
       results
     }
   }
@@ -410,7 +405,7 @@ export class TaskScheduler {
         task: this.runningTasks.get(taskId)
       }
     }
-    
+
     // 检查已完成的任务
     if (this.completedTasks.has(taskId)) {
       return {
@@ -418,7 +413,7 @@ export class TaskScheduler {
         task: this.completedTasks.get(taskId)
       }
     }
-    
+
     // 检查失败的任务
     if (this.failedTasks.has(taskId)) {
       return {
@@ -426,9 +421,9 @@ export class TaskScheduler {
         task: this.failedTasks.get(taskId)
       }
     }
-    
+
     // 检查队列中的任务
-    const queuedTask = this.taskQueue.find(task => task.id === taskId)
+    const queuedTask = this.taskQueue.find((task) => task.id === taskId)
     if (queuedTask) {
       return {
         status: 'pending',
@@ -436,7 +431,7 @@ export class TaskScheduler {
         queuePosition: this.taskQueue.indexOf(queuedTask) + 1
       }
     }
-    
+
     return null
   }
 
@@ -447,24 +442,24 @@ export class TaskScheduler {
    */
   cancelTask(taskId) {
     // 从队列中移除
-    const queueIndex = this.taskQueue.findIndex(task => task.id === taskId)
+    const queueIndex = this.taskQueue.findIndex((task) => task.id === taskId)
     if (queueIndex !== -1) {
       this.taskQueue.splice(queueIndex, 1)
       console.log(`任务已从队列中取消: ${taskId}`)
       return true
     }
-    
+
     // 标记运行中的任务为取消状态
     if (this.runningTasks.has(taskId)) {
       const task = this.runningTasks.get(taskId)
       task.status = 'cancelled'
       task.cancelledAt = Date.now()
-      
+
       this.runningTasks.delete(taskId)
       console.log(`运行中的任务已标记为取消: ${taskId}`)
       return true
     }
-    
+
     return false
   }
 
@@ -526,7 +521,7 @@ export class TaskScheduler {
    */
   emit(event, ...args) {
     if (this.listeners[event]) {
-      this.listeners[event].forEach(callback => {
+      this.listeners[event].forEach((callback) => {
         try {
           callback(...args)
         } catch (error) {
@@ -562,11 +557,11 @@ export class TaskScheduler {
       taskError: [],
       queueEmpty: []
     }
-    
+
     if (this.cacheManager) {
       this.cacheManager.cleanup()
     }
-    
+
     console.log('任务调度器资源已清理')
   }
 }

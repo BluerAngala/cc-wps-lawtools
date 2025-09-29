@@ -7,8 +7,6 @@
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 
-// 引入ribbon.js 主要的逻辑
-import ribbon from './services/wps/ribbon.js'
 // 引入文档监听器
 import DocumentWatcher from './services/wps/DocumentWatcher.js'
 // 引入缓存管理器
@@ -18,23 +16,21 @@ export default {
   setup() {
     const message = ref('你好，wps加载项')
     let documentWatcher = null
-    
+
     console.log(message.value)
-    console.log("window" , window)
+    console.log('window', window)
 
     onMounted(() => {
-      window.ribbon = ribbon
-      
       // 初始化缓存管理器
       const cacheManager = new CacheManager({
         maxCacheSize: 500,
         maxCacheAge: 30 * 60 * 1000, // 30分钟过期（比之前的24小时短）
         storagePrefix: 'contract_ai_cache_'
       })
-      
+
       // 初始化文档监听器
       documentWatcher = new DocumentWatcher(cacheManager)
-      
+
       // 延迟启动监听，确保WPS完全加载
       setTimeout(() => {
         if (window.Application) {
@@ -44,12 +40,12 @@ export default {
           console.warn('WPS Application对象未找到，文档监听器未启动')
         }
       }, 2000)
-      
+
       // 将缓存管理器和文档监听器暴露到全局，供其他组件使用
       window.cacheManager = cacheManager
       window.documentWatcher = documentWatcher
     })
-    
+
     onUnmounted(() => {
       // 清理资源
       if (documentWatcher) {
@@ -65,4 +61,3 @@ export default {
   }
 }
 </script>
-

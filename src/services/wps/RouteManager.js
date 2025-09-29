@@ -9,7 +9,7 @@ class RouteManager {
       contractreview: '/contractreview',
       dialog: '/dialog'
     }
-    
+
     this.taskPanes = {
       taskpane: 'taskpane_id',
       contractreview: 'contractreview_id',
@@ -30,11 +30,11 @@ class RouteManager {
   openTaskPane(routeName) {
     const url = this.getFullUrl(routeName)
     const storageKey = this.taskPanes[routeName]
-    
+
     if (!storageKey) {
       throw new Error(`任务窗格 ${routeName} 的存储键不存在`)
     }
-    
+
     console.log(`打开任务窗格: ${routeName}`)
     return Util.wpsService.createTaskPane(url, storageKey)
   }

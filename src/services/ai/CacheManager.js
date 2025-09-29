@@ -8,12 +8,10 @@ export class CacheManager {
     this.maxCacheSize = options.maxCacheSize || 1000 // 最大缓存条目数
     this.maxCacheAge = options.maxCacheAge || 24 * 60 * 60 * 1000 // 24小时过期
     this.storagePrefix = options.storagePrefix || 'contract_ai_cache_'
-    
+
     // 内存缓存
     this.memoryCache = new Map()
-    
 
-    
     // 初始化时清理过期缓存
     this.cleanupExpiredCache()
   }
@@ -40,7 +38,7 @@ export class CacheManager {
     let hash = 0
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i)
-      hash = ((hash << 5) - hash) + char
+      hash = (hash << 5) - hash + char
       hash = hash & hash // 转换为32位整数
     }
     return Math.abs(hash).toString(36)
@@ -55,7 +53,7 @@ export class CacheManager {
    */
   get(contentHash, analysisType, options = {}) {
     const cacheKey = this.generateCacheKey(contentHash, analysisType, options)
-    
+
     // 先检查内存缓存
     if (this.memoryCache.has(cacheKey)) {
       const cached = this.memoryCache.get(cacheKey)
@@ -66,12 +64,12 @@ export class CacheManager {
         this.memoryCache.delete(cacheKey)
       }
     }
-    
+
     // 检查本地存储缓存
     try {
       const storageKey = this.storagePrefix + cacheKey
       const cachedData = localStorage.getItem(storageKey)
-      
+
       if (cachedData) {
         const cached = JSON.parse(cachedData)
         if (this.isValidCache(cached)) {
@@ -87,7 +85,7 @@ export class CacheManager {
     } catch (error) {
       console.warn('读取本地缓存失败:', error)
     }
-    
+
     console.log(`缓存未命中: ${analysisType}`)
     return null
   }
@@ -108,10 +106,10 @@ export class CacheManager {
       contentHash,
       options
     }
-    
+
     // 保存到内存缓存
     this.memoryCache.set(cacheKey, cacheData)
-    
+
     // 保存到本地存储
     try {
       const storageKey = this.storagePrefix + cacheKey
@@ -120,7 +118,7 @@ export class CacheManager {
     } catch (error) {
       console.warn('保存本地缓存失败:', error)
     }
-    
+
     // 检查缓存大小限制
     this.enforceMemoryCacheLimit()
   }
@@ -134,7 +132,7 @@ export class CacheManager {
     if (!cached || !cached.timestamp) {
       return false
     }
-    
+
     const age = Date.now() - cached.timestamp
     return age < this.maxCacheAge
   }
@@ -146,16 +144,16 @@ export class CacheManager {
     if (this.memoryCache.size <= this.maxCacheSize) {
       return
     }
-    
+
     // 按时间戳排序，删除最旧的缓存
     const entries = Array.from(this.memoryCache.entries())
     entries.sort((a, b) => a[1].timestamp - b[1].timestamp)
-    
+
     const toDelete = entries.slice(0, entries.length - this.maxCacheSize)
     toDelete.forEach(([key]) => {
       this.memoryCache.delete(key)
     })
-    
+
     console.log(`内存缓存清理: 删除了 ${toDelete.length} 个过期条目`)
   }
 
@@ -165,7 +163,7 @@ export class CacheManager {
   cleanupExpiredCache() {
     try {
       const keysToDelete = []
-      
+
       // 检查本地存储中的所有缓存键
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
@@ -181,12 +179,12 @@ export class CacheManager {
           }
         }
       }
-      
+
       // 删除过期缓存
-      keysToDelete.forEach(key => {
+      keysToDelete.forEach((key) => {
         localStorage.removeItem(key)
       })
-      
+
       if (keysToDelete.length > 0) {
         console.log(`清理了 ${keysToDelete.length} 个过期缓存条目`)
       }
@@ -201,7 +199,7 @@ export class CacheManager {
   clear() {
     // 清空内存缓存
     this.memoryCache.clear()
-    
+
     // 清空本地存储缓存
     try {
       const keysToDelete = []
@@ -211,18 +209,16 @@ export class CacheManager {
           keysToDelete.push(key)
         }
       }
-      
-      keysToDelete.forEach(key => {
+
+      keysToDelete.forEach((key) => {
         localStorage.removeItem(key)
       })
-      
+
       console.log(`清空了所有缓存 (${keysToDelete.length} 个条目)`)
     } catch (error) {
       console.warn('清空本地缓存失败:', error)
     }
   }
-
-
 }
 
 export default CacheManager

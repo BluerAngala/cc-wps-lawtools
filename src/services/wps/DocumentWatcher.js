@@ -10,7 +10,7 @@ export class DocumentWatcher {
     this.currentDocumentId = null
     this.checkInterval = 1000 // 每秒检查一次
     this.intervalId = null
-    
+
     console.log('文档监听器已初始化')
   }
 
@@ -25,12 +25,12 @@ export class DocumentWatcher {
 
     // 获取初始文档信息
     this.updateCurrentDocument()
-    
+
     // 定期检查文档变化
     this.intervalId = setInterval(() => {
       this.checkDocumentChange()
     }, this.checkInterval)
-    
+
     console.log('开始监听文档变化')
   }
 
@@ -51,7 +51,7 @@ export class DocumentWatcher {
   checkDocumentChange() {
     try {
       const currentDoc = this.getCurrentDocument()
-      
+
       if (!currentDoc) {
         // 没有打开的文档
         if (this.currentDocumentName !== null) {
@@ -64,20 +64,20 @@ export class DocumentWatcher {
 
       const newDocName = currentDoc.name
       const newDocId = currentDoc.id
-      
+
       // 检查是否切换了文档
       if (this.currentDocumentName !== newDocName || this.currentDocumentId !== newDocId) {
         console.log(`文档已切换: ${this.currentDocumentName || '无'} -> ${newDocName}`)
-        
+
         // 清除旧文档的缓存
         if (this.currentDocumentName && this.cacheManager) {
           this.clearDocumentCache(this.currentDocumentName, this.currentDocumentId)
         }
-        
+
         // 更新当前文档信息
         this.currentDocumentName = newDocName
         this.currentDocumentId = newDocId
-        
+
         // 触发文档切换事件
         this.onDocumentChanged(newDocName, newDocId)
       }
@@ -95,7 +95,7 @@ export class DocumentWatcher {
       if (!window.Application || !window.Application.ActiveDocument) {
         return null
       }
-      
+
       const doc = window.Application.ActiveDocument
       return {
         name: doc.Name || 'Unknown',
@@ -125,7 +125,7 @@ export class DocumentWatcher {
    * @param {string} docName - 文档名称
    * @param {string} docId - 文档ID
    */
-  clearDocumentCache(docName, docId) {
+  clearDocumentCache(docName) {
     if (!this.cacheManager) {
       console.warn('缓存管理器不可用，无法清除缓存')
       return
@@ -147,10 +147,10 @@ export class DocumentWatcher {
    */
   onDocumentChanged(docName, docId) {
     console.log(`文档切换事件: ${docName}`)
-    
+
     // 可以在这里添加其他文档切换时需要执行的逻辑
     // 比如重置UI状态、清除临时数据等
-    
+
     // 触发自定义事件
     if (typeof window !== 'undefined' && window.dispatchEvent) {
       const event = new CustomEvent('documentChanged', {

@@ -75,12 +75,21 @@
       </p>
       <div>
         <label>白名单 (每行一个):</label>
-        <textarea v-model="whitelist" placeholder="请输入白名单项，每行一个" rows="5" style="width: 100%"></textarea>
+        <textarea
+          v-model="whitelist"
+          placeholder="请输入白名单项，每行一个"
+          rows="5"
+          style="width: 100%"
+        ></textarea>
       </div>
       <div>
         <label>自定义敏感词 (格式: 敏感词|替换词，每行一个):</label>
-        <textarea v-model="customSensitiveWords" placeholder="请输入自定义敏感词，格式: 敏感词|替换词，每行一个" rows="5"
-          style="width: 100%"></textarea>
+        <textarea
+          v-model="customSensitiveWords"
+          placeholder="请输入自定义敏感词，格式: 敏感词|替换词，每行一个"
+          rows="5"
+          style="width: 100%"
+        ></textarea>
       </div>
     </div>
 
@@ -90,11 +99,20 @@
       <h3>AI文本处理</h3>
       <div>
         <label>输入文本内容：</label>
-        <textarea v-model="userInputText" placeholder="请输入要处理的文本内容" rows="5" style="width: 100%"></textarea>
+        <textarea
+          v-model="userInputText"
+          placeholder="请输入要处理的文本内容"
+          rows="5"
+          style="width: 100%"
+        ></textarea>
       </div>
       <div>
         <label>处理要求：</label>
-        <input v-model="userProcessRequest" placeholder="请输入处理要求，例如：总结要点" style="width: 100%" />
+        <input
+          v-model="userProcessRequest"
+          placeholder="请输入处理要求，例如：总结要点"
+          style="width: 100%"
+        />
       </div>
       <button style="margin: 3px" @click="onProcessUserTextWithAI" :disabled="isProcessing">
         {{ isProcessing ? '处理中...' : 'AI处理' }}
@@ -138,19 +156,7 @@ const sensitiveInfoList = ref([])
 const whitelist = ref('')
 const customSensitiveWords = ref('')
 
-// 解析文本数组，过滤空行
-const parseTextArray = (text) => {
-  return text.split('\n').filter((item) => item.trim())
-}
-
 // 计算属性
-const hasWhitelist = computed(() => {
-  return parseTextArray(whitelist.value).length > 0
-})
-
-const hasCustomSensitiveWords = computed(() => {
-  return parseTextArray(customSensitiveWords.value).length > 0
-})
 
 const hasSensitiveInfo = computed(() => {
   return sensitiveInfoList.value?.length > 0
@@ -209,7 +215,7 @@ const onbuttonclick = async (id) => {
         contractNumber: '测试页眉123'
       })
       break
-    //未定义 
+    //未定义
     default:
       console.log('未定义指令， id', id)
       break
@@ -287,7 +293,7 @@ const onProcessUserTextWithAI = async () => {
 
     // 添加任务到调度器
     const taskId = taskScheduler.addTask(taskConfig)
-    
+
     // 监听任务完成事件
     const handleTaskComplete = (task) => {
       if (task.id === taskId) {
@@ -297,7 +303,7 @@ const onProcessUserTextWithAI = async () => {
         taskScheduler.off('taskComplete', handleTaskComplete)
       }
     }
-    
+
     const handleTaskError = (task, error) => {
       if (task.id === taskId) {
         console.error('AI处理失败:', error)
@@ -305,7 +311,7 @@ const onProcessUserTextWithAI = async () => {
         taskScheduler.off('taskError', handleTaskError)
       }
     }
-    
+
     taskScheduler.on('taskComplete', handleTaskComplete)
     taskScheduler.on('taskError', handleTaskError)
   })
@@ -314,12 +320,6 @@ const onProcessUserTextWithAI = async () => {
 
 // 脱敏文本处理
 const processDesensitizeText = (text) => {
-  const whitelistArray = parseTextArray(whitelist.value)
-  const customWordsArray = parseTextArray(customSensitiveWords.value).map((item) => {
-    const [word, replacement] = item.split('|')
-    return { word: word.trim(), replacement: replacement?.trim() || '*' }
-  })
-
   const { desensitizedText: resultText, sensitiveInfoList: resultList } = desensitizeText(text)
 
   sensitiveInfoList.value = resultList
@@ -340,8 +340,6 @@ const applyDesensitization = () => {
     sensitiveInfoList.value = []
   }
 }
-
-
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->

@@ -23,7 +23,7 @@ if (!webhookUrl || !token || !sheetID) {
 const isDev = import.meta.env.DEV
 const prodProxyURL = import.meta.env.VITE_KDOCS_PROXY_URL
 // 优先使用本地或服务端代理，最后才直连 KDocs（直连可能触发 CORS）
-const baseURL = isDev ? '/kdocs' : (prodProxyURL || webhookUrl)
+const baseURL = isDev ? '/kdocs' : prodProxyURL || webhookUrl
 
 // 允许通过环境变量配置自定义 Origin/Cookie（注意：浏览器可能会忽略这些头）
 const customOrigin = 'https://www.kdocs.cn'
@@ -148,7 +148,6 @@ async function kdocsHandler(options) {
     throw error
   }
 }
-
 
 // 测试
 async function test() {

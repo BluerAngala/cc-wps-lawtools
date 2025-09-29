@@ -13,6 +13,7 @@
 		"format": "prettier --write src/"
 	},
 	"dependencies": {
+		"@element-plus/icons-vue": "^2.3.2",
 		"axios": "^1.7.2",
 		"core-js": "^3.37.1",
 		"crypto-js": "^4.2.0",
@@ -27,6 +28,7 @@
 		"eslint": "^8.57.0",
 		"eslint-plugin-vue": "^9.23.0",
 		"prettier": "^3.2.5",
+		"unocss": "^66.5.2",
 		"vite": "^5.3.1",
 		"wps-jsapi-declare": "latest",
 		"wpsjs": "latest"

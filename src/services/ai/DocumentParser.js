@@ -14,7 +14,7 @@ export class DocumentParser {
       /[一二三四五六七八九十\d]+[、．.]\s*(.+)/g,
       /\d+[、．.]\s*(.+)/g
     ]
-    
+
     // 当事人信息识别模式
     this.partyPatterns = [
       /甲方[：:]?\s*(.+?)(?=乙方|\n|$)/g,
@@ -24,7 +24,7 @@ export class DocumentParser {
       /买方[：:]?\s*(.+?)(?=卖方|\n|$)/g,
       /卖方[：:]?\s*(.+?)(?=买方|\n|$)/g
     ]
-    
+
     // 关键条款识别模式
     this.clausePatterns = [
       /违约责任[：:]?([\s\S]*?)(?=第[一二三四五六七八九十\d]+条|\d+[、．.]|$)/g,
@@ -49,7 +49,7 @@ export class DocumentParser {
       })
       throw new Error('文档内容不能为空')
     }
-    
+
     const trimmedContent = content.trim()
     if (trimmedContent.length === 0) {
       console.error('DocumentParser.parseDocument: 文档内容为空白')
@@ -57,7 +57,7 @@ export class DocumentParser {
     }
 
     const documentHash = this.generateContentHash(trimmedContent)
-    
+
     return {
       hash: documentHash,
       content: trimmedContent, // 保存原始内容
@@ -87,7 +87,7 @@ export class DocumentParser {
   extractMetadata(content) {
     const lines = content.split('\n')
     const firstLine = lines[0]?.trim() || ''
-    
+
     return {
       title: this.extractTitle(firstLine),
       length: content.length,
@@ -120,10 +120,10 @@ export class DocumentParser {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
-      
+
       // 检查是否是章节标题
       const sectionMatch = this.matchSectionTitle(line)
-      
+
       if (sectionMatch) {
         // 保存上一个章节
         if (currentSection) {
@@ -133,7 +133,7 @@ export class DocumentParser {
             hash: this.generateContentHash(sectionContent.join('\n'))
           })
         }
-        
+
         // 开始新章节
         currentSection = {
           title: sectionMatch.title,
@@ -145,7 +145,7 @@ export class DocumentParser {
         sectionContent.push(line)
       }
     }
-    
+
     // 保存最后一个章节
     if (currentSection) {
       sections.push({
@@ -167,7 +167,7 @@ export class DocumentParser {
     for (let i = 0; i < this.sectionPatterns.length; i++) {
       const pattern = new RegExp(this.sectionPatterns[i].source, 'g')
       const match = pattern.exec(line)
-      
+
       if (match) {
         return {
           title: match[1] || line,
@@ -186,11 +186,11 @@ export class DocumentParser {
    */
   extractClauses(content) {
     const clauses = []
-    
+
     this.clausePatterns.forEach((pattern, index) => {
       const regex = new RegExp(pattern.source, 'gi')
       let match
-      
+
       while ((match = regex.exec(content)) !== null) {
         clauses.push({
           type: this.getClauseType(index),
@@ -200,7 +200,7 @@ export class DocumentParser {
         })
       }
     })
-    
+
     return clauses
   }
 
@@ -221,15 +221,15 @@ export class DocumentParser {
    */
   extractParties(content) {
     const parties = []
-    
-    this.partyPatterns.forEach(pattern => {
+
+    this.partyPatterns.forEach((pattern) => {
       const regex = new RegExp(pattern.source, 'gi')
       let match
-      
+
       while ((match = regex.exec(content)) !== null) {
         const partyInfo = match[0].trim()
         const partyName = match[1]?.trim() || ''
-        
+
         if (partyName) {
           parties.push({
             role: this.extractPartyRole(partyInfo),
@@ -240,7 +240,7 @@ export class DocumentParser {
         }
       }
     })
-    
+
     return parties
   }
 
@@ -267,12 +267,12 @@ export class DocumentParser {
   extractKeyTerms(content) {
     const terms = []
     const termPatterns = [
-      /合同[编号|号码][：:]?\s*([\w\-\/]+)/gi,
-      /签署日期[：:]?\s*([\d年月日\-\/]+)/gi,
-      /有效期[：:]?\s*([\d年月日\-\/至]+)/gi,
+      /合同[编号|号码][：:]?\s*([\w\-/]+)/gi,
+      /签署日期[：:]?\s*([\d年月日\-/]+)/gi,
+      /有效期[：:]?\s*([\d年月日\-/至]+)/gi,
       /金额[：:]?\s*([\d,，.．万千百十元]+)/gi
     ]
-    
+
     termPatterns.forEach((pattern, index) => {
       let match
       while ((match = pattern.exec(content)) !== null) {
@@ -284,7 +284,7 @@ export class DocumentParser {
         })
       }
     })
-    
+
     return terms
   }
 
@@ -314,10 +314,10 @@ export class DocumentParser {
       hasPartyInfo: false,
       hasSignature: false
     }
-    
-    lines.forEach(line => {
+
+    lines.forEach((line) => {
       const trimmed = line.trim()
-      
+
       if (!trimmed) {
         structure.emptyLines++
       } else if (this.matchSectionTitle(trimmed)) {
@@ -326,16 +326,16 @@ export class DocumentParser {
       } else {
         structure.contentLines++
       }
-      
+
       if (trimmed.includes('甲方') || trimmed.includes('乙方')) {
         structure.hasPartyInfo = true
       }
-      
+
       if (trimmed.includes('签字') || trimmed.includes('盖章') || trimmed.includes('签署')) {
         structure.hasSignature = true
       }
     })
-    
+
     return structure
   }
 
@@ -349,7 +349,7 @@ export class DocumentParser {
     if (!oldParsed || !newParsed) {
       return { hasChanges: true, changedSections: [], isNewDocument: true }
     }
-    
+
     const changes = {
       hasChanges: oldParsed.hash !== newParsed.hash,
       changedSections: [],
@@ -357,21 +357,20 @@ export class DocumentParser {
       removedSections: [],
       isNewDocument: false
     }
-    
+
     if (!changes.hasChanges) {
       return changes
     }
-    
+
     // 检测章节变更
-    const oldSectionHashes = new Set(oldParsed.sections.map(s => s.hash))
-    const newSectionHashes = new Set(newParsed.sections.map(s => s.hash))
-    
-    newParsed.sections.forEach(section => {
+    const oldSectionHashes = new Set(oldParsed.sections.map((s) => s.hash))
+
+    newParsed.sections.forEach((section) => {
       if (!oldSectionHashes.has(section.hash)) {
         changes.changedSections.push(section)
       }
     })
-    
+
     return changes
   }
 }

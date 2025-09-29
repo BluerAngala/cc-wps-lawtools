@@ -1,167 +1,158 @@
 <template>
-  <el-form label-width="auto" label-position="top" style="width: 100%;">
+  <el-form label-width="auto" label-position="top" style="width: 100%">
     <el-form-item v-for="(field, key) in config" :key="key" :label="field.label">
       <!-- 文本输入框 -->
-      <el-input 
-        v-if="field.type === 'text'" 
-        v-model="field.value" 
+      <el-input
+        v-if="field.type === 'text'"
+        v-model="field.value"
         :placeholder="field.placeholder"
         @input="updateConfig"
       />
-      
+
       <!-- 选择框 -->
-      <el-select 
-        v-else-if="field.type === 'select'" 
-        v-model="field.value" 
+      <el-select
+        v-else-if="field.type === 'select'"
+        v-model="field.value"
         style="width: 100%"
         @change="updateConfig"
       >
-        <el-option 
-          v-for="option in field.options" 
-          :key="option" 
-          :label="option" 
-          :value="option" 
-        />
+        <el-option v-for="option in field.options" :key="option" :label="option" :value="option" />
       </el-select>
-      
+
       <!-- 数字输入框 -->
-      <el-input-number 
-        v-else-if="field.type === 'number'" 
+      <el-input-number
+        v-else-if="field.type === 'number'"
         v-model="field.value"
         :placeholder="field.placeholder"
         @change="updateConfig"
       />
-      
+
       <!-- 关键词列表配置 -->
       <div v-else-if="field.type === 'keywordList'" class="keyword-list-config">
         <div class="keyword-list-container">
           <div v-for="(item, index) in field.value" :key="index" class="keyword-item">
             <div class="keyword-title">{{ index + 1 }}. 关键词</div>
-            <el-button 
-              type="danger" 
-              @click="removeKeyword(field, index)" 
-              size="small" 
-              :icon="Delete" 
+            <el-button
+              type="danger"
+              @click="removeKeyword(field, index)"
+              size="small"
+              :icon="Delete"
               circle
-              class="delete-btn" 
+              class="delete-btn"
             />
             <div class="keyword-row">
-              <el-input 
-                v-model="item.keyword" 
-                placeholder="请输入关键词" 
-                size="small" 
+              <el-input
+                v-model="item.keyword"
+                placeholder="请输入关键词"
+                size="small"
                 class="keyword-input"
                 @input="updateConfig"
               />
             </div>
-            <div class="comment-title"> - 批注内容</div>
-            <el-input 
-              v-model="item.comment" 
-              placeholder="请输入批注内容" 
-              size="small" 
+            <div class="comment-title">- 批注内容</div>
+            <el-input
+              v-model="item.comment"
+              placeholder="请输入批注内容"
+              size="small"
               class="comment-input"
               @input="updateConfig"
             />
           </div>
         </div>
-        <el-button 
-          type="primary" 
-          @click="addKeyword(field)" 
-          :icon="Plus" 
+        <el-button
+          type="primary"
+          @click="addKeyword(field)"
+          :icon="Plus"
           size="small"
           class="add-keyword-btn"
         >
           添加关键词
         </el-button>
       </div>
-      
+
       <!-- AI合同预审规则列表配置 -->
       <div v-else-if="field.type === 'contractReviewList'" class="contract-review-list-config">
         <div class="review-list-container">
           <div v-for="(rule, index) in field.value" :key="index" class="review-rule-item">
             <div class="rule-title">{{ index + 1 }}. 预审规则</div>
-            <el-button 
-              type="danger" 
-              @click="removeReviewRule(field, index)" 
-              size="small" 
-              :icon="Delete" 
+            <el-button
+              type="danger"
+              @click="removeReviewRule(field, index)"
+              size="small"
+              :icon="Delete"
               circle
-              class="delete-btn" 
+              class="delete-btn"
             />
-            
+
             <!-- 规则名称 -->
             <div class="config-section">
               <div class="section-title">📋 规则名称</div>
-              <el-input 
-                v-model="rule.reviewRules" 
+              <el-input
+                v-model="rule.reviewRules"
                 placeholder="请输入预审规则名称"
                 size="small"
                 @input="updateConfig"
               />
             </div>
-            
+
             <!-- 审查要求 -->
             <div class="config-section">
               <div class="section-title">📝 审查要求</div>
-              <el-input 
-                v-model="rule.reviewRequirements" 
+              <el-input
+                v-model="rule.reviewRequirements"
                 type="textarea"
                 :rows="3"
                 placeholder="请输入具体的审查要求，例如：审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？"
                 @input="updateConfig"
               />
             </div>
-            
+
             <!-- 执行动作 -->
             <div class="config-section">
               <div class="section-title">⚙️ 执行动作</div>
-              <el-select 
-                v-model="rule.actionType" 
-                style="width: 100%"
-                @change="updateConfig"
-              >
+              <el-select v-model="rule.actionType" style="width: 100%" @change="updateConfig">
                 <el-option label="批注" value="批注" />
                 <el-option label="修订" value="修订" />
               </el-select>
             </div>
           </div>
         </div>
-        <el-button 
-          type="primary" 
-          @click="addReviewRule(field)" 
-          :icon="Plus" 
+        <el-button
+          type="primary"
+          @click="addReviewRule(field)"
+          :icon="Plus"
           size="small"
           class="add-rule-btn"
         >
           添加预审规则
         </el-button>
       </div>
-      
+
       <!-- 标签输入框配置 -->
       <div v-else-if="field.type === 'tags'" class="tags-config">
         <div class="tags-display">
-          <el-tag 
-            v-for="(tag, index) in field.value" 
-            :key="index" 
+          <el-tag
+            v-for="(tag, index) in field.value"
+            :key="index"
             closable
-            @close="removeTag(field, index)" 
+            @close="removeTag(field, index)"
             class="tag-item"
           >
             {{ tag }}
           </el-tag>
         </div>
         <div class="tag-input-row">
-          <el-input 
-            v-model="field.inputValue" 
-            placeholder="输入数据要素" 
+          <el-input
+            v-model="field.inputValue"
+            placeholder="输入数据要素"
             @keyup.enter="addTag(field)"
             class="tag-input"
           />
-          <el-button 
-            type="primary" 
-            @click="addTag(field)" 
-            :icon="Plus" 
-            size="small" 
+          <el-button
+            type="primary"
+            @click="addTag(field)"
+            :icon="Plus"
+            size="small"
             class="add-tag-btn"
           >
             添加
@@ -251,7 +242,6 @@ const removeReviewRule = (field, index) => {
   /* 添加边框 */
   border: 1px solid #4d7dee;
   border-radius: 4px;
-
 }
 
 .keyword-list-container::-webkit-scrollbar {

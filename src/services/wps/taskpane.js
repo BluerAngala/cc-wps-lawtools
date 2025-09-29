@@ -99,13 +99,13 @@ class TaskPaneHandler {
         range.Font.Name = '宋体'
         range.Font.Size = parseInt(param.fontSize) || 12
 
-        const alignmentMap = { '左对齐': 0, '居中': 1, '右对齐': 2 }
+        const alignmentMap = { 左对齐: 0, 居中: 1, 右对齐: 2 }
         range.Paragraphs.Alignment = alignmentMap[param.alignment] ?? 1
 
-        await new Promise(resolve => setTimeout(resolve, 200))
-        
-        return { 
-          success: true, 
+        await new Promise((resolve) => setTimeout(resolve, 200))
+
+        return {
+          success: true,
           message: '页眉添加成功',
           headerText: newHeaderText
         }
@@ -114,14 +114,12 @@ class TaskPaneHandler {
       }
     } catch (error) {
       console.error('添加页眉时出错:', error)
-      return { 
-        success: false, 
-        message: `添加页眉失败: ${error.message}` 
+      return {
+        success: false,
+        message: `添加页眉失败: ${error.message}`
       }
     }
   }
-
-
 
   async addComment(param) {
     const doc = this.getActiveDoc()
@@ -136,7 +134,7 @@ class TaskPaneHandler {
     this.enableRevisionMode(doc)
     let foundCount = 0
 
-    keywordList.forEach(item => {
+    keywordList.forEach((item) => {
       const keyword = item?.keyword?.trim()
       if (!keyword) return
 
@@ -159,7 +157,7 @@ class TaskPaneHandler {
       alert('未找到任何指定的关键词')
     }
 
-    await new Promise(resolve => setTimeout(resolve, 300))
+    await new Promise((resolve) => setTimeout(resolve, 300))
   }
 
   // 抽取文档中的特定数据要素
@@ -178,10 +176,10 @@ class TaskPaneHandler {
         console.log('doc.Range:', typeof doc.Range)
         console.log('doc.Content:', typeof doc.Content)
         console.log('window.Application.Selection:', !!window.Application?.Selection)
-        
+
         // 尝试多种方式获取文档内容
         let extractedText = ''
-        
+
         // 方法1: 使用Range获取全部内容
         if (doc.Range) {
           console.log('extractText: 尝试使用Range方法')
@@ -192,7 +190,7 @@ class TaskPaneHandler {
             console.error('extractText: Range方法失败:', rangeError)
           }
         }
-        
+
         // 方法2: 如果Range方法失败，尝试使用Content
         if (!extractedText && doc.Content) {
           console.log('extractText: 尝试使用Content方法')
@@ -203,7 +201,7 @@ class TaskPaneHandler {
             console.error('extractText: Content方法失败:', contentError)
           }
         }
-        
+
         // 方法3: 如果还是失败，尝试使用Selection
         if (!extractedText && window.Application?.Selection) {
           console.log('extractText: 尝试使用Selection方法')
@@ -216,15 +214,15 @@ class TaskPaneHandler {
             console.error('extractText: Selection方法失败:', selectionError)
           }
         }
-        
+
         console.log('获取文档内容，长度:', extractedText?.length || 0)
         console.log('文档内容预览:', extractedText?.substring(0, 100) + '...')
-        
+
         if (!extractedText || extractedText.trim().length === 0) {
           console.warn('extractText: 文档内容为空，可能文档未正确加载或没有内容')
           return ''
         }
-        
+
         return extractedText
       } catch (error) {
         console.error('extractText: 获取文档内容时出错:', error)
@@ -237,7 +235,7 @@ class TaskPaneHandler {
     console.log('正在处理抽取文案，提取标签:', extractTags)
 
     const extractedText = doc.Range().Text
-    
+
     try {
       // 使用新的AI框架
       const taskConfig = {
@@ -245,23 +243,24 @@ class TaskPaneHandler {
         content: extractedText,
         options: { extractTags }
       }
-      
+
       const taskId = await this.taskScheduler.addTask(taskConfig)
-      
+
       // 监听任务完成
       this.taskScheduler.on('taskCompleted', (completedTaskId, result) => {
         if (completedTaskId === taskId) {
           console.log('AI处理结果:', result)
-          
+
           try {
-            const json = typeof result.content === 'string' ? JSON.parse(result.content) : result.content
+            const json =
+              typeof result.content === 'string' ? JSON.parse(result.content) : result.content
             console.log('AI处理结果 json', json)
           } catch (error) {
             console.error('AI处理结果 json parse error', error)
           }
         }
       })
-      
+
       // 监听任务错误
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
@@ -269,7 +268,6 @@ class TaskPaneHandler {
           alert('AI处理出错，请稍后重试')
         }
       })
-      
     } catch (error) {
       console.error('创建AI任务失败:', error)
       alert('创建AI任务失败，请稍后重试')
@@ -323,29 +321,10 @@ class TaskPaneHandler {
           alert('AI预审失败，请稍后重试')
         }
       })
-
     } catch (error) {
       console.error('创建AI预审任务失败:', error)
       alert('创建AI预审任务失败，请稍后重试')
     }
-
-    let json = null
-    try {
-      json = JSON.parse(text)
-      console.log('AI处理结果 json', json)
-    } catch (error) {
-      console.error('AI处理结果 json parse error', error)
-      return text
-    }
-
-    // 根据执行动作类型处理预审结果
-    if (actionType === 'comment') {
-      await this.addReviewComments(doc, json)
-    } else if (actionType === 'revision') {
-      await this.addReviewRevisions(doc, json)
-    }
-
-    console.log('合同预审完成')
   }
 
   // 添加预审批注
@@ -356,8 +335,8 @@ class TaskPaneHandler {
     }
 
     let addedCount = 0
-    reviewData.issues.forEach(issue => {
-      const { keyword, comment, position } = issue
+    reviewData.issues.forEach((issue) => {
+      const { keyword, comment } = issue
       if (!keyword || !comment) return
 
       const selection = doc.Range()
@@ -389,7 +368,7 @@ class TaskPaneHandler {
     this.enableRevisionMode(doc)
     let revisedCount = 0
 
-    reviewData.revisions.forEach(revision => {
+    reviewData.revisions.forEach((revision) => {
       const { original, suggested, reason } = revision
       if (!original || !suggested) return
 
@@ -443,8 +422,6 @@ class TaskPaneHandler {
       alert('请先选择要提取的文本')
     }
   }
-
-
 
   updateDocumentText(param) {
     const doc = this.getActiveDoc()
@@ -527,7 +504,6 @@ class TaskPaneHandler {
           alert('AI处理失败，请稍后重试')
         }
       })
-
     } catch (error) {
       console.error('创建AI处理任务失败:', error)
       alert('创建AI处理任务失败，请稍后重试')
@@ -546,9 +522,18 @@ class TaskPaneHandler {
 
     const originalText = selection.Text
     const desensitizedText = originalText
-      .replace(/\d{15,18}/g, match => match.substring(0, 6) + '*'.repeat(match.length - 10) + match.substring(match.length - 4))
-      .replace(/1[3-9]\d{9}/g, match => match.substring(0, 3) + '*'.repeat(4) + match.substring(7))
-      .replace(/[\u4e00-\u9fa5]{2,4}/g, match => match.length > 2 ? match[0] + '*'.repeat(match.length - 2) + match[match.length - 1] : match)
+      .replace(
+        /\d{15,18}/g,
+        (match) =>
+          match.substring(0, 6) + '*'.repeat(match.length - 10) + match.substring(match.length - 4)
+      )
+      .replace(
+        /1[3-9]\d{9}/g,
+        (match) => match.substring(0, 3) + '*'.repeat(4) + match.substring(7)
+      )
+      .replace(/[\u4e00-\u9fa5]{2,4}/g, (match) =>
+        match.length > 2 ? match[0] + '*'.repeat(match.length - 2) + match[match.length - 1] : match
+      )
 
     window.Application?.PluginStorage?.setItem('original_text', originalText)
     window.Application?.PluginStorage?.setItem('desensitized_text', desensitizedText)
@@ -612,7 +597,6 @@ class TaskPaneHandler {
           alert('AI文档结构分析失败，请稍后重试')
         }
       })
-
     } catch (error) {
       console.error('创建AI文档结构分析任务失败:', error)
       alert('创建AI文档结构分析任务失败，请稍后重试')

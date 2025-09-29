@@ -1,7 +1,11 @@
 // SiliconFlow AI 调用管理
 import axios from 'axios'
 import contractElementsPrompt from './prompt/提取合同要素.txt?raw'
-import { generateContractExtractionPrompt, validateExtractTags, generateContractReviewPrompt } from './promptGenerator.js'
+import {
+  generateContractExtractionPrompt,
+  validateExtractTags,
+  generateContractReviewPrompt
+} from './promptGenerator.js'
 
 // 替换为你的 SiliconFlow API 密钥
 const API_KEY = import.meta.env.VITE_AI_API_KEY
@@ -107,10 +111,14 @@ async function processDocumentContent({ content, model = 'deepseek-ai/DeepSeek-V
  * @param {string} params.model - 使用的模型名称
  * @returns {Promise<string>} AI 处理后的结果
  */
-async function processContractElements({ content, extractTags, model = 'deepseek-ai/DeepSeek-V3' }) {
+async function processContractElements({
+  content,
+  extractTags,
+  model = 'deepseek-ai/DeepSeek-V3'
+}) {
   try {
     let promptContent
-    
+
     // 如果提供了自定义提取标签，使用动态生成的提示词
     if (extractTags && extractTags.length > 0) {
       // 验证提取标签
@@ -118,12 +126,12 @@ async function processContractElements({ content, extractTags, model = 'deepseek
       if (!validation.isValid) {
         throw new Error(`提取标签验证失败: ${validation.errors.join(', ')}`)
       }
-      
+
       // 输出警告信息
       if (validation.warnings.length > 0) {
         console.warn('提取标签警告:', validation.warnings.join(', '))
       }
-      
+
       console.log('使用动态提示词，提取标签:', extractTags)
       promptContent = generateContractExtractionPrompt(extractTags, content)
     } else {
@@ -141,7 +149,7 @@ async function processContractElements({ content, extractTags, model = 'deepseek
         }
       ]
     })
-    
+
     return response.data.choices[0].message.content
   } catch (error) {
     console.error('处理合同要素时出错:', error)
@@ -189,7 +197,7 @@ ${content}`
         }
       ]
     })
-    
+
     return response.data.choices[0].message.content
   } catch (error) {
     console.error('处理文档结构分析时出错:', error)
@@ -207,28 +215,42 @@ ${content}`
  * @param {string} params.model - 使用的模型名称
  * @returns {Promise<string>} AI 处理后的结果
  */
-async function processContractReview({ content, reviewRules, reviewRequirements, actionType, model = 'deepseek-ai/DeepSeek-V3' }) {
+async function processContractReview({
+  content,
+  reviewRules,
+  reviewRequirements,
+  actionType,
+  model = 'deepseek-ai/DeepSeek-V3'
+}) {
   try {
     let promptContent
-    
+
     // 处理新的规则数组格式
     if (Array.isArray(reviewRules)) {
       // 合并所有规则为一个综合提示词
-      const allRules = reviewRules.map((rule, index) => 
-        `## 规则${index + 1}: ${rule.reviewRules}\n审查要求: ${rule.reviewRequirements}\n执行动作: ${rule.actionType}`
-      ).join('\n\n')
-      
+      const allRules = reviewRules
+        .map(
+          (rule, index) =>
+            `## 规则${index + 1}: ${rule.reviewRules}\n审查要求: ${rule.reviewRequirements}\n执行动作: ${rule.actionType}`
+        )
+        .join('\n\n')
+
       const actionType = reviewRules[0]?.actionType || '批注'
-      promptContent = generateContractReviewPrompt('综合预审规则', allRules, actionType)
-        .replace('{{input}}', content)
+      promptContent = generateContractReviewPrompt('综合预审规则', allRules, actionType).replace(
+        '{{input}}',
+        content
+      )
     } else {
       // 兼容旧的单规则格式
-      promptContent = generateContractReviewPrompt(reviewRules, reviewRequirements, actionType)
-        .replace('{{input}}', content)
+      promptContent = generateContractReviewPrompt(
+        reviewRules,
+        reviewRequirements,
+        actionType
+      ).replace('{{input}}', content)
     }
-    
+
     console.log('合同预审提示词:', promptContent)
-    
+
     const response = await apiClient.post('/chat/completions', {
       model: model,
       messages: [
@@ -238,7 +260,7 @@ async function processContractReview({ content, reviewRules, reviewRequirements,
         }
       ]
     })
-    
+
     return response.data.choices[0].message.content
   } catch (error) {
     console.error('处理合同预审时出错:', error)
@@ -260,7 +282,6 @@ async function getAvailableModels() {
   }
 }
 
-
 // 测试
 async function test() {
   const res = await fetch('https://env-00jxgx7alqyz.dev-hz.cloudbasefunction.cn/test_kdocs', {
@@ -270,14 +291,12 @@ async function test() {
   return res
 }
 
-
-
-export { 
+export {
   processDocumentContent,
   processContractElements,
   processContractReview,
   processDocumentStructure,
-  getAvailableModels, 
+  getAvailableModels,
   apiClient,
   test
 }

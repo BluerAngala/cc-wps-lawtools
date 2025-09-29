@@ -14,12 +14,8 @@
           <el-button type="success" @click="() => saveConfigToLocal(true)" :icon="Document">
             保存配置
           </el-button>
-          <el-button type="warning" @click="resetConfig" :icon="Refresh">
-            重置配置
-          </el-button>
-          <el-button type="danger" @click="clearCache" :icon="Delete">
-            清除缓存
-          </el-button>
+          <el-button type="warning" @click="resetConfig" :icon="Refresh"> 重置配置 </el-button>
+          <el-button type="danger" @click="clearCache" :icon="Delete"> 清除缓存 </el-button>
         </el-space>
       </div>
 
@@ -34,20 +30,25 @@
 
     <div class="content">
       <!-- 规则配置组件 -->
-      <RulesConfig :rules="rules" :processing-rules="processingRules" :extracted-data="extractedData"
-        :active-extracted-items="activeExtractedItems" :submitting="submitting" @execute-rule="executeRule"
-        @update-rule-config="updateRuleConfig" @submit-extracted-data="submitExtractedData"
+      <RulesConfig
+        :rules="rules"
+        :processing-rules="processingRules"
+        :extracted-data="extractedData"
+        :active-extracted-items="activeExtractedItems"
+        :submitting="submitting"
+        @execute-rule="executeRule"
+        @update-rule-config="updateRuleConfig"
+        @submit-extracted-data="submitExtractedData"
         @update:active-extracted-items="activeExtractedItems = $event"
-        @update:extracted-data="extractedData = $event" />
+        @update:extracted-data="extractedData = $event"
+      />
     </div>
-
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Refresh, Delete } from '@element-plus/icons-vue'
 import taskPane from '../../services/wps/taskpane.js'
 import TaskScheduler from '../../services/ai/TaskScheduler.js'
@@ -80,11 +81,12 @@ const DEFAULT_RULES = [
       extractTags: {
         label: '提取数据要素',
         type: 'tags',
-        value: ["合同名称", '甲方', '乙方', '其他方', '合同金额'],
+        value: ['合同名称', '甲方', '乙方', '其他方', '合同金额'],
         inputValue: ''
       }
     }
-  }, {
+  },
+  {
     name: 'keywordComment',
     icon: '🔍',
     title: '关键词批注',
@@ -94,15 +96,34 @@ const DEFAULT_RULES = [
         type: 'keywordList',
         value: [
           { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。' },
-          { keyword: '付款方式', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。' },
-          { keyword: '费用', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。' },
-          { keyword: '验收', comment: '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。' },
+          {
+            keyword: '付款方式',
+            comment:
+              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。'
+          },
+          {
+            keyword: '费用',
+            comment:
+              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。'
+          },
+          {
+            keyword: '验收',
+            comment:
+              '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。'
+          },
           { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误' },
           { keyword: '仲裁', comment: '建议约定统一约定法院管辖' },
           { keyword: '“广东特支计划”', comment: '提醒确认项目名称以及期数是否准确无误' },
-          { keyword: '培养期为', comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！' },
-          { keyword: '资金发放安排', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。' },
-          { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。' },
+          {
+            keyword: '培养期为',
+            comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！'
+          },
+          {
+            keyword: '资金发放安排',
+            comment:
+              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。'
+          },
+          { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。' }
         ]
       }
     }
@@ -119,12 +140,14 @@ const DEFAULT_RULES = [
         value: [
           {
             reviewRules: '审查争议解决条款',
-            reviewRequirements: '审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？',
+            reviewRequirements:
+              '审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？',
             actionType: '批注'
           },
           {
             reviewRules: '审查违约责任条款',
-            reviewRequirements: '审查合同中违约责任条款是否明确，违约金或赔偿标准是否合理，是否存在免责条款？',
+            reviewRequirements:
+              '审查合同中违约责任条款是否明确，违约金或赔偿标准是否合理，是否存在免责条款？',
             actionType: '批注'
           }
         ]
@@ -167,7 +190,6 @@ const DEFAULT_RULES = [
       // 不需要配置具体内容，保持为空对象
     }
   }
-
 ]
 
 // 规则配置
@@ -187,11 +209,11 @@ const AI_RULE_TYPES = ['extractText', 'contractReview', 'analyzeDocStructure']
 
 // 提取规则配置参数
 const extractRuleParams = (ruleType) => {
-  const currentRule = rules.value.find(rule => rule.name === ruleType)
+  const currentRule = rules.value.find((rule) => rule.name === ruleType)
   const config = currentRule?.configForm || {}
   const params = {}
 
-  Object.keys(config).forEach(key => {
+  Object.keys(config).forEach((key) => {
     const field = config[key]
     if (field.type === 'contractReviewList') {
       // 对于contractReviewList类型，将规则数组转换为合适的格式
@@ -203,7 +225,6 @@ const extractRuleParams = (ruleType) => {
 
   return params
 }
-
 
 // 任务监听器管理
 const taskListeners = new Map()
@@ -287,7 +308,8 @@ const executeRule = async (ruleType) => {
       })
 
       ElMessage.error({
-        message: '无法获取文档内容，请检查以下几点：\n1. 确保已在WPS中打开文档\n2. 确保文档中有内容\n3. 尝试刷新页面重新加载插件',
+        message:
+          '无法获取文档内容，请检查以下几点：\n1. 确保已在WPS中打开文档\n2. 确保文档中有内容\n3. 尝试刷新页面重新加载插件',
         duration: 5000,
         showClose: true
       })
@@ -319,13 +341,11 @@ const executeRule = async (ruleType) => {
 
 // 更新规则配置
 const updateRuleConfig = (ruleName, configKey, value) => {
-  const rule = rules.value.find(r => r.name === ruleName)
+  const rule = rules.value.find((r) => r.name === ruleName)
   if (rule && rule.configForm && rule.configForm[configKey]) {
     rule.configForm[configKey].value = value
   }
 }
-
-
 
 // 重置配置到默认值
 const resetConfig = () => {
@@ -350,7 +370,7 @@ const clearCache = async () => {
       {
         confirmButtonText: '确定清除',
         cancelButtonText: '取消',
-        type: 'warning',
+        type: 'warning'
       }
     )
 
@@ -420,17 +440,17 @@ const loadConfigFromLocal = () => {
 }
 
 // 监听规则配置变化，自动保存
-watch(rules, () => {
-  saveConfigToLocal()
-}, { deep: true })
-
-
-
-
+watch(
+  rules,
+  () => {
+    saveConfigToLocal()
+  },
+  { deep: true }
+)
 
 // 任务结果处理器映射
 const taskResultHandlers = {
-  extractText: async (result, params) => {
+  extractText: async (result) => {
     console.log('extractText 完整结果:', result)
     console.log('result类型:', typeof result)
 
@@ -438,7 +458,7 @@ const taskResultHandlers = {
     if (result && typeof result === 'object' && !result.error) {
       // 过滤掉非数据字段
       const filteredData = {}
-      Object.keys(result).forEach(key => {
+      Object.keys(result).forEach((key) => {
         if (key !== 'content' && key !== 'type' && key !== 'error') {
           filteredData[key] = result[key]
         }
@@ -451,7 +471,7 @@ const taskResultHandlers = {
 
       // 确保包含所有必需字段
       const requiredFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额']
-      requiredFields.forEach(field => {
+      requiredFields.forEach((field) => {
         if (!finalData[field]) {
           finalData[field] = '' // 为缺失字段设置空字符串
         }
@@ -501,7 +521,7 @@ const taskResultHandlers = {
     }
   },
 
-  analyzeDocStructure: async (result, params) => {
+  analyzeDocStructure: async (result) => {
     if (result?.data) {
       await taskPane.onbuttonclick('analyzeDocStructure', {
         aiResult: result.data
@@ -554,7 +574,7 @@ const submitExtractedData = async () => {
 
     // 确保所有字段都存在，为空字段设置空字符串
     const allFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额', '对接客户']
-    allFields.forEach(field => {
+    allFields.forEach((field) => {
       if (!fields[field] || fields[field].trim() === '') {
         fields[field] = '' // 为空字段设置空字符串
       }
@@ -587,11 +607,9 @@ const submitExtractedData = async () => {
         审查编号 = `SWXCBHT-${new Date().getFullYear()}-${编号}`
         console.log('审查编号', 审查编号)
       } else {
-
         ElMessage.error('创建金山文档行记录失败或者没有返回id')
         return
       }
-
     }
 
     // 4. 添加页眉 - 将审查编号添加到页眉
@@ -617,7 +635,6 @@ const submitExtractedData = async () => {
     ElMessage.success('数据提交成功！')
 
     return res?.data?.[0]
-
   } catch (error) {
     console.error('提交数据失败:', error)
     ElMessage.error(`提交失败: ${error.message}`)
@@ -640,16 +657,14 @@ const handleTaskResult = async (ruleType, result, params) => {
     }
 
     // 等待WPS完成渲染
-    await new Promise(resolve => setTimeout(resolve, 500))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     ElMessage.success(resultMessages[ruleType] || '规则执行完成！')
-
   } catch (error) {
     console.error('处理任务结果失败:', error)
     ElMessage.error('处理结果时发生错误')
   }
 }
-
 
 // 组件挂载时的初始化
 onMounted(() => {
@@ -745,7 +760,6 @@ onUnmounted(() => {
 .rule-config {
   margin-top: 16px;
 }
-
 
 .action-bar-center {
   display: flex;

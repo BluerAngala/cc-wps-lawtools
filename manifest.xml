@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <JsPlugin>
   <ApiVersion>1.0.0</ApiVersion>
-  <Name>HelloWps</Name>
-  <Description>addon Description</Description>
+  <Name>律师工具箱</Name>
+  <Description>陈恒律师的工具箱</Description>
 </JsPlugin>

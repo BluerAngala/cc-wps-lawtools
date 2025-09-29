@@ -6,27 +6,27 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 console.log('路由已加载')
 
 const router = createRouter({
-  history:  createWebHashHistory(''),
+  history: createWebHashHistory(''),
   routes: [
     {
       path: '/',
       name: '默认页',
-      component: () => import('../components/layout/Root.vue')
+      component: () => import('../views/layout/Root.vue')
     },
     {
       path: '/dialog',
       name: '对话框',
-      component: () => import('../components/common/Dialog.vue')
+      component: () => import('../views/common/Dialog.vue')
     },
     {
       path: '/taskpane',
       name: '任务窗格',
-      component: () => import('../components/business/TaskPane.vue')
+      component: () => import('../views/business/TaskPane.vue')
     },
     {
       path: '/contractreview',
       name: '合同审查',
-      component: () => import('../components/business/ContractReview.vue')
+      component: () => import('../views/business/ContractReview.vue')
     }
   ]
 })

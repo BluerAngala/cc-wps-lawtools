@@ -12,8 +12,14 @@
               <el-tag v-if="isRuleProcessing(rule.name)" type="warning" size="small">
                 处理中
               </el-tag>
-              <el-button type="primary" @click.stop="executeRule(rule.name)" size="small" :icon="VideoPlay"
-                :loading="isRuleProcessing(rule.name)" :disabled="isRuleProcessing(rule.name)">
+              <el-button
+                type="primary"
+                @click.stop="executeRule(rule.name)"
+                size="small"
+                :icon="VideoPlay"
+                :loading="isRuleProcessing(rule.name)"
+                :disabled="isRuleProcessing(rule.name)"
+              >
                 {{ isRuleProcessing(rule.name) ? '处理中' : '执行' }}
               </el-button>
             </div>
@@ -25,7 +31,7 @@
             <el-icon>
               <Document />
             </el-icon>
-            <span style="margin-left: 8px;">抽取结果</span>
+            <span style="margin-left: 8px">抽取结果</span>
           </el-divider>
 
           <el-card class="extracted-card" shadow="never">
@@ -36,9 +42,16 @@
                     <Edit />
                   </el-icon>
                   <span class="header-title">合同信息编辑</span>
-                  <el-tag size="small" type="success">{{ Object.keys(extractedData).length }} 项</el-tag>
+                  <el-tag size="small" type="success"
+                    >{{ Object.keys(extractedData).length }} 项</el-tag
+                  >
                 </div>
-                <el-button type="primary" size="small" @click="submitExtractedData" :loading="submitting">
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="submitExtractedData"
+                  :loading="submitting"
+                >
                   <el-icon>
                     <Upload />
                   </el-icon>
@@ -49,11 +62,23 @@
 
             <el-form label-position="top" class="extracted-form">
               <el-row :gutter="16">
-                <el-col v-for="(value, key) in extractedData" :key="key" :span="12" class="form-item-col">
+                <el-col
+                  v-for="(value, key) in extractedData"
+                  :key="key"
+                  :span="12"
+                  class="form-item-col"
+                >
                   <el-form-item :label="key" class="extracted-form-item">
-                    <el-input :model-value="extractedData[key]" @update:model-value="updateExtractedItem(key, $event)"
-                      type="textarea" :rows="3" :placeholder="`请输入${key}`" resize="vertical" show-word-limit
-                      :maxlength="500" />
+                    <el-input
+                      :model-value="extractedData[key]"
+                      @update:model-value="updateExtractedItem(key, $event)"
+                      type="textarea"
+                      :rows="3"
+                      :placeholder="`请输入${key}`"
+                      resize="vertical"
+                      show-word-limit
+                      :maxlength="500"
+                    />
                   </el-form-item>
                 </el-col>
               </el-row>
@@ -65,10 +90,11 @@
           <!-- 规则描述 -->
           <el-alert :title="rule.description" type="info" :closable="false" show-icon />
           <div class="rule-config" v-if="rule.configForm">
-            <ConfigForm :config="rule.configForm" @update-config="updateRuleConfig(rule.name, $event)" />
+            <ConfigForm
+              :config="rule.configForm"
+              @update-config="updateRuleConfig(rule.name, $event)"
+            />
           </div>
-
-
         </div>
       </el-collapse-item>
     </el-collapse>
@@ -105,7 +131,13 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['execute-rule', 'update-rule-config', 'submit-extracted-data', 'update:active-extracted-items', 'update:extracted-data'])
+const emit = defineEmits([
+  'execute-rule',
+  'update-rule-config',
+  'submit-extracted-data',
+  'update:active-extracted-items',
+  'update:extracted-data'
+])
 
 // 响应式数据
 const activeRules = ref('')
@@ -125,10 +157,6 @@ const updateRuleConfig = (ruleName, config) => {
 
 const submitExtractedData = () => {
   emit('submit-extracted-data')
-}
-
-const updateActiveItems = (value) => {
-  emit('update:active-extracted-items', value)
 }
 
 const updateExtractedItem = (key, value) => {

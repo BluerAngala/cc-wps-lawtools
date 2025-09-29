@@ -32,7 +32,7 @@
           </el-statistic>
         </el-col>
       </el-row>
-      
+
       <!-- 实时进度显示 - 只在有任务时显示 -->
       <template v-if="hasActiveTasks">
         <el-divider content-position="left">实时状态</el-divider>
@@ -40,8 +40,8 @@
           <el-col :span="12">
             <div class="progress-item">
               <div class="progress-label">整体进度</div>
-              <el-progress 
-                :percentage="overallProgress" 
+              <el-progress
+                :percentage="overallProgress"
                 :status="overallProgressStatus"
                 :stroke-width="8"
               >
@@ -66,19 +66,19 @@
           </el-col>
         </el-row>
       </template>
-      
+
       <!-- 空闲状态提示 -->
       <template v-else>
         <el-divider content-position="left">系统状态</el-divider>
-        <el-alert 
-          title="系统就绪" 
-          description="当前没有运行中的任务，可以开始新的审查工作" 
-          type="success" 
-          :closable="false" 
+        <el-alert
+          title="系统就绪"
+          description="当前没有运行中的任务，可以开始新的审查工作"
+          type="success"
+          :closable="false"
           show-icon
         />
       </template>
-      
+
       <!-- 队列详情 - 集成QueueStatus功能 -->
       <template v-if="showQueueDetails && hasActiveTasks">
         <el-divider content-position="left">队列详情</el-divider>
@@ -108,23 +108,30 @@
               </el-table-column>
               <el-table-column prop="priority" label="优先级" width="80">
                 <template #default="{ row }">
-                  <el-tag :type="getPriorityType(row.priority)" size="small">{{ row.priority }}</el-tag>
+                  <el-tag :type="getPriorityType(row.priority)" size="small">{{
+                    row.priority
+                  }}</el-tag>
                 </template>
               </el-table-column>
             </el-table>
           </el-tab-pane>
         </el-tabs>
-        <div style="text-align: center; margin-top: 10px;">
+        <div style="text-align: center; margin-top: 10px">
           <el-button size="small" @click="showQueueDetails = false">收起详情</el-button>
-          <el-button size="small" type="primary" @click="$emit('clear-completed')" :disabled="queueStatus.completed.length === 0">
+          <el-button
+            size="small"
+            type="primary"
+            @click="$emit('clear-completed')"
+            :disabled="queueStatus.completed.length === 0"
+          >
             清理已完成 ({{ queueStatus.completed.length }})
           </el-button>
         </div>
       </template>
-      
+
       <!-- 显示队列详情按钮 -->
       <template v-else-if="hasActiveTasks">
-        <div style="text-align: center; margin-top: 10px;">
+        <div style="text-align: center; margin-top: 10px">
           <el-button size="small" type="text" @click="showQueueDetails = true">
             查看队列详情 <el-icon><ArrowDown /></el-icon>
           </el-button>
@@ -135,7 +142,15 @@
 </template>
 
 <script>
-import { DataAnalysis, Check, TrendCharts, Timer, Loading, Clock, ArrowDown } from '@element-plus/icons-vue'
+import {
+  DataAnalysis,
+  Check,
+  TrendCharts,
+  Timer,
+  Loading,
+  Clock,
+  ArrowDown
+} from '@element-plus/icons-vue'
 
 export default {
   name: 'StatsPanel',
@@ -195,18 +210,18 @@ export default {
   methods: {
     getTaskTypeLabel(type) {
       const typeMap = {
-        'contract_review': '合同审查',
-        'risk_analysis': '风险分析',
-        'clause_extraction': '条款提取',
-        'compliance_check': '合规检查'
+        contract_review: '合同审查',
+        risk_analysis: '风险分析',
+        clause_extraction: '条款提取',
+        compliance_check: '合规检查'
       }
       return typeMap[type] || type
     },
     getPriorityType(priority) {
       const priorityMap = {
-        'high': 'danger',
-        'medium': 'warning',
-        'low': 'info'
+        high: 'danger',
+        medium: 'warning',
+        low: 'info'
       }
       return priorityMap[priority] || 'info'
     }
@@ -241,6 +256,6 @@ export default {
 
 .percentage-value {
   font-weight: bold;
-  color: #409EFF;
+  color: #409eff;
 }
 </style>

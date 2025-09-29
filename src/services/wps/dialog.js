@@ -1,7 +1,7 @@
 import Util from './util.js'
 import routeManager from './RouteManager.js'
 
-function onbuttonclick(idStr, param) {
+function onbuttonclick(idStr) {
   const { wpsService } = Util
 
   switch (idStr) {

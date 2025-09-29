@@ -11,16 +11,18 @@
  */
 export function generateContractExtractionPrompt(extractTags, content) {
   // 构建JSON字段定义
-  const jsonFields = extractTags.map(tag => `  "${tag}": string | null`).join(',\n')
-  
+  const jsonFields = extractTags.map((tag) => `  "${tag}": string | null`).join(',\n')
+
   // 构建字段提取规则
-  const extractionRules = extractTags.map(tag => {
-    return `- ${tag}：\n  - 从文档中准确提取与"${tag}"相关的信息；\n  - 如无法确定则填入 null，不使用空字符串或占位词。`
-  }).join('\n')
+  const extractionRules = extractTags
+    .map((tag) => {
+      return `- ${tag}：\n  - 从文档中准确提取与"${tag}"相关的信息；\n  - 如无法确定则填入 null，不使用空字符串或占位词。`
+    })
+    .join('\n')
 
   // 构建示例输出
   const exampleOutput = extractTags.reduce((obj, tag, index) => {
-    obj[tag] = index === 0 ? "示例值" : null
+    obj[tag] = index === 0 ? '示例值' : null
     return obj
   }, {})
 
@@ -60,17 +62,17 @@ ${JSON.stringify(exampleOutput, null, 2)}
  * 预定义的常用提取标签及其说明
  */
 export const COMMON_EXTRACT_TAGS = {
-  '合同名称': '合同的正式名称或标题',
-  '甲方名称': '合同甲方的完整名称',
-  '乙方名称': '合同乙方的完整名称', 
-  '合同金额': '合同涉及的总金额',
-  '合同期限': '合同的有效期限',
-  '签订日期': '合同签订的具体日期',
-  '履行地点': '合同履行的地点',
-  '付款方式': '约定的付款方式',
-  '违约责任': '违约时的责任条款',
-  '争议解决': '争议解决的方式和管辖',
-  '合同摘要': '合同的核心内容概要'
+  合同名称: '合同的正式名称或标题',
+  甲方名称: '合同甲方的完整名称',
+  乙方名称: '合同乙方的完整名称',
+  合同金额: '合同涉及的总金额',
+  合同期限: '合同的有效期限',
+  签订日期: '合同签订的具体日期',
+  履行地点: '合同履行的地点',
+  付款方式: '约定的付款方式',
+  违约责任: '违约时的责任条款',
+  争议解决: '争议解决的方式和管辖',
+  合同摘要: '合同的核心内容概要'
 }
 
 /**
@@ -108,7 +110,7 @@ export function validateExtractTags(extractTags) {
   }
 
   // 检查空标签
-  const emptyTags = extractTags.filter(tag => !tag || tag.trim() === '')
+  const emptyTags = extractTags.filter((tag) => !tag || tag.trim() === '')
   if (emptyTags.length > 0) {
     result.isValid = false
     result.errors.push('存在空的提取标签')
@@ -125,12 +127,11 @@ export function validateExtractTags(extractTags) {
  * @returns {string} 生成的提示词
  */
 export function generateContractReviewPrompt(reviewRules, reviewRequirements, actionType) {
-  const isRevision = actionType === 'revision';
-  const actionDescription = isRevision 
-    ? '请直接提供修改后的条款内容'
-    : '请提供详细的批注说明和建议';
-    
-  const outputFormat = isRevision ? `{
+  const isRevision = actionType === 'revision'
+  const actionDescription = isRevision ? '请直接提供修改后的条款内容' : '请提供详细的批注说明和建议'
+
+  const outputFormat = isRevision
+    ? `{
   "revisions": [
     {
       "original": "原始条款内容",
@@ -139,7 +140,8 @@ export function generateContractReviewPrompt(reviewRules, reviewRequirements, ac
     }
   ],
   "summary": "整体审查总结"
-}` : `{
+}`
+    : `{
   "issues": [
     {
       "keyword": "关键词或短语",
@@ -148,8 +150,8 @@ export function generateContractReviewPrompt(reviewRules, reviewRequirements, ac
     }
   ],
   "summary": "整体审查总结"
-}`;
-    
+}`
+
   return `你是一个专业的法律合同审查AI助手。请根据以下要求对合同进行预审分析。
 
 ## 规则名称
@@ -173,5 +175,5 @@ ${outputFormat}
 5. 风险防控：违约责任、争议解决等条款是否完善
 
 现在请审查以下合同内容：
-{{input}}`;
+{{input}}`
 }
