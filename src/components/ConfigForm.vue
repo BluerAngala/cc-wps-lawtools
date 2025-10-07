@@ -28,7 +28,7 @@
 
       <!-- 关键词列表配置 -->
       <div v-else-if="field.type === 'keywordList'" class="contract-review-config">
-        <div class="scroll-container border border-wps-blue rounded mb-3 scrollbar-none">
+        <div class="scroll-container border border-wps-blue rounded mb-3 max-h-96 overflow-y-auto">
           <div v-for="(item, index) in field.value" :key="index" class="keyword-item">
             <div class="keyword-title">{{ index + 1 }}. 关键词</div>
             <n-button
@@ -49,13 +49,21 @@
                 @update:value="updateConfig"
               />
             </div>
-            <div class="keyword-title">- 批注内容</div>
+            <div class="keyword-title">- {{ props.mode === 'keyword' ? '批注内容' : '任务要求' }}</div>
             <n-input
               v-model:value="item.comment"
-              placeholder="请输入批注内容"
+              :placeholder="props.mode === 'keyword' ? '请输入固定的批注内容' : '请输入AI任务要求，描述需要AI做什么'"
               size="small"
               type="textarea"
               :rows="2"
+              class="w-full mt-0.5"
+              @update:value="updateConfig"
+            />
+            <div class="keyword-title mt-2">- 执行动作</div>
+            <n-select 
+              v-model:value="item.actionType" 
+              :options="[{label:'批注',value:'批注'}, {label:'修订',value:'修订'}]"
+              size="small"
               class="w-full mt-0.5"
               @update:value="updateConfig"
             />
@@ -74,7 +82,7 @@
 
       <!-- AI合同预审规则列表配置 -->
       <div v-else-if="field.type === 'contractReviewList'" class="contract-review-config">
-        <div class="max-h-400px overflow-y-auto scrollbar-none border border-wps-blue rounded mb-3">
+        <div class="scroll-container border border-wps-blue rounded mb-3 max-h-96 overflow-y-auto">
           <div v-for="(rule, index) in field.value" :key="index" class="review-rule-item">
             <div class="rule-title">{{ index + 1 }}. 预审规则</div>
             <n-button
@@ -180,6 +188,10 @@ const props = defineProps({
   config: {
     type: Object,
     required: true
+  },
+  mode: {
+    type: String,
+    default: 'keyword' // 'keyword' | 'review'
   }
 })
 
@@ -192,7 +204,7 @@ const updateConfig = () => {
 }
 
 const addKeyword = (field) => {
-  field.value.push({ keyword: '', comment: '' })
+  field.value.push({ keyword: '', comment: '', actionType: '批注' })
   updateConfig()
 }
 

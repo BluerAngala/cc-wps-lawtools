@@ -33,18 +33,11 @@
         @update-config="updateExtractorConfig"
       />
 
-      <!-- 关键词批注组件 -->
-      <KeywordCommenter
-        :processing="contractService.isTaskProcessing('keywordComment')"
-        @execute="executeKeywordComment"
-        @update-config="updateKeywordConfig"
-      />
-
-      <!-- AI合同预审组件 -->
-      <ContractReviewer
-        :processing="contractService.isTaskProcessing('contractReview')"
-        @execute="executeContractReview"
-        @update-config="updateReviewConfig"
+      <!-- 智能文档处理组件 -->
+      <SmartCommenter
+        :processing="contractService.isTaskProcessing('keywordComment') || contractService.isTaskProcessing('contractReview')"
+        @execute="executeSmartComment"
+        @update-config="updateSmartConfig"
       />
     </div>
   </div>
@@ -59,8 +52,7 @@ import {
   TrashOutline as DeleteIcon
 } from '@vicons/ionicons5'
 import ContractExtractor from '../components/ContractExtractor.vue'
-import KeywordCommenter from '../components/KeywordCommenter.vue'
-import ContractReviewer from '../components/ContractReviewer.vue'
+import SmartCommenter from '../components/SmartCommenter.vue'
 import { contractService } from '../utils/contractService.js'
 
 console.log('合同审查组件已加载')
@@ -70,8 +62,7 @@ const extractedData = ref(null) // 存储抽取的合同信息
 const submitting = ref(false) // 提交状态
 const configs = ref({
   extractor: {},
-  keyword: {},
-  review: {}
+  smart: {}
 })
 
 // 统一的配置更新方法
@@ -90,17 +81,20 @@ const executeExtraction = (config) => {
   })
 }
 
-const executeKeywordComment = (config) => {
-  contractService.executeTask('keywordComment', config)
-}
-
-const executeContractReview = (config) => {
-  contractService.executeTask('contractReview', config)
+const executeSmartComment = (config) => {
+  if (config.mode === 'keyword') {
+    // 关键词模式：根据actionType决定任务类型
+    const hasReviewActions = config.keywordList.some(item => item.actionType === '修订')
+    const taskType = hasReviewActions ? 'contractReview' : 'keywordComment'
+    contractService.executeTask(taskType, config)
+  } else if (config.mode === 'review') {
+    // AI预审模式：直接执行合同预审任务
+    contractService.executeTask('contractReview', config)
+  }
 }
 
 const updateExtractorConfig = (config) => updateConfig('extractor', config)
-const updateKeywordConfig = (config) => updateConfig('keyword', config)
-const updateReviewConfig = (config) => updateConfig('review', config)
+const updateSmartConfig = (config) => updateConfig('smart', config)
 
 // 配置管理方法（简化）
 const saveConfig = () => contractService.saveConfig(configs.value)
