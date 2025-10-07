@@ -12,6 +12,7 @@ var WPS_Enum = {
 class WPSService {
   constructor() {
     this.initializeEnum()
+    this.currentTaskPane = null // 当前活动的任务窗格
   }
 
   initializeEnum() {
@@ -48,20 +49,42 @@ class WPSService {
     return tsId ? window.Application?.GetTaskPane(tsId) : null
   }
 
-  // 创建任务窗格
+  // 创建任务窗格（确保只有一个窗格显示）
   createTaskPane(url, storageKey = 'taskpane_id') {
+    // 先关闭当前活动的任务窗格
+    this.hideCurrentTaskPane()
+    
     let tsId = window.Application.PluginStorage.getItem(storageKey)
     if (!tsId) {
       const tskpane = window.Application.CreateTaskPane(url)
       const id = tskpane.ID
       window.Application.PluginStorage.setItem(storageKey, id)
       tskpane.Visible = true
+      this.currentTaskPane = tskpane
       return tskpane
     } else {
       const tskpane = window.Application.GetTaskPane(tsId)
-      tskpane.Visible = !tskpane.Visible
+      tskpane.Visible = true
+      this.currentTaskPane = tskpane
       return tskpane
     }
+  }
+
+  // 隐藏当前活动的任务窗格
+  hideCurrentTaskPane() {
+    if (this.currentTaskPane && this.currentTaskPane.Visible) {
+      this.currentTaskPane.Visible = false
+    }
+  }
+
+  // 创建外部URL任务窗格
+  createExternalTaskPane(url, width = 850) {
+    this.hideCurrentTaskPane()
+    const taskPane = window.Application.CreateTaskPane(url)
+    taskPane.Visible = true
+    taskPane.Width = width
+    this.currentTaskPane = taskPane
+    return taskPane
   }
 
   // 停靠任务窗格

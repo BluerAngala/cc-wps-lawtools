@@ -9,11 +9,11 @@ console.log('ribbon.js 已加载并初始化')
 // WPS加载项加载完成时的回调函数
 function OnAddinLoad() {
   console.log('WPS加载项已加载完成')
-  
+
   // 延迟一点时间确保WPS完全初始化
   setTimeout(() => {
     const isFirstLoad = wpsConfigManager.isFirstLoad()
-    
+
     if (isFirstLoad) {
       console.log('检测到首次加载，显示欢迎页面')
       showWelcomeDialog()
@@ -32,31 +32,18 @@ function OnAction(control) {
 
   console.log('点击了 ribbon.js 的 OnAction', eleId)
   switch (eleId) {
+
+    // AI助理
     case 'btnShowAI':
       {
-        const taskPane = window.Application.CreateTaskPane(
-          'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share'
+        Util.wpsService.createExternalTaskPane(
+          'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share',
+          850
         )
-        taskPane.Visible = true
-        taskPane.Width = 850
       }
       break
-    case 'btnCommonNav':
-      {
-        const taskPane = window.Application.CreateTaskPane('https://yesen.cn')
-        taskPane.Visible = true
-        // taskPane.Visible = false
-      }
-      break
-    case 'btnAboutME':
-      {
-        const taskPane = window.Application.CreateTaskPane(
-          'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
-        )
-        taskPane.Visible = true
-        taskPane.Visible = false
-      }
-      break
+
+    // 合同审查
     case 'btnContractReview':
       {
         // 构建本地网页的路径
@@ -69,12 +56,32 @@ function OnAction(control) {
         }
       }
       break
+
+    // 常用导航
+    case 'btnCommonNav':
+      {
+        Util.wpsService.createExternalTaskPane('https://yesen.cn')
+      }
+      break
+
+    // 关于我
+    case 'btnAboutME':
+      {
+        Util.wpsService.createExternalTaskPane(
+          'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
+        )
+      }
+      break
+
+    // 欢迎页面
     case 'btnShowWelcome':
       {
         console.log('点击了欢迎页面按钮')
         showWelcomeDialog()
       }
       break
+
+    // 重置首次加载
     case 'btnResetFirstLoad':
       {
         console.log('点击了重置首次加载按钮')
@@ -85,6 +92,20 @@ function OnAction(control) {
         } catch (error) {
           console.error('重置首次加载失败:', error)
           window.$message?.error('重置失败: ' + error.message)
+        }
+      }
+      break
+
+    // 调试窗格
+    case 'btnShowTaskPane':
+      {
+        // 构建本地网页的路径
+        const url = Util.GetUrlPath() + Util.GetRouterHash() + '/taskpane'
+        // 打开任务窗格
+        const taskPane = Util.wpsService.createTaskPane(url, 'test_id')
+        // 设置任务窗格宽度
+        if (taskPane) {
+          taskPane.Width = 850
         }
       }
       break
