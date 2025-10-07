@@ -7,14 +7,12 @@ class RouteManager {
   constructor() {
     this.routes = {
       taskpane: '/taskpane',
-      contractreview: '/contractreview',
-      dialog: '/dialog'
+      contractreview: '/contractreview'
     }
 
     this.taskPanes = {
       taskpane: 'taskpane_id',
-      contractreview: 'contractreview_id',
-      dialog: 'dialog_id'
+      contractreview: 'contractreview_id'
     }
   }
 

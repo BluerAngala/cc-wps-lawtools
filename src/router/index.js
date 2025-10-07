@@ -13,11 +13,6 @@ const router = createRouter({
       component: () => import('../views/home.vue')
     },
     {
-      path: '/dialog',
-      name: '对话框',
-      component: () => import('../components/Dialog.vue')
-    },
-    {
       path: '/taskpane',
       name: '任务窗格',
       component: () => import('../views/TestPage.vue')
