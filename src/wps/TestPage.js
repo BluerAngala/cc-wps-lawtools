@@ -29,17 +29,26 @@ class TaskPaneHandler {
   }
 
   async onbuttonclick(idStr, param) {
-    console.log('idStr', idStr, 'param', param)
+    console.log('=== TaskPane处理按钮点击 ===')
+    console.log('idStr:', idStr, 'param:', param)
+    console.log('WPS Application存在:', !!window.Application)
+    console.log('当前活动文档:', !!this.getActiveDoc())
 
     try {
       const action = this.getAction(idStr, param)
+      console.log('找到的操作函数:', !!action)
+      
       if (action) {
-        return await action()
+        console.log(`开始执行操作: ${idStr}`)
+        const result = await action()
+        console.log(`操作 ${idStr} 执行完成，结果:`, result)
+        return result
       }
 
       console.warn(`未找到对应的操作: ${idStr}`)
+      return { success: false, message: `未找到操作: ${idStr}` }
     } catch (error) {
-      console.error('执行出错:', error)
+      console.error(`执行操作 ${idStr} 时出错:`, error)
       throw error
     }
   }
@@ -62,7 +71,8 @@ class TaskPaneHandler {
       processWithAI: () => this.processWithAI(),
       desensitizeText: () => this.desensitizeText(),
       applyDesensitization: () => this.applyDesensitization(param),
-      analyzeDocStructure: () => this.analyzeDocStructure()
+      analyzeDocStructure: () => this.analyzeDocStructure(),
+      openWeb: () => this.openWeb(param)
     }
     return actions[idStr]
   }
@@ -601,6 +611,33 @@ class TaskPaneHandler {
     } catch (error) {
       console.error('创建AI文档结构分析任务失败:', error)
       alert('创建AI文档结构分析任务失败，请稍后重试')
+    }
+  }
+
+  // 打开网页
+  openWeb(url) {
+    console.log('打开网页:', url)
+    if (url && typeof url === 'string') {
+      try {
+        // 检查是否在 WPS 环境中
+        if (window.Application && window.Application.ShowDialog) {
+          // 使用 WPS 官方 API 打开网页
+          console.log('使用 WPS ShowDialog API 打开网页')
+          window.Application.ShowDialog(url, 'WPS开发文档', 1200, 800, false)
+          return { success: true, message: '网页已通过 WPS API 打开' }
+        } else {
+          // 回退到普通浏览器方式
+          console.log('回退到普通浏览器方式打开网页')
+          window.open(url, '_blank')
+          return { success: true, message: '网页已在新窗口中打开' }
+        }
+      } catch (error) {
+        console.error('打开网页失败:', error)
+        return { success: false, message: `打开网页失败: ${error.message}` }
+      }
+    } else {
+      console.warn('未提供有效的网页地址')
+      return { success: false, message: '未提供有效的网页地址' }
     }
   }
 }

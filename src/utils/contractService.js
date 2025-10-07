@@ -2,7 +2,7 @@
  * 合同服务统一管理器 - 整合所有合同相关功能
  */
 
-import { ElMessage, ElMessageBox } from 'element-plus'
+// 使用全局消息提示
 import { configManager } from './configManager.js'
 import { TaskManager } from './taskManager.js'
 import { dataSubmitter } from './dataSubmitter.js'
@@ -28,7 +28,7 @@ export class ContractService {
   async executeTask(taskType, params, onComplete) {
     // 防重复执行
     if (this.processingTasks.has(taskType)) {
-      ElMessage.warning('该任务正在执行中，请稍候...')
+      window.$message.warning('该任务正在执行中，请稍候...')
       return
     }
 
@@ -42,12 +42,12 @@ export class ContractService {
           if (onComplete) {
             onComplete(result)
           }
-          ElMessage.success(this.taskManager.getResultMessage(taskType))
+          window.$message.success(this.taskManager.getResultMessage(taskType))
         },
-        (error) => ElMessage.error(error.message || '任务执行失败')
+        (error) => window.$message.error(error.message || '任务执行失败')
       )
     } catch (error) {
-      ElMessage.error(error.message || '任务执行失败')
+      window.$message.error(error.message || '任务执行失败')
     } finally {
       this.processingTasks.delete(taskType)
     }
@@ -70,10 +70,10 @@ export class ContractService {
   async submitExtractedData(extractedData) {
     try {
       const result = await dataSubmitter.submitExtractedData(extractedData)
-      ElMessage.success(result.message)
+      window.$message.success(result.message)
       return result
     } catch (error) {
-      ElMessage.error(error.message)
+      window.$message.error(error.message)
       throw error
     }
   }
@@ -85,9 +85,9 @@ export class ContractService {
   saveConfig(configs) {
     const result = configManager.saveConfig(configs, true)
     if (result.success) {
-      ElMessage.success(result.message)
+      window.$message.success(result.message)
     } else {
-      ElMessage.error(result.message)
+      window.$message.error(result.message)
     }
   }
 
@@ -97,7 +97,7 @@ export class ContractService {
    */
   resetConfig() {
     const defaultConfigs = configManager.resetConfig()
-    ElMessage.success('配置已重置为默认值')
+    window.$message.success('配置已重置为默认值')
     return defaultConfigs
   }
 
@@ -113,7 +113,7 @@ export class ContractService {
         keyword: savedConfig.keyword || {},
         review: savedConfig.review || {}
       }
-      ElMessage.success('已加载上次保存的配置')
+      window.$message.success('已加载上次保存的配置')
       return configs
     } else {
       return configManager.getDefaultConfig()
@@ -130,11 +130,11 @@ export class ContractService {
         (this.taskManager.taskScheduler && this.taskManager.taskScheduler.cacheManager)
 
       if (!cacheManager) {
-        ElMessage.warning('缓存管理器不可用')
+        window.$message.warning('缓存管理器不可用')
         return
       }
 
-      await ElMessageBox.confirm(
+      await window.$messageBox.confirm(
         '确定要清除所有AI分析缓存吗？此操作不可恢复。\n\n注意：现在每次打开新文档时会自动清除缓存，缓存时长已调整为30分钟。',
         '清除缓存确认',
         {
@@ -145,7 +145,7 @@ export class ContractService {
       )
 
       cacheManager.clear()
-      ElMessage.success('缓存已清除')
+      window.$message.success('缓存已清除')
     } catch {
       // 用户取消操作
     }

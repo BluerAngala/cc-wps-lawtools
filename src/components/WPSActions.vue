@@ -1,83 +1,92 @@
 <template>
   <div class="wps-section">
-    <el-card shadow="never">
-      <template #header>
-        <div class="wps-header">
-          <span class="wps-title">WPS操作</span>
-        </div>
-      </template>
-
-      <el-space wrap>
-        <el-button size="small" @click="onbuttonclick('getDocName')" :icon="Document">
+    <n-card title="WPS操作" size="small">
+      <n-space wrap>
+        <n-button size="small" @click="onbuttonclick('getDocName')">
+          <template #icon><DocumentIcon /></template>
           获取文件名
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('addString')" :icon="Plus">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('addString')">
+          <template #icon><AddIcon /></template>
           添加字符串
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('insertDateTime')" :icon="Clock">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('insertDateTime')">
+          <template #icon><TimeIcon /></template>
           插入时间
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('addHeader')" :icon="DocumentAdd">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('addHeader')">
+          <template #icon><DocumentAddIcon /></template>
           添加页眉
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('addComment')" :icon="ChatDotRound">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('addComment')">
+          <template #icon><ChatboxIcon /></template>
           添加批注
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('extractText')" :icon="DocumentCopy">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('extractText')">
+          <template #icon><CopyIcon /></template>
           提取文本
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('dockLeft')" :icon="Back">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('dockLeft')">
+          <template #icon><ArrowBackIcon /></template>
           停靠左边
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('dockRight')" :icon="Right">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('dockRight')">
+          <template #icon><ArrowForwardIcon /></template>
           停靠右边
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('hideTaskPane')" :icon="Hide">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('hideTaskPane')">
+          <template #icon><EyeOffIcon /></template>
           隐藏窗格
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('renameDoc')" :icon="Edit">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('renameDoc')">
+          <template #icon><CreateIcon /></template>
           重命名文档
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('createTaskPane')" :icon="Grid">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('createTaskPane')">
+          <template #icon><GridIcon /></template>
           创建任务窗格
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('newDoc')" :icon="DocumentAdd">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('newDoc')">
+          <template #icon><DocumentAddIcon /></template>
           新建文件
-        </el-button>
-        <el-button size="small" @click="onbuttonclick('closeDoc')" :icon="Close">
+        </n-button>
+        <n-button size="small" @click="onbuttonclick('closeDoc')">
+          <template #icon><CloseIcon /></template>
           关闭文件
-        </el-button>
-      </el-space>
+        </n-button>
+      </n-space>
 
-      <el-divider />
+      <n-divider />
 
       <div class="flex items-center gap-2 mt-2">
-        <el-text>当前文档：{{ docName || '未获取' }}</el-text>
-        <el-button size="small" type="text" @click="refreshDocName" :icon="Refresh">
+        <n-text>当前文档：{{ docName || '未获取' }}</n-text>
+        <n-button size="small" text @click="refreshDocName">
+          <template #icon><RefreshIcon /></template>
           刷新
-        </el-button>
+        </n-button>
       </div>
-    </el-card>
+    </n-card>
   </div>
 </template>
 
 <script>
 import { ref, onMounted } from 'vue'
+import { NCard, NButton, NSpace, NDivider, NText } from 'naive-ui'
 import {
-  Document,
-  Plus,
-  Clock,
-  DocumentAdd,
-  ChatDotRound,
-  DocumentCopy,
-  Back,
-  Right,
-  Hide,
-  Edit,
-  Grid,
-  Close,
-  Refresh
-} from '@element-plus/icons-vue'
+  DocumentOutline as DocumentIcon,
+  Add as AddIcon,
+  Time as TimeIcon,
+  DocumentAdd as DocumentAddIcon,
+  Chatbox as ChatboxIcon,
+  Copy as CopyIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
+  EyeOff as EyeOffIcon,
+  Create as CreateIcon,
+  Grid as GridIcon,
+  Close as CloseIcon,
+  Refresh as RefreshIcon
+} from '@vicons/ionicons5'
 import { wpsService } from '../wps/util.js'
 import routeManager from '../wps/RouteManager.js'
 
@@ -131,19 +140,19 @@ export default {
       docName,
       onbuttonclick,
       refreshDocName,
-      Document,
-      Plus,
-      Clock,
-      DocumentAdd,
-      ChatDotRound,
-      DocumentCopy,
-      Back,
-      Right,
-      Hide,
-      Edit,
-      Grid,
-      Close,
-      Refresh
+      DocumentIcon,
+      AddIcon,
+      TimeIcon,
+      DocumentAddIcon,
+      ChatboxIcon,
+      CopyIcon,
+      ArrowBackIcon,
+      ArrowForwardIcon,
+      EyeOffIcon,
+      CreateIcon,
+      GridIcon,
+      CloseIcon,
+      RefreshIcon
     }
   }
 }

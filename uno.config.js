@@ -15,6 +15,9 @@ export default defineConfig({
     // 使用 Icons 预设
     presetIcons({
       scale: 1.2,
+      collections: {
+        carbon: () => import('@iconify-json/carbon/icons.json').then(i => i.default),
+      }
     }),
     // 使用 Wind3 预设
     presetWind3(),
@@ -88,7 +91,7 @@ export default defineConfig({
   },
   theme: {
     colors: {
-      // 自定义颜色 - 兼容原有的Element Plus主题
+      // 自定义颜色 - 兼容 NativeUI 主题
       primary: {
         50: '#e3f2fd',
         100: '#bbdefb',

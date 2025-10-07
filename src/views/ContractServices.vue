@@ -5,9 +5,18 @@
       <!-- 操作按钮 -->
       <div class="flex-center">
         <div class="flex gap-4">
-          <el-button type="success" @click="saveConfig" :icon="Document"> 保存配置 </el-button>
-          <el-button type="warning" @click="resetConfig" :icon="Refresh"> 重置配置 </el-button>
-          <el-button type="danger" @click="clearCache" :icon="Delete"> 清除缓存 </el-button>
+          <n-button type="success" @click="saveConfig">
+            <template #icon><DocumentIcon /></template>
+            保存配置
+          </n-button>
+          <n-button type="warning" @click="resetConfig">
+            <template #icon><RefreshIcon /></template>
+            重置配置
+          </n-button>
+          <n-button type="error" @click="clearCache">
+            <template #icon><DeleteIcon /></template>
+            清除缓存
+          </n-button>
         </div>
       </div>
     </div>
@@ -43,7 +52,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Document, Refresh, Delete } from '@element-plus/icons-vue'
+import { NButton } from 'naive-ui'
+import {
+  DocumentOutline as DocumentIcon,
+  Refresh as RefreshIcon,
+  TrashOutline as DeleteIcon
+} from '@vicons/ionicons5'
 import ContractExtractor from '../components/ContractExtractor.vue'
 import KeywordCommenter from '../components/KeywordCommenter.vue'
 import ContractReviewer from '../components/ContractReviewer.vue'

@@ -1,11 +1,18 @@
 <template>
-  <RouterView />
+  <n-config-provider>
+    <n-message-provider>
+      <n-dialog-provider>
+        <RouterView />
+      </n-dialog-provider>
+    </n-message-provider>
+  </n-config-provider>
 </template>
 
 <style scoped></style>
 
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { NConfigProvider, NMessageProvider, NDialogProvider } from 'naive-ui'
 
 // 引入文档监听器
 import DocumentWatcher from './wps/DocumentWatcher.js'
@@ -13,6 +20,11 @@ import DocumentWatcher from './wps/DocumentWatcher.js'
 import { CacheManager } from './services/ai/CacheManager.js'
 
 export default {
+  components: {
+    NConfigProvider,
+    NMessageProvider,
+    NDialogProvider
+  },
   setup() {
     const message = ref('你好，wps加载项')
     let documentWatcher = null

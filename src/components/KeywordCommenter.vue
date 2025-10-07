@@ -5,21 +5,21 @@
       <div class="flex items-center gap-2">
         <span class="text-lg">🔍</span>
         <span class="wps-title">自定义批注</span>
-        <el-tag v-if="processing" type="warning" size="small">处理中</el-tag>
+        <n-tag v-if="processing" type="warning" size="small">处理中</n-tag>
       </div>
-      <el-button
+      <n-button
         type="primary"
         @click="executeCommenting"
         :loading="processing"
         :disabled="processing"
       >
         {{ processing ? '处理中...' : '开始批注' }}
-      </el-button>
+      </n-button>
     </div>
 
     <!-- 配置区域 -->
     <div class="mb-5">
-      <el-alert title="识别关键词并添加批注" type="info" :closable="false" show-icon />
+      <n-alert title="识别关键词并添加批注" type="info" :closable="false" show-icon />
 
       <div class="mt-4">
         <ConfigForm :config="configForm" @update-config="updateConfig" />
@@ -30,6 +30,7 @@
 
 <script setup>
 import { reactive } from 'vue'
+import { NButton, NTag, NAlert } from 'naive-ui'
 import ConfigForm from './ConfigForm.vue'
 
 // Props

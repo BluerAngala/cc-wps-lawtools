@@ -5,22 +5,22 @@
       <div class="flex items-center gap-2">
         <span class="text-lg">🤖</span>
         <span class="wps-title">AI抽取合同信息</span>
-        <el-tag v-if="processing" type="warning" size="small">处理中</el-tag>
+        <n-tag v-if="processing" type="warning" size="small">处理中</n-tag>
       </div>
-      <el-button
+      <n-button
         type="primary"
         @click="executeExtraction"
         :loading="processing"
         :disabled="processing"
       >
         {{ processing ? '抽取中...' : '开始抽取' }}
-      </el-button>
+      </n-button>
     </div>
 
     <div>
       <!-- 配置区域 -->
       <div class="mb-5">
-        <el-alert title="使用AI智能提取合同关键信息" type="info" :closable="false" show-icon />
+        <n-alert title="使用AI智能提取合同关键信息" type="info" :closable="false" show-icon />
 
         <div class="mt-4">
           <ConfigForm :config="configForm" @update-config="updateConfig" />
@@ -29,47 +29,48 @@
 
       <!-- 抽取结果展示 -->
       <div v-if="extractedData" class="mt-6">
-        <el-divider content-position="center">
-          <el-icon><Document /></el-icon>
-          <span class="ml-2">抽取结果</span>
-        </el-divider>
+        <n-divider>
+          <template #default>
+            <n-icon><DocumentIcon /></n-icon>
+            <span class="ml-2">抽取结果</span>
+          </template>
+        </n-divider>
 
         <div class="wps-card border border-wps-border rounded-lg overflow-hidden">
           <!-- 结果卡片头部 -->
           <div class="wps-header p-4 bg-gray-50 border-b border-wps-border">
             <div class="flex items-center gap-2">
-              <el-icon class="text-primary-500"><Edit /></el-icon>
+              <n-icon class="text-primary-500"><EditIcon /></n-icon>
               <span class="font-semibold text-wps-text">合同信息编辑</span>
-              <el-tag size="small" type="success"
-                >{{ Object.keys(extractedData).length }} 项</el-tag
+              <n-tag size="small" type="success"
+                >{{ Object.keys(extractedData).length }} 项</n-tag
               >
             </div>
-            <el-button type="primary" size="small" @click="submitData" :loading="submitting">
-              <el-icon><Upload /></el-icon>
+            <n-button type="primary" size="small" @click="submitData" :loading="submitting">
+              <template #icon><UploadIcon /></template>
               {{ submitting ? '提交中...' : '提交' }}
-            </el-button>
+            </n-button>
           </div>
 
           <!-- 表单内容 -->
           <div class="p-4">
-            <el-form label-position="top">
-              <el-row :gutter="16">
-                <el-col v-for="(value, key) in extractedData" :key="key" :span="12" class="mb-2">
-                  <el-form-item :label="key" class="mb-4">
-                    <el-input
-                      :model-value="extractedData[key]"
-                      @update:model-value="updateExtractedItem(key, $event)"
+            <n-form label-placement="top">
+              <n-grid :cols="2" :x-gap="16">
+                <n-grid-item v-for="(value, key) in extractedData" :key="key" class="mb-2">
+                  <n-form-item :label="key" class="mb-4">
+                    <n-input
+                      :value="extractedData[key]"
+                      @update:value="updateExtractedItem(key, $event)"
                       type="textarea"
                       :rows="3"
                       :placeholder="`请输入${key}`"
-                      resize="vertical"
-                      show-word-limit
+                      show-count
                       :maxlength="500"
                     />
-                  </el-form-item>
-                </el-col>
-              </el-row>
-            </el-form>
+                  </n-form-item>
+                </n-grid-item>
+              </n-grid>
+            </n-form>
           </div>
         </div>
       </div>
@@ -79,8 +80,15 @@
 
 <script setup>
 import { reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Document, Edit, Upload } from '@element-plus/icons-vue'
+import { 
+  NButton, NTag, NAlert, NDivider, NIcon, NForm, NFormItem, 
+  NInput, NGrid, NGridItem 
+} from 'naive-ui'
+import {
+  DocumentOutline as DocumentIcon,
+  Create as EditIcon,
+  CloudUpload as UploadIcon
+} from '@vicons/ionicons5'
 import ConfigForm from './ConfigForm.vue'
 
 // Props
@@ -127,7 +135,7 @@ const updateConfig = (configData) => {
 
 const submitData = async () => {
   if (!props.extractedData) {
-    ElMessage.warning('没有可提交的数据')
+    window.$message?.warning('没有可提交的数据')
     return
   }
 
@@ -135,7 +143,7 @@ const submitData = async () => {
     emit('submit-data')
   } catch (error) {
     console.error('提交数据时出错:', error)
-    ElMessage.error('提交数据失败')
+    window.$message?.error('提交数据失败')
   }
 }
 

@@ -5,230 +5,125 @@ alwaysApply: true
 # WPS 加载项开发规范
 
 ## 项目概述
-这是一个基于 Vue 3 + Element Plus + UnoCSS 的 WPS 加载项项目，专注于律师工具箱功能开发。
+这是一个基于 Vue 3 + NativeUI + UnoCSS 的 WPS 加载项项目，专注于律师工具箱功能开发。项目采用现代化的前端技术栈，提供高效的文档处理和AI辅助功能。
 
-## 通用要求
-
-### 语言与工具
-- 默认使用中文回复和注释
-- 使用 Cursor 编辑器进行开发
-- 包管理器：pnpm（已配置 packageManager）
-- 开发理念：用最少的代码、最简单高效的方式实现需求
-
-### 代码质量
-- 遵循 ESLint 和 Prettier 配置规范
-- 使用 TypeScript 类型声明（已引入 wps-jsapi-declare）
-- 保持代码简洁、可读性强
-- 优先使用 ES6+ 语法和 Vue 3 Composition API
-
-## 技术栈要求
-
-### 前端框架
+## 核心技术栈
 - **Vue 3**：使用 Composition API，优先使用 `<script setup>` 语法
-- **Element Plus**：UI 组件库，保持组件风格统一
-- **UnoCSS**：原子化 CSS 框架，优先使用 UnoCSS 类名
-- **Vue Router 4**：路由管理
-
-### WPS 集成
+- **NativeUI (Naive UI)**：现代化 Vue 3 UI 组件库，提供丰富的组件和优秀的用户体验
+- **UnoCSS**：原子化 CSS 框架，用于快速样式开发和定制
 - **WPS JS API**：使用官方 API 进行文档操作
-- **Ribbon 自定义**：通过 ribbon.xml 配置功能区
-- **TaskPane**：任务窗格开发
-- **OA 助手**：集成 OA 助手功能
-
-### 工具链
 - **Vite**：构建工具，开发服务器端口 3889
-- **ESLint + Prettier**：代码格式化和质量检查
 
-## 项目结构规范
+## 开发理念
+- 默认使用中文回复和注释
+- 用最少的代码、最简单高效的方式实现需求
+- 遵循 ESLint 和 Prettier 配置规范
+- 保持代码简洁、可读性强
 
-### 目录组织
+## 目录结构
 ```
 ├── src/
 │   ├── components/     # Vue 组件
 │   ├── views/         # 页面组件
-│   ├── services/      # 业务服务层
-│   │   └── ai/        # AI 相关服务
+│   ├── services/ai/   # AI 相关服务
 │   ├── utils/         # 工具函数
-│   ├── wps/          # WPS 相关功能
-│   ├── assets/       # 静态资源
-│   └── router/       # 路由配置
-├── public/           # 公共资源
+│   └── wps/          # WPS 相关功能
 ├── docs/            # 项目文档
-├── test/            # 测试代码
-├── scripts/         # 脚本文件
-└── wps-addon-build/ # 构建输出
 ```
 
-### 文件命名
+## 文件命名
 - Vue 组件：PascalCase（如 `ContractExtractor.vue`）
 - JS/TS 文件：camelCase（如 `configManager.js`）
-- 工具函数：camelCase（如 `desensitize.js`）
-- 常量文件：UPPER_CASE（如需要）
 
-## 开发规范
-
-### Vue 组件开发
+## Vue 组件开发
 ```vue
 <template>
-  <!-- 使用 Element Plus 组件 -->
-  <el-card class="m-4 p-4">
-    <!-- UnoCSS 类名优先 -->
-  </el-card>
+  <n-config-provider>
+    <n-card title="标题" size="small">
+      <n-space vertical>
+        <n-button type="primary" @click="handleClick">操作按钮</n-button>
+        <div class="p-4 bg-gray-50 rounded-lg">自定义内容区域</div>
+      </n-space>
+    </n-card>
+  </n-config-provider>
 </template>
 
 <script setup>
-// 使用 Composition API
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref } from 'vue'
+import { NConfigProvider, NCard, NButton, NSpace } from 'naive-ui'
 
-// 响应式数据
 const data = ref([])
-
-// 计算属性
-const filteredData = computed(() => {
-  // 逻辑处理
-})
-
-// 生命周期
-onMounted(() => {
-  // 初始化逻辑
-})
+const handleClick = () => window.$message?.success('操作成功')
 </script>
-
-<style scoped>
-/* 必要时使用 scoped 样式 */
-</style>
 ```
 
-### WPS API 使用规范
+## WPS API 使用
 ```javascript
 // WPS API 调用示例
 try {
-  const app = wps.WpsApplication()
-  const doc = app.ActiveDocument
-  
-  // 错误处理
+  if (typeof window.Application === 'undefined') {
+    window.$message?.warning('请在 WPS 环境中使用此功能')
+    return
+  }
+
+  const doc = window.Application.ActiveDocument
   if (!doc) {
-    ElMessage.error('未找到活动文档')
+    window.$message?.error('未找到活动文档')
     return
   }
   
-  // 具体操作
-  // ...
+  const text = doc.Range().Text
+  console.log('文档内容:', text)
 } catch (error) {
   console.error('WPS API 调用失败:', error)
-  ElMessage.error('操作失败，请重试')
+  window.$message?.error('操作失败，请重试')
 }
 ```
 
-### 服务层开发
-```javascript
-// services/ 目录下的服务文件
-class DocumentService {
-  static async extractContract(content) {
-    try {
-      // 业务逻辑
-      return result
-    } catch (error) {
-      console.error('合同提取失败:', error)
-      throw new Error('合同提取失败')
-    }
-  }
-}
+## NativeUI 组件使用
+- **优先使用 NativeUI 组件**：如 `n-button`、`n-card`、`n-input`、`n-form` 等
+- **按需导入组件**：避免全量导入，减少打包体积
+- **使用手风琴模式**：折叠面板使用 `n-collapse` 的 `accordion` 属性
+- **统一消息提示**：使用 `window.$message` 进行用户反馈
 
-export default DocumentService
+```javascript
+// 推荐的导入方式
+import { 
+  NConfigProvider, NCard, NButton, NSpace, NCollapse, 
+  NCollapseItem, NAlert, NCode, NInput, NFormItem 
+} from 'naive-ui'
 ```
 
-## 框架约束
-
-### 文件管理原则
-- **不轻易新建文件**：优先在现有文件中扩展功能
-- **不轻易删除代码**：通过注释或配置禁用，保留历史逻辑
-- **模块化开发**：相关功能放在同一目录下
-
-### 目录规范
-- **文档**：`docs/` - 所有说明文档
-- **测试**：`test/` - 所有测试代码  
-- **脚本**：`scripts/` - 构建和工具脚本
-- **AI 服务**：`src/services/ai/` - AI 相关功能
-- **WPS 功能**：`src/wps/` - WPS 特定功能
-
-### 配置文件
-- `manifest.xml`：WPS 加载项配置
-- `ribbon.xml`：功能区配置
-- `vite.config.js`：构建配置
-- `uno.config.js`：UnoCSS 配置
-
-## 错误处理规范
-
-### 统一错误处理
+## 错误处理
 ```javascript
-// 使用 try-catch 包装异步操作
+// 统一错误处理
 try {
   const result = await apiCall()
-  ElMessage.success('操作成功')
+  window.$message?.success('操作成功')
   return result
 } catch (error) {
   console.error('操作失败:', error)
-  ElMessage.error(error.message || '操作失败')
+  window.$message?.error(error.message || '操作失败')
   throw error
 }
 ```
 
-### WPS API 错误处理
-```javascript
-// WPS API 特定错误处理
-if (typeof wps === 'undefined') {
-  ElMessage.warning('请在 WPS 环境中使用此功能')
-  return
-}
-```
-
-## 性能优化
-
-### 组件优化
-- 使用 `v-show` 代替 `v-if`（频繁切换）
-- 合理使用 `computed` 和 `watch`
-- 避免在模板中使用复杂表达式
-
-### 资源优化
-- 图片资源放在 `public/images/`
-- 使用 Vite 的资源处理机制
-- 合理使用动态导入
-
-## 调试与测试
-
-### 开发调试
+## 开发命令
 ```bash
-# 开发服务器
-pnpm dev
-
-# 代码检查
-pnpm lint
-
-# 代码格式化
-pnpm format
+pnpm dev      # 开发服务器
+pnpm build    # 构建生产版本
+pnpm lint     # 代码检查
+pnpm format   # 代码格式化
 ```
 
-### WPS 调试
-- 使用浏览器开发者工具
-- 在 WPS 中加载开发版本
-- 查看控制台错误信息
+## 调试技巧
+- 按 F12 打开浏览器开发者工具
+- 使用 `console.log` 进行状态跟踪
+- 验证 WPS API 的可用性：`typeof window.Application`
 
-## 部署规范
-
-### 构建流程
-```bash
-# 构建生产版本
-pnpm build
-
-# 输出目录：wps-addon-build/
-```
-
-### 文件结构
-- `manifest.xml`：加载项配置
-- `ribbon.xml`：功能区配置  
-- `index.html`：入口页面
-- `assets/`：构建后的资源文件
+## 核心原则
+1. **简洁高效**：用最少的代码实现最大的功能价值
+2. **用户体验**：优先考虑用户的使用体验和界面友好性
+3. **可维护性**：编写清晰、可读、易维护的代码
 
 这些规范确保代码质量、开发效率和项目的可维护性。

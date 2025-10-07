@@ -5,16 +5,16 @@
       <div class="flex items-center gap-2">
         <span class="text-lg">⚖️</span>
         <span class="wps-title">AI合同预审</span>
-        <el-tag v-if="processing" type="warning" size="small">处理中</el-tag>
+        <n-tag v-if="processing" type="warning" size="small">处理中</n-tag>
       </div>
-      <el-button type="primary" @click="executeReview" :loading="processing" :disabled="processing">
+      <n-button type="primary" @click="executeReview" :loading="processing" :disabled="processing">
         {{ processing ? '预审中...' : '开始预审' }}
-      </el-button>
+      </n-button>
     </div>
 
     <!-- 配置区域 -->
     <div class="mb-5">
-      <el-alert title="AI预审合同，使用自定义规则更灵活" type="info" :closable="false" show-icon />
+      <n-alert title="AI预审合同，使用自定义规则更灵活" type="info" :closable="false" show-icon />
 
       <div class="mt-4">
         <ConfigForm :config="configForm" @update-config="updateConfig" />
@@ -25,6 +25,7 @@
 
 <script setup>
 import { reactive } from 'vue'
+import { NButton, NTag, NAlert } from 'naive-ui'
 import ConfigForm from './ConfigForm.vue'
 
 // Props
