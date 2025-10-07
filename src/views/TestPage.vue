@@ -212,7 +212,7 @@ import {
   NCollapse, NCollapseItem, NAlert, NCode, NInput, NFormItem, 
   NDivider, NList, NListItem, NThing 
 } from 'naive-ui'
-import taskPane from '../wps/TestPage.js'
+import taskPane from '../wps/wpsTestHelper.js'
 import { desensitizeText } from '../utils/desensitize.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
 

@@ -4,7 +4,7 @@
 
 // 使用全局消息提示
 import TaskScheduler from '../services/ai/TaskScheduler.js'
-import taskPane from '../wps/TestPage.js'
+import taskPane from '../wps/wpsTestHelper.js'
 
 export class TaskManager {
   constructor(options = {}) {

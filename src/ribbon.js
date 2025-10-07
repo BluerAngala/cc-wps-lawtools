@@ -1,6 +1,6 @@
 // ribbon.js 初始化 wps 加载项
 
-import Util from './wps/util.js'
+import Util from './wps/wpsUtils.js'
 import { wpsConfigManager } from './utils/wpsConfigManager.js'
 import { showWelcomeDialog } from './utils/welcomeDialog.js'
 
@@ -38,7 +38,7 @@ function OnAction(control) {
           'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share'
         )
         taskPane.Visible = true
-        taskPane.Width = 650
+        taskPane.Width = 850
       }
       break
     case 'btnCommonNav':
@@ -65,7 +65,7 @@ function OnAction(control) {
         const taskPane = Util.wpsService.createTaskPane(url, 'contractreview_id')
         // 设置任务窗格宽度
         if (taskPane) {
-          taskPane.Width = 650
+          taskPane.Width = 850
         }
       }
       break

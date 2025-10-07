@@ -3,7 +3,7 @@
  */
 
 import { kdocsHandler } from './kdocs.js'
-import taskPane from '../wps/TestPage.js'
+import taskPane from '../wps/wpsTestHelper.js'
 
 export class DataSubmitter {
   constructor() {
