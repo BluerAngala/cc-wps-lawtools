@@ -36,36 +36,37 @@
           </template>
         </n-divider>
 
-        <div class="wps-card border border-wps-border rounded-lg overflow-hidden">
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
           <!-- 结果卡片头部 -->
-          <div class="wps-header p-4 bg-gray-50 border-b border-wps-border">
-            <div class="flex items-center gap-2">
-              <n-icon class="text-primary-500"><EditIcon /></n-icon>
-              <span class="font-semibold text-wps-text">合同信息编辑</span>
-              <n-tag size="small" type="success"
-                >{{ Object.keys(extractedData).length }} 项</n-tag
-              >
+          <div class="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <n-icon class="text-blue-600"><EditIcon /></n-icon>
+                <span class="font-medium text-gray-800">合同信息编辑</span>
+                <n-tag size="small" type="success" round>
+                  {{ Object.keys(extractedData).length }} 项
+                </n-tag>
+              </div>
+              <n-button type="primary" size="small" @click="submitData" :loading="submitting" round>
+                <template #icon><UploadIcon /></template>
+                {{ submitting ? '提交中...' : '提交' }}
+              </n-button>
             </div>
-            <n-button type="primary" size="small" @click="submitData" :loading="submitting">
-              <template #icon><UploadIcon /></template>
-              {{ submitting ? '提交中...' : '提交' }}
-            </n-button>
           </div>
 
           <!-- 表单内容 -->
-          <div class="p-4">
-            <n-form label-placement="top">
-              <n-grid :cols="2" :x-gap="16">
-                <n-grid-item v-for="(value, key) in extractedData" :key="key" class="mb-2">
-                  <n-form-item :label="key" class="mb-4">
+          <div class="p-4 bg-gray-50">
+            <n-form label-placement="top" size="small">
+              <n-grid :cols="2" :x-gap="12" :y-gap="6">
+                <n-grid-item v-for="(value, key) in extractedData" :key="key">
+                  <n-form-item :label="key" class="mb-2">
                     <n-input
                       :value="extractedData[key]"
                       @update:value="updateExtractedItem(key, $event)"
-                      type="textarea"
-                      :rows="3"
                       :placeholder="`请输入${key}`"
                       show-count
-                      :maxlength="500"
+                      :maxlength="200"
+                      size="small"
                     />
                   </n-form-item>
                 </n-grid-item>
@@ -152,4 +153,5 @@ const updateExtractedItem = (key, value) => {
   updatedData[key] = value
   emit('update:extracted-data', updatedData)
 }
+
 </script>

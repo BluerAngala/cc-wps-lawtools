@@ -71,7 +71,7 @@ export class TaskManager {
         if (onError) {
           onError(error)
         } else {
-          window.$message.error(`任务执行失败: ${error.message}`)
+          window.$message?.error(`任务执行失败: ${error.message}`)
         }
         this.cleanupTaskListeners(taskId)
       }
@@ -120,7 +120,7 @@ export class TaskManager {
       // 创建事件监听器
       this.createTaskListeners(taskId, ruleType, params, onComplete, onError)
 
-      window.$message.info('任务正在处理中...')
+      window.$message?.info('任务正在处理中...')
       return taskId
     } catch (error) {
       console.error('任务执行失败:', error)

@@ -28,7 +28,7 @@ export class ContractService {
   async executeTask(taskType, params, onComplete) {
     // 防重复执行
     if (this.processingTasks.has(taskType)) {
-      window.$message.warning('该任务正在执行中，请稍候...')
+      window.$message?.warning('该任务正在执行中，请稍候...')
       return
     }
 
@@ -42,12 +42,12 @@ export class ContractService {
           if (onComplete) {
             onComplete(result)
           }
-          window.$message.success(this.taskManager.getResultMessage(taskType))
+          window.$message?.success(this.taskManager.getResultMessage(taskType))
         },
-        (error) => window.$message.error(error.message || '任务执行失败')
+        (error) => window.$message?.error(error.message || '任务执行失败')
       )
     } catch (error) {
-      window.$message.error(error.message || '任务执行失败')
+      window.$message?.error(error.message || '任务执行失败')
     } finally {
       this.processingTasks.delete(taskType)
     }
@@ -70,10 +70,10 @@ export class ContractService {
   async submitExtractedData(extractedData) {
     try {
       const result = await dataSubmitter.submitExtractedData(extractedData)
-      window.$message.success(result.message)
+      window.$message?.success(result.message)
       return result
     } catch (error) {
-      window.$message.error(error.message)
+      window.$message?.error(error.message)
       throw error
     }
   }
@@ -85,9 +85,9 @@ export class ContractService {
   saveConfig(configs) {
     const result = configManager.saveConfig(configs, true)
     if (result.success) {
-      window.$message.success(result.message)
+      window.$message?.success(result.message)
     } else {
-      window.$message.error(result.message)
+      window.$message?.error(result.message)
     }
   }
 
@@ -97,7 +97,7 @@ export class ContractService {
    */
   resetConfig() {
     const defaultConfigs = configManager.resetConfig()
-    window.$message.success('配置已重置为默认值')
+    window.$message?.success('配置已重置为默认值')
     return defaultConfigs
   }
 
@@ -113,7 +113,7 @@ export class ContractService {
         keyword: savedConfig.keyword || {},
         review: savedConfig.review || {}
       }
-      window.$message.success('已加载上次保存的配置')
+      window.$message?.success('已加载上次保存的配置')
       return configs
     } else {
       return configManager.getDefaultConfig()
@@ -130,7 +130,7 @@ export class ContractService {
         (this.taskManager.taskScheduler && this.taskManager.taskScheduler.cacheManager)
 
       if (!cacheManager) {
-        window.$message.warning('缓存管理器不可用')
+        window.$message?.warning('缓存管理器不可用')
         return
       }
 
@@ -145,7 +145,7 @@ export class ContractService {
       )
 
       cacheManager.clear()
-      window.$message.success('缓存已清除')
+      window.$message?.success('缓存已清除')
     } catch {
       // 用户取消操作
     }

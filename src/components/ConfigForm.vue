@@ -13,11 +13,10 @@
       <n-select
         v-else-if="field.type === 'select'"
         v-model:value="field.value"
+        :options="field.options?.map(option => ({ label: option, value: option }))"
         class="w-full"
         @update:value="updateConfig"
-      >
-        <n-option v-for="option in field.options" :key="option" :label="option" :value="option" />
-      </n-select>
+      />
 
       <!-- 数字输入框 -->
       <n-input-number
@@ -114,10 +113,12 @@
             <!-- 执行动作 -->
             <div class="config-section">
               <div class="section-title">⚙️ 执行动作</div>
-              <n-select v-model:value="rule.actionType" class="w-full" @update:value="updateConfig">
-                <n-option label="批注" value="批注" />
-                <n-option label="修订" value="修订" />
-              </n-select>
+              <n-select 
+                v-model:value="rule.actionType" 
+                :options="[{ label: '批注', value: '批注' }, { label: '修订', value: '修订' }]"
+                class="w-full" 
+                @update:value="updateConfig"
+              />
             </div>
           </div>
         </div>
@@ -169,7 +170,7 @@
 
 <script setup>
 import { 
-  NForm, NFormItem, NInput, NSelect, NOption, NInputNumber, 
+  NForm, NFormItem, NInput, NSelect, NInputNumber, 
   NButton, NTag 
 } from 'naive-ui'
 import { TrashOutline as DeleteIcon, Add as PlusIcon } from '@vicons/ionicons5'
