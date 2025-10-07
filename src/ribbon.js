@@ -1,8 +1,30 @@
 // ribbon.js 初始化 wps 加载项
 
-import routeManager from './wps/RouteManager.js'
+import Util from './wps/util.js'
+import { wpsConfigManager } from './utils/wpsConfigManager.js'
+import { showWelcomeDialog } from './utils/welcomeDialog.js'
 
 console.log('ribbon.js 已加载并初始化')
+
+// WPS加载项加载完成时的回调函数
+function OnAddinLoad() {
+  console.log('WPS加载项已加载完成')
+  
+  // 延迟一点时间确保WPS完全初始化
+  setTimeout(() => {
+    const isFirstLoad = wpsConfigManager.isFirstLoad()
+    
+    if (isFirstLoad) {
+      console.log('检测到首次加载，显示欢迎页面')
+      showWelcomeDialog()
+      wpsConfigManager.markFirstLoadCompleted()
+    } else {
+      console.log('非首次加载，跳过欢迎页面')
+    }
+  }, 1000)
+}
+
+// 注意：showWelcomeDialog 现在从 utils/welcomeDialog.js 导入
 
 // 点击wps功能区按钮的回调
 function OnAction(control) {
@@ -16,6 +38,7 @@ function OnAction(control) {
           'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share'
         )
         taskPane.Visible = true
+        taskPane.Width = 650
       }
       break
     case 'btnCommonNav':
@@ -34,14 +57,35 @@ function OnAction(control) {
         taskPane.Visible = false
       }
       break
-    case 'btnShowTaskPane':
-      {
-        routeManager.openTaskPane('taskpane')
-      }
-      break
     case 'btnContractReview':
       {
-        routeManager.openTaskPane('contractreview')
+        // 构建本地网页的路径
+        const url = Util.GetUrlPath() + Util.GetRouterHash() + '/contractreview'
+        // 打开任务窗格
+        const taskPane = Util.wpsService.createTaskPane(url, 'contractreview_id')
+        // 设置任务窗格宽度
+        if (taskPane) {
+          taskPane.Width = 650
+        }
+      }
+      break
+    case 'btnShowWelcome':
+      {
+        console.log('点击了欢迎页面按钮')
+        showWelcomeDialog()
+      }
+      break
+    case 'btnResetFirstLoad':
+      {
+        console.log('点击了重置首次加载按钮')
+        try {
+          const result = wpsConfigManager.resetFirstLoad()
+          console.log('重置首次加载结果:', result)
+          window.$message?.success('首次加载状态已重置，下次启动将显示欢迎页面')
+        } catch (error) {
+          console.error('重置首次加载失败:', error)
+          window.$message?.error('重置失败: ' + error.message)
+        }
       }
       break
     default:
@@ -71,5 +115,6 @@ function GetImage(control) {
 
 export default {
   OnAction: OnAction,
-  GetImage: GetImage
+  GetImage: GetImage,
+  OnAddinLoad: OnAddinLoad
 }

@@ -4,7 +4,6 @@
 	"version": "1.0.0",
 	"private": true,
 	"type": "module",
-	"packageManager": "pnpm@latest",
 	"scripts": {
 		"dev": "vite --port 3889",
 		"build": "vite build",
@@ -27,7 +26,7 @@
 		"@vue/eslint-config-prettier": "^9.0.0",
 		"eslint": "^8.57.0",
 		"eslint-plugin-vue": "^9.23.0",
-		"prettier": "^3.2.5",
+		"prettier": "^3.6.2",
 		"unocss": "^66.5.2",
 		"vite": "^6.2.0",
 		"wps-jsapi-declare": "latest",

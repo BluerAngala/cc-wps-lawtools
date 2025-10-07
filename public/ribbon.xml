@@ -8,6 +8,8 @@
                     <button id="btnCommonNav" label="常用导航" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnShowTaskPane" label="调试窗格" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnAboutME" label="关于我" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnShowWelcome" label="欢迎页面" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnResetFirstLoad" label="重置首次加载" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
 				</group>
             </tab>
         </tabs>
