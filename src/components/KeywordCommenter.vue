@@ -4,7 +4,7 @@
     <div class="wps-header mb-4">
       <div class="flex items-center gap-2">
         <span class="text-lg">🔍</span>
-        <span class="wps-title">关键词批注</span>
+        <span class="wps-title">自定义批注</span>
         <el-tag v-if="processing" type="warning" size="small">处理中</el-tag>
       </div>
       <el-button

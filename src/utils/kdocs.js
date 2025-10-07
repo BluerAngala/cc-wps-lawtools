@@ -19,15 +19,8 @@ if (!webhookUrl || !token || !sheetID) {
   throw new Error('金山文档 webhookUrl 或 token 或 sheetID 未配置')
 }
 
-// 在开发环境使用本地代理以避免 CORS；生产环境可配置服务端代理以避免跨域
-const isDev = import.meta.env.DEV
-const prodProxyURL = import.meta.env.VITE_KDOCS_PROXY_URL
-// 优先使用本地或服务端代理，最后才直连 KDocs（直连可能触发 CORS）
-const baseURL = isDev ? '/kdocs' : prodProxyURL || webhookUrl
-
-// 允许通过环境变量配置自定义 Origin/Cookie（注意：浏览器可能会忽略这些头）
-const customOrigin = 'https://www.kdocs.cn'
-const customCookie = '123'
+// 直接连接金山文档
+const baseURL = webhookUrl
 
 // 创建 axios 实例
 const apiClient = axios.create({
@@ -37,8 +30,6 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'AirScript-Token': token,
-    ...(customOrigin ? { Origin: customOrigin } : {}),
-    ...(customCookie ? { Cookie: customCookie } : {})
   }
 })
 

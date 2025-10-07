@@ -6,7 +6,7 @@
 	"type": "module",
 	"packageManager": "pnpm@latest",
 	"scripts": {
-		"dev": "vite --port 3891",
+		"dev": "vite --port 3889",
 		"build": "vite build",
 		"preview": "vite preview",
 		"lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
