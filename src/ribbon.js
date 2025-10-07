@@ -48,12 +48,8 @@ function OnAction(control) {
       {
         // 构建本地网页的路径
         const url = Util.GetUrlPath() + Util.GetRouterHash() + '/contractreview'
-        // 打开任务窗格
-        const taskPane = Util.wpsService.createTaskPane(url, 'contractreview_id')
-        // 设置任务窗格宽度
-        if (taskPane) {
-          taskPane.Width = 850
-        }
+        // 打开任务窗格并配置参数
+        Util.wpsService.createTaskPane(url, 'contractreview', { width: 850 })
       }
       break
 
@@ -101,12 +97,8 @@ function OnAction(control) {
       {
         // 构建本地网页的路径
         const url = Util.GetUrlPath() + Util.GetRouterHash() + '/taskpane'
-        // 打开任务窗格
-        const taskPane = Util.wpsService.createTaskPane(url, 'test_id')
-        // 设置任务窗格宽度
-        if (taskPane) {
-          taskPane.Width = 850
-        }
+        // 打开任务窗格并配置参数
+        Util.wpsService.createTaskPane(url, 'taskpane', { width: 850 })
       }
       break
     default:

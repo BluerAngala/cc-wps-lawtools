@@ -13,6 +13,7 @@ class WPSService {
   constructor() {
     this.initializeEnum()
     this.currentTaskPane = null // 当前活动的任务窗格
+    this.taskPanes = new Map() // 存储不同功能的任务窗格
   }
 
   initializeEnum() {
@@ -44,30 +45,34 @@ class WPSService {
   }
 
   // 获取任务窗格
-  getTaskPane(storageKey = 'taskpane_id') {
-    const tsId = window.Application?.PluginStorage?.getItem(storageKey)
-    return tsId ? window.Application?.GetTaskPane(tsId) : null
+  getTaskPane(key = 'default') {
+    return this.taskPanes.get(key) || null
   }
 
   // 创建任务窗格（确保只有一个窗格显示）
-  createTaskPane(url, storageKey = 'taskpane_id') {
+  createTaskPane(url, key = 'default', options = {}) {
     // 先关闭当前活动的任务窗格
     this.hideCurrentTaskPane()
     
-    let tsId = window.Application.PluginStorage.getItem(storageKey)
-    if (!tsId) {
-      const tskpane = window.Application.CreateTaskPane(url)
-      const id = tskpane.ID
-      window.Application.PluginStorage.setItem(storageKey, id)
-      tskpane.Visible = true
-      this.currentTaskPane = tskpane
-      return tskpane
-    } else {
-      const tskpane = window.Application.GetTaskPane(tsId)
-      tskpane.Visible = true
-      this.currentTaskPane = tskpane
-      return tskpane
+    // 检查是否已存在该功能的窗格
+    let taskPane = this.taskPanes.get(key)
+    
+    if (!taskPane) {
+      // 创建新窗格
+      taskPane = window.Application.CreateTaskPane(url)
+      this.taskPanes.set(key, taskPane)
     }
+    
+    // 显示窗格
+    taskPane.Visible = true
+    
+    // 应用配置参数
+    if (options.width) taskPane.Width = options.width
+    if (options.height) taskPane.Height = options.height
+    if (options.dockPosition !== undefined) taskPane.DockPosition = options.dockPosition
+    
+    this.currentTaskPane = taskPane
+    return taskPane
   }
 
   // 隐藏当前活动的任务窗格
@@ -79,17 +84,14 @@ class WPSService {
 
   // 创建外部URL任务窗格
   createExternalTaskPane(url, width = 850) {
-    this.hideCurrentTaskPane()
-    const taskPane = window.Application.CreateTaskPane(url)
-    taskPane.Visible = true
-    taskPane.Width = width
-    this.currentTaskPane = taskPane
-    return taskPane
+    // 使用统一的创建方法，key使用URL作为标识
+    const key = 'external_' + url.replace(/[^a-zA-Z0-9]/g, '_')
+    return this.createTaskPane(url, key, { width })
   }
 
   // 停靠任务窗格
-  dockTaskPane(position, storageKey = 'taskpane_id') {
-    const taskPane = this.getTaskPane(storageKey)
+  dockTaskPane(position, key = 'default') {
+    const taskPane = this.getTaskPane(key)
     if (taskPane) {
       const dockPosition =
         position === 'left'
@@ -99,11 +101,28 @@ class WPSService {
     }
   }
 
-  // 隐藏任务窗格
-  hideTaskPane(storageKey = 'taskpane_id') {
-    const taskPane = this.getTaskPane(storageKey)
+  // 隐藏指定任务窗格
+  hideTaskPane(key = 'default') {
+    const taskPane = this.getTaskPane(key)
     if (taskPane) {
       taskPane.Visible = false
+      // 如果隐藏的是当前活动窗格，清空引用
+      if (this.currentTaskPane === taskPane) {
+        this.currentTaskPane = null
+      }
+    }
+  }
+
+  // 删除任务窗格
+  deleteTaskPane(key = 'default') {
+    const taskPane = this.getTaskPane(key)
+    if (taskPane) {
+      taskPane.Delete()
+      this.taskPanes.delete(key)
+      // 如果删除的是当前活动窗格，清空引用
+      if (this.currentTaskPane === taskPane) {
+        this.currentTaskPane = null
+      }
     }
   }
 

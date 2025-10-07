@@ -94,23 +94,14 @@ const moreURL = ref('https://lawyerch.feishu.cn/wiki/space/7467382510423506963')
 
 onMounted(() => {
   console.log('欢迎页面已加载') 
+      // 直接调用ribbon.js中的OnAction函数，传入btnShowAI控件
+      ribbonHandler.OnAction({ Id: 'btnShowAI' })
+    console.log('已调用ribbon.js的AI助理事件')
 })
 
 const closeDialog = () => {
-  console.log('点击开始使用按钮，调用ribbon.js的AI助理')
-  try {
-    // 直接调用ribbon.js中的OnAction函数，传入btnShowAI控件
-    ribbonHandler.OnAction({ Id: 'btnShowAI' })
-    console.log('已调用ribbon.js的AI助理事件')
-    
-    // 调用AI助理后关闭当前窗口
-    setTimeout(() => {
-      window.close()
-    }, 500)
-  } catch (error) {
-    console.error('调用AI助理失败:', error)
-    window.close()
-  }
+  console.log('点击开始使用按钮，关闭欢迎页面')
+  window.close()
 }
 
 const showFeatures = () => {
