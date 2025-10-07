@@ -11,7 +11,7 @@
             按 <n-tag size="tiny">F12</n-tag> 打开调试器
           </n-text>
           <n-text depth="3">
-            <n-button text type="primary" @click="onOpenWeb()">
+            <n-button  type="primary" @click="onOpenWeb()">
               {{ DemoSpan || '打开开发文档页面' }}
             </n-button>
           </n-text>
@@ -19,20 +19,6 @@
         </n-space>
       </n-card>
 
-      <!-- 测试按钮 -->
-      <n-card size="small">
-        <n-button 
-          @click="testButtonClick"
-          type="error"
-          block
-          size="large"
-        >
-          <template #icon>
-            <n-icon><span>🔧</span></n-icon>
-          </template>
-          测试按钮点击
-        </n-button>
-      </n-card>
 
       <!-- 功能测试面板 -->
       <n-card title="功能测试面板" size="small">
@@ -75,12 +61,12 @@
                   📋 取文件名
                 </n-button>
                 <n-button @click="executeTest('renameDoc')" type="default" size="small">
-                  ✏️ 重命名文档
+                  ✏️ 重命名
                 </n-button>
               </n-space>
               
               <!-- 脱敏配置区域 -->
-              <n-divider title-placement="left">⚙️ 脱敏配置</n-divider>
+              <n-divider title-placement="center">⚙️ 脱敏配置</n-divider>
               <n-text depth="3">系统会自动检测常见敏感信息（手机号、身份证号等）</n-text>
               <n-space vertical>
                 <n-form-item label="白名单 (每行一个)">
@@ -116,7 +102,7 @@
               </n-button>
               
               <!-- AI文本处理区域 -->
-              <n-divider title-placement="left">AI文本处理</n-divider>
+              <n-divider title-placement="center">AI文本处理</n-divider>
               <n-space vertical>
                 <n-form-item label="输入文本内容">
                   <n-input
@@ -302,22 +288,6 @@ const onOpenWeb = () => {
   taskPane.onbuttonclick('openWeb', 'https://qn.cache.wpscdn.cn/encs/doc/office_v19/index.htm')
 }
 
-// 测试按钮点击功能
-const testButtonClick = () => {
-  console.log('=== 测试按钮点击 ===')
-  console.log('Vue组件响应正常')
-  console.log('当前环境检查:')
-  console.log('- window对象:', typeof window)
-  console.log('- window.Application:', typeof window.Application)
-  console.log('- wps全局对象:', typeof wps)
-  
-  if (window.Application) {
-    console.log('- ActiveDocument:', !!window.Application.ActiveDocument)
-    console.log('- Documents.Count:', window.Application.Documents?.Count)
-  }
-  
-  alert('测试按钮点击成功！请查看控制台输出。')
-}
 
 
 // 执行测试功能
