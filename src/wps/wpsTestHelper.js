@@ -37,7 +37,7 @@ class TaskPaneHandler {
     try {
       const action = this.getAction(idStr, param)
       console.log('找到的操作函数:', !!action)
-      
+
       if (action) {
         console.log(`开始执行操作: ${idStr}`)
         const result = await action()
@@ -487,8 +487,10 @@ class TaskPaneHandler {
 
             console.log('创建金山文档行记录 fields', fields)
             const res = await kdocsHandler({
+              webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL,
+              token: import.meta.env.VITE_KDOCS_TOKEN,
               type: 'createRecords',
-              sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID),
+              sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID) ,
               inputData: [{ fields }]
             })
             console.log('res', res)

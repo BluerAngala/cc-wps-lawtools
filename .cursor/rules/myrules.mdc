@@ -110,10 +110,13 @@ try {
 
 ## 开发命令
 ```bash
-pnpm dev      # 开发服务器
-pnpm build    # 构建生产版本
-pnpm lint     # 代码检查
-pnpm format   # 代码格式化
+wpsjs dbug     # 开发服务器
+wpsjs build    # 构建生产版本
+npm lint     # 代码检查
+npm format   # 代码格式化
+
+npm update -g wpsjs #更新
+npm update --save-dev wps-jsapi #更新
 ```
 
 ## 调试技巧
