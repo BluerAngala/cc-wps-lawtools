@@ -4,6 +4,14 @@
 
 这是一个基于Vue 3 + Element Plus开发的WPS加载项项目，集成了先进的AI智能合同分析功能，为律师提供专业的合同审查、要素提取和文档处理工具箱。
 
+
+
+
+## 快速使用 
+
+https://env-00jxg9mus2ok-static.normal.cloudstatic.cn/publish.html
+
+
 ## 更新日志
 
 

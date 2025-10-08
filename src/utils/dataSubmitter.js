@@ -2,7 +2,7 @@
  * 数据提交管理器 - 处理合同数据的提交和保存
  */
 
-import { kdocsHandler } from './kdocs.js'
+import { kdocsHandler } from '../services/kdocs.js'
 import taskPane from '../wps/wpsTestHelper.js'
 
 export class DataSubmitter {
@@ -138,8 +138,6 @@ export class DataSubmitter {
 
     try {
       const res = await kdocsHandler({
-        webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL,
-        token: import.meta.env.VITE_KDOCS_TOKEN,
         type: 'createRecords',
         sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID),
         inputData: [{ fields }]

@@ -32,7 +32,15 @@ export default defineConfig(() => {
       }
     },
     server: {
-      host: '0.0.0.0'
+      host: '0.0.0.0',
+      proxy: {
+        // 代理金山文档API请求，解决CORS问题
+        '/api/kdocs': {
+          target: 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/kdocs/, '/wps-kdocs')
+        }
+      }
     }
   }
 })

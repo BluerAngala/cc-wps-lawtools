@@ -1,6 +1,17 @@
 // 金山文档接口转发工具
 import axios from 'axios'
 
+// 获取云函数地址，支持环境变量配置
+// 开发环境使用代理路径，生产环境使用环境变量或默认地址
+const KDOCS_API_URL = import.meta.env.DEV 
+  ? '/api/kdocs' 
+  : (import.meta.env.VITE_KDOCS_API_URL || 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn/wps-kdocs') 
+
+
+  // 
+const webhookUrl = import.meta.env.VITE_KDOCS_WEBHOOK_URL
+const token = import.meta.env.VITE_KDOCS_TOKEN
+
 /**
  * 金山文档操作接口
  * @param {Object} options - 请求参数
@@ -33,8 +44,7 @@ import axios from 'axios'
  * })
  */
 async function kdocsHandler({
-  webhookUrl,
-  token,
+
   type,
   recordID,
   sheetID,
@@ -48,33 +58,28 @@ async function kdocsHandler({
 
 
   const requestData = JSON.stringify({
-    Context: {
-      argv: {
-        type,
-        sheetID,
-        data: inputData,
-        isAsync,
-        ...(recordID && { recordID }),
-      },
-    },
+    webhookUrl,
+    token,
+    type,
+    sheetID,
+    inputData,
+    isAsync,
+    ...(recordID && { recordID }),
   });
 
   
   try {
-    const response = await axios({
-      method: 'post',
-      url: 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn/wps-kdocs',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      data: requestData,
+    const response = await axios.post(KDOCS_API_URL, requestData, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000
     })
     
+    console.log('金山文档操作成功')
     return response.data
     
   } catch (error) {
-    console.error('金山文档操作失败:', error)
-    throw error
+    console.error('金山文档操作失败:', error.message)
+    throw new Error('金山文档服务暂时不可用，请稍后重试')
   }
 }
 
