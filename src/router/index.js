@@ -10,7 +10,7 @@ const router = createRouter({
     {
       path: '/',
       name: '默认页',
-      component: () => import('../views/Home.vue')
+      component: () => import('../views/HomePage.vue')
     },
     {
       path: '/taskpane',

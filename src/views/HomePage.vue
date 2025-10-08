@@ -86,11 +86,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { NConfigProvider, NMessageProvider, NCard, NSpace, NAvatar, NText, NButton, NIcon } from 'naive-ui'
+import { NConfigProvider, NMessageProvider, NCard, NSpace, NText, NButton, NIcon } from 'naive-ui'
 import ribbonHandler from '@/ribbon.js'
 
 const msg = ref('欢迎使用！')
-const moreURL = ref('https://lawyerch.feishu.cn/wiki/space/7467382510423506963')
 
 onMounted(() => {
   console.log('欢迎页面已加载') 
