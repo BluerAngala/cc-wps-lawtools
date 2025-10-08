@@ -63,9 +63,10 @@ function OnAction(control) {
     // 关于我
     case 'btnAboutME':
       {
-        Util.wpsService.createExternalTaskPane(
+       const externalTaskPane = Util.wpsService.createExternalTaskPane(
           'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
         )
+        externalTaskPane.Visible = false
       }
       break
 
