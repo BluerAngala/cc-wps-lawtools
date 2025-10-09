@@ -71,6 +71,6 @@ export function showWelcomeDialog() {
 
 // 显示设置弹窗（兼容旧接口）
 export function showSettingsDialog() {
-  showWPSDialog('/settings', { width: 600, height: 500 })
+  showWPSDialog('/settings', { width: 800, height: 600 })
 }
 

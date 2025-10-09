@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>测试配置路径</title>
+</head>
+<body>
+    <h1>WPS 配置路径测试</h1>
+    <button onclick="testPath()">测试获取路径</button>
+    <button onclick="testSave()">测试保存配置</button>
+    <button onclick="testRead()">测试读取配置</button>
+    <pre id="output"></pre>
+
+    <script>
+        function log(msg) {
+            const output = document.getElementById('output');
+            output.textContent += msg + '\n';
+            console.log(msg);
+        }
+
+        function testPath() {
+            document.getElementById('output').textContent = '';
+            
+            log('=== 测试路径获取 ===');
+            log('1. 检查 Application 对象: ' + (typeof window.Application !== 'undefined' ? '✓ 存在' : '✗ 不存在'));
+            
+            if (typeof window.Application === 'undefined') {
+                log('错误: WPS Application 对象不可用');
+                return;
+            }
+
+            log('2. 检查 Env 对象: ' + (window.Application.Env ? '✓ 存在' : '✗ 不存在'));
+            log('3. 检查 FileSystem 对象: ' + (window.Application.FileSystem ? '✓ 存在' : '✗ 不存在'));
+
+            try {
+                const tempPath = window.Application.Env.GetTempPath();
+                log('4. GetTempPath() 返回: ' + tempPath);
+                
+                const configPath = tempPath + 'wps_addon_config.json';
+                log('5. 完整配置路径: ' + configPath);
+                
+                // 检查文件是否存在
+                const exists = window.Application.FileSystem.Exists(configPath);
+                log('6. 文件是否存在: ' + (exists ? '✓ 是' : '✗ 否'));
+                
+            } catch (error) {
+                log('错误: ' + error.message);
+            }
+        }
+
+        function testSave() {
+            document.getElementById('output').textContent = '';
+            
+            log('=== 测试保存配置 ===');
+            
+            try {
+                const tempPath = window.Application.Env.GetTempPath();
+                const configPath = tempPath + 'wps_addon_config.json';
+                
+                log('1. 配置路径: ' + configPath);
+                
+                const testConfig = {
+                    test: true,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const jsonString = JSON.stringify(testConfig, null, 2);
+                log('2. 要保存的内容:\n' + jsonString);
+                
+                window.Application.FileSystem.writeFileString(configPath, jsonString);
+                log('3. ✓ 保存成功');
+                
+                // 验证
+                const exists = window.Application.FileSystem.Exists(configPath);
+                log('4. 验证文件存在: ' + (exists ? '✓ 是' : '✗ 否'));
+                
+            } catch (error) {
+                log('错误: ' + error.message);
+                log('错误详情: ' + JSON.stringify(error));
+            }
+        }
+
+        function testRead() {
+            document.getElementById('output').textContent = '';
+            
+            log('=== 测试读取配置 ===');
+            
+            try {
+                const tempPath = window.Application.Env.GetTempPath();
+                const configPath = tempPath + 'wps_addon_config.json';
+                
+                log('1. 配置路径: ' + configPath);
+                
+                const exists = window.Application.FileSystem.Exists(configPath);
+                log('2. 文件是否存在: ' + (exists ? '✓ 是' : '✗ 否'));
+                
+                if (!exists) {
+                    log('文件不存在，请先保存配置');
+                    return;
+                }
+                
+                const content = window.Application.FileSystem.readFileString(configPath);
+                log('3. 读取的内容:\n' + content);
+                
+                const config = JSON.parse(content);
+                log('4. 解析后的对象: ' + JSON.stringify(config, null, 2));
+                
+            } catch (error) {
+                log('错误: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
+

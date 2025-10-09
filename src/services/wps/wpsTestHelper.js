@@ -132,6 +132,7 @@ class TaskPaneHandler {
     }
   }
 
+  // 处理关键词批注和修订（统一方法）
   async addComment(param) {
     const doc = this.getActiveDoc()
     if (!doc) return
@@ -143,27 +144,45 @@ class TaskPaneHandler {
     }
 
     this.enableRevisionMode(doc)
-    let foundCount = 0
+    let commentCount = 0
+    let revisionCount = 0
 
     keywordList.forEach((item) => {
       const keyword = item?.keyword?.trim()
       if (!keyword) return
 
+      const actionType = item?.actionType || '批注'
       const comment = item?.comment || `关键词"${keyword}"需要重点关注`
+      const suggestedText = item?.suggestedText || ''
+
+      // 查找关键词
       const selection = doc.Range()
       selection.Find?.ClearFormatting()
       selection.Find.Text = keyword
 
       if (selection.Find?.Execute()) {
-        const commentRange = selection.Duplicate
-        commentRange?.Collapse(0)
-        commentRange?.Comments?.Add(commentRange, comment)
-        foundCount++
+        if (actionType === '修订' && suggestedText) {
+          // 修订模式：替换文本并添加批注
+          selection.Text = suggestedText
+          const commentRange = selection.Duplicate
+          commentRange?.Collapse(0)
+          commentRange?.Comments?.Add(commentRange, comment || `已修订为"${suggestedText}"`)
+          revisionCount++
+        } else {
+          // 批注模式：只添加批注
+          const commentRange = selection.Duplicate
+          commentRange?.Collapse(0)
+          commentRange?.Comments?.Add(commentRange, comment)
+          commentCount++
+        }
       }
     })
 
-    if (foundCount > 0) {
-      console.log(`成功为${foundCount}个关键词添加批注`)
+    const totalCount = commentCount + revisionCount
+    console.log(`处理完成: ${commentCount}个批注, ${revisionCount}个修订`)
+    
+    if (totalCount > 0) {
+      window.$message?.success(`成功处理 ${commentCount} 个批注和 ${revisionCount} 个修订`)
     } else {
       alert('未找到任何指定的关键词')
     }

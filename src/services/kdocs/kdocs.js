@@ -1,16 +1,19 @@
 // 金山文档接口转发工具
 import axios from 'axios'
+import { appConfig } from '../../utils/appConfig.js'
 
-// 获取云函数地址，支持环境变量配置
-// 开发环境使用代理路径，生产环境使用环境变量或默认地址
-const KDOCS_API_URL = import.meta.env.DEV 
-  ? '/api/kdocs' 
-  : (import.meta.env.VITE_KDOCS_API_URL || 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn/wps-kdocs') 
-
-
-  // 
-const webhookUrl = import.meta.env.VITE_KDOCS_WEBHOOK_URL
-const token = import.meta.env.VITE_KDOCS_TOKEN
+// 获取金山文档配置
+const getKdocsConfig = () => {
+  const config = appConfig.get('kdocs')
+  return {
+    webhookUrl: config.webhookUrl || import.meta.env.VITE_KDOCS_WEBHOOK_URL,
+    token: config.token || import.meta.env.VITE_KDOCS_TOKEN,
+    sheetId: config.sheetId || Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
+    apiUrl: import.meta.env.DEV 
+      ? '/api/kdocs' 
+      : (config.apiUrl || import.meta.env.VITE_KDOCS_API_URL || 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn/wps-kdocs')
+  }
+}
 
 /**
  * 金山文档操作接口
@@ -44,22 +47,25 @@ const token = import.meta.env.VITE_KDOCS_TOKEN
  * })
  */
 async function kdocsHandler({
-
   type,
   recordID,
   sheetID,
   inputData,
   isAsync = false
 }) {
+  // 动态获取最新配置
+  const config = getKdocsConfig()
+  const currentWebhookUrl = config.webhookUrl
+  const currentToken = config.token
   
-  if (!webhookUrl || !token || !type || !sheetID || !inputData) {
-    throw new Error('webhookUrl、token、type、sheetID、inputData不能为空')
+  if (!currentWebhookUrl || !currentToken || !type || !sheetID || !inputData) {
+    throw new Error('webhookUrl、token、type、sheetID、inputData不能为空，请在设置页面配置')
   }
 
 
   const requestData = JSON.stringify({
-    webhookUrl,
-    token,
+    webhookUrl: currentWebhookUrl,
+    token: currentToken,
     type,
     sheetID,
     inputData,
@@ -67,9 +73,9 @@ async function kdocsHandler({
     ...(recordID && { recordID }),
   });
 
-  
   try {
-    const response = await axios.post(KDOCS_API_URL, requestData, {
+    const config = getKdocsConfig()
+    const response = await axios.post(config.apiUrl, requestData, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 30000
     })

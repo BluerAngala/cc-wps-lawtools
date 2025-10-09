@@ -83,13 +83,11 @@ const executeExtraction = (config) => {
 
 const executeSmartComment = (config) => {
   if (config.mode === 'keyword') {
-    // 关键词模式：根据actionType决定任务类型
-    const hasReviewActions = config.keywordList.some(item => item.actionType === '修订')
-    const taskType = hasReviewActions ? 'contractReview' : 'keywordComment'
-    contractService.executeTask(taskType, config)
+    // 关键词模式：直接执行关键词处理
+    contractService.executeTask('keywordComment', config)
   } else if (config.mode === 'review') {
-    // AI预审模式：直接执行合同预审任务
-    contractService.executeTask('contractReview', config)
+    // AI预审模式：开发中
+    window.$message?.warning('AI预审模式开发中，敬请期待！')
   }
 }
 

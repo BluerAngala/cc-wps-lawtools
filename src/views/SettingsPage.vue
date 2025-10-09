@@ -1,84 +1,124 @@
 <template>
   <n-config-provider>
     <n-message-provider>
-      <div class="min-h-screen bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center p-0">
-        <n-card class="w-full h-full backdrop-blur-md rounded-none shadow-none m-0" :bordered="false">
+      <div class="min-h-screen bg-gradient-to-br from-purple-500 to-indigo-600 p-0 overflow-y-auto overflow-x-hidden" style="scrollbar-width: none; -ms-overflow-style: none;">
+        <n-card class="w-full min-h-screen rounded-none" :bordered="false" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+          <!-- 头部 -->
           <template #header>
-            <div class="relative">
-              <n-button quaternary circle size="small" class="absolute -right-2 -top-2 z-10" @click="closeDialog">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <n-icon size="24" color="#18a058">
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+                  </svg>
+                </n-icon>
+                <span class="text-xl font-bold">默认设置</span>
+              </div>
+              <n-button quaternary circle @click="closeDialog">
                 <template #icon>
-                  <n-icon size="16">
-                    <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    </svg>
+                  <n-icon size="18">
+                    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                   </n-icon>
                 </template>
               </n-button>
             </div>
           </template>
 
-          <n-space vertical size="large" class="px-6 py-4">
-            <div class="text-center">
-              <h1 class="text-3xl font-bold text-green-600 mb-4">⚙️ 设置</h1>
-              <n-text class="text-lg text-gray-600 leading-relaxed">
-                AI律师工具箱 - 配置与管理
-              </n-text>
-            </div>
-
-            <!-- 基本设置 -->
-            <div class="bg-white rounded-xl p-4 shadow-sm">
-              <h3 class="text-lg font-bold mb-3 text-gray-700">基本设置</h3>
-              <n-space vertical>
-                <n-button type="primary" @click="handleResetFirstLoad">
-                  重置首次加载状态
-                </n-button>
-                <n-text depth="3" class="text-sm">
-                  重置后，下次启动将显示欢迎页面
-                </n-text>
-              </n-space>
-            </div>
-
-            <!-- 功能特性 -->
-            <div class="bg-white rounded-xl p-4 shadow-sm">
-              <h3 class="text-lg font-bold mb-3 text-gray-700">功能特性</h3>
-              <div class="grid grid-cols-3 gap-4">
-                <div class="flex flex-col items-center gap-2 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-all hover:-translate-y-1">
-                  <n-icon size="20" color="#18a058">
-                    <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </n-icon>
-                  <span class="text-sm font-medium text-gray-700">合同审查</span>
-                </div>
-
-                <div class="flex flex-col items-center gap-2 p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-all hover:-translate-y-1">
-                  <n-icon size="20" color="#2080f0">
-                    <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </n-icon>
-                  <span class="text-sm font-medium text-gray-700">智能批注</span>
-                </div>
-
-                <div class="flex flex-col items-center gap-2 p-4 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition-all hover:-translate-y-1">
-                  <n-icon size="20" color="#f0a020">
-                    <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                    </svg>
-                  </n-icon>
-                  <span class="text-sm font-medium text-gray-700">AI助理</span>
-                </div>
+          <!-- 标签页 -->
+          <n-tabs v-model:value="activeTab" type="segment" animated size="large" class="mt-4">
+            <!-- AI 服务 -->
+            <n-tab-pane name="ai" tab="🤖 AI 服务">
+              <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <n-text>配置 AI 服务参数，修改后自动保存</n-text>
+                <n-button size="small" @click="resetTab('ai')">恢复默认</n-button>
               </div>
-            </div>
+              <n-form label-placement="left" label-width="120">
+                <n-form-item label="API Key">
+                  <n-input v-model:value="config.ai.apiKey" @update:value="autoSave" type="password" show-password-on="click" placeholder="请输入 API Key"/>
+                </n-form-item>
+                <n-form-item label="API 地址">
+                  <n-input v-model:value="config.ai.baseUrl" @update:value="autoSave" placeholder="https://api.siliconflow.cn/v1"/>
+                </n-form-item>
+                <n-form-item label="模型">
+                  <n-input v-model:value="config.ai.model" @update:value="autoSave" placeholder="Qwen/Qwen2.5-7B-Instruct"/>
+                </n-form-item>
+                <n-form-item label="超时时间(ms)">
+                  <n-input-number v-model:value="config.ai.timeout" @update:value="autoSave" :min="5000" :max="120000" :step="1000" class="w-full"/>
+                </n-form-item>
+              </n-form>
+            </n-tab-pane>
 
-            <div class="flex justify-center gap-3 mt-2">
-              <n-button type="primary" size="large" @click="closeDialog">确定</n-button>
-            </div>
+            <!-- 金山文档 -->
+            <n-tab-pane name="kdocs" tab="📄 金山文档">
+              <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <n-text>配置金山文档接口参数</n-text>
+                <n-button size="small" @click="resetTab('kdocs')">恢复默认</n-button>
+              </div>
+              <n-form label-placement="left" label-width="120">
+                <n-form-item label="Webhook URL">
+                  <n-input v-model:value="config.kdocs.webhookUrl" @update:value="autoSave" placeholder="请输入 Webhook URL"/>
+                </n-form-item>
+                <n-form-item label="Token">
+                  <n-input v-model:value="config.kdocs.token" @update:value="autoSave" type="password" show-password-on="click" placeholder="请输入 Token"/>
+                </n-form-item>
+                <n-form-item label="Sheet ID">
+                  <n-input-number v-model:value="config.kdocs.sheetId" @update:value="autoSave" :min="1" :step="1" class="w-full" placeholder="5"/>
+                </n-form-item>
+              </n-form>
+            </n-tab-pane>
 
-            <div class="text-center mt-6 pt-4 border-t border-gray-200">
-              <n-text depth="3" class="text-sm">© 2025 AI律师工具箱 · 作者：@陈恒律师</n-text>
-            </div>
-          </n-space>
+            <!-- 系统设置 -->
+            <n-tab-pane name="system" tab="⚙️ 系统">
+              <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                <n-text>系统设置与数据管理</n-text>
+                <n-button size="small" @click="resetTab('system')">恢复默认</n-button>
+              </div>
+              
+              <n-space vertical size="large">
+                <!-- 系统偏好 -->
+                <n-card title="系统偏好" size="small" :bordered="false" class="bg-gray-50">
+                  <n-space>
+                    <n-space align="center">
+                      <n-text>显示欢迎页面</n-text>
+                      <n-switch v-model:value="config.system.showWelcome" @update:value="autoSave"/>
+                    </n-space>
+                    <n-space align="center">
+                      <n-text>自动保存</n-text>
+                      <n-switch v-model:value="config.system.autoSave" @update:value="autoSave"/>
+                    </n-space>
+                  </n-space>
+                </n-card>
+
+                <!-- 数据管理 -->
+                <n-card title="数据管理" size="small" :bordered="false" class="bg-gray-50">
+                  <n-space>
+                    <n-button @click="handleResetFirstLoad">重置首次加载</n-button>
+                    <n-button type="warning" @click="handleResetAll">重置所有配置</n-button>
+                    <n-button type="info" @click="debugConfig">🔧 调试配置</n-button>
+                  </n-space>
+                </n-card>
+
+                <!-- 配置导入导出 -->
+                <n-card title="配置导入导出" size="small" :bordered="false" class="bg-gray-50">
+                  <n-space vertical>
+                    <n-space>
+                      <n-button @click="handleExport">导出配置</n-button>
+                      <n-upload :show-file-list="false" accept=".json" @before-upload="handleImport">
+                        <n-button>导入配置</n-button>
+                      </n-upload>
+                      <n-button @click="showConfigPath">查看配置文件路径</n-button>
+                    </n-space>
+                    <n-alert v-if="configPath" type="info" style="margin-top: 8px;">
+                      <template #header>配置文件位置</template>
+                      <n-text style="font-size: 12px; word-break: break-all; font-family: monospace;">
+                        {{ configPath }}
+                      </n-text>
+                    </n-alert>
+                  </n-space>
+                </n-card>
+              </n-space>
+            </n-tab-pane>
+          </n-tabs>
         </n-card>
       </div>
     </n-message-provider>
@@ -86,29 +126,189 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
-import { NConfigProvider, NMessageProvider, NCard, NSpace, NText, NButton, NIcon } from 'naive-ui'
-import { wpsConfigManager } from '../services/wps/wpsConfigManager.js'
+import { ref, onMounted } from 'vue'
+import {
+  NConfigProvider, NMessageProvider, NCard, NTabs, NTabPane, NForm, NFormItem,
+  NInput, NInputNumber, NSwitch, NButton, NIcon, NText,
+  NSpace, NUpload, NAlert
+} from 'naive-ui'
+import { appConfig } from '../utils/appConfig.js'
+import { reinitializeAIClient } from '../services/ai/siliconflow.js'
+
+const activeTab = ref('ai')
+const config = ref({
+  ai: { apiKey: '', baseUrl: '', model: '', timeout: 30000 },
+  kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
+  system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
+})
+const configPath = ref('')
 
 onMounted(() => {
-  console.log('设置页面已加载')
+  loadConfig()
 })
+
+// 加载配置
+const loadConfig = () => {
+  try {
+    config.value = appConfig.getConfig()
+  } catch (error) {
+    console.error('加载配置失败:', error)
+  }
+}
+
+// 自动保存配置
+const autoSave = () => {
+  try {
+    appConfig.saveConfig(config.value)
+    // 当 AI 配置更新时，重新初始化 AI 客户端
+    if (activeTab.value === 'ai') {
+      reinitializeAIClient()
+      console.log('AI 配置已更新，客户端已重新初始化')
+    }
+  } catch (error) {
+    console.error('保存配置失败:', error)
+  }
+}
+
+// 重置当前标签页
+const resetTab = (tab) => {
+  const defaults = {
+    ai: { apiKey: '', baseUrl: 'https://api.siliconflow.cn/v1', model: 'Qwen/Qwen2.5-7B-Instruct', timeout: 30000 },
+    kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
+    system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
+  }
+  
+  config.value[tab] = defaults[tab]
+  autoSave()
+  
+  // 如果重置的是 AI 配置，需要重新初始化客户端
+  if (tab === 'ai') {
+    reinitializeAIClient()
+  }
+  
+  window.$message?.success('已恢复默认配置')
+}
 
 // 重置首次加载
 const handleResetFirstLoad = () => {
   try {
-    wpsConfigManager.resetFirstLoad()
-    window.$message?.success('首次加载状态已重置，下次启动将显示欢迎页面')
+    appConfig.resetFirstLoad()
+    config.value.system.firstLoadCompleted = false
+    window.$message?.success('首次加载状态已重置')
   } catch (error) {
-    console.error('重置失败:', error)
-    window.$message?.error('重置失败: ' + error.message)
+    window.$message?.error('重置失败')
+  }
+}
+
+// 重置所有配置
+const handleResetAll = () => {
+  if (confirm('确定要重置所有配置吗？此操作不可恢复。')) {
+    config.value = appConfig.reset()
+    reinitializeAIClient() // 重置后需要重新初始化 AI 客户端
+    window.$message?.success('所有配置已重置')
+  }
+}
+
+// 导出配置
+const handleExport = () => {
+  appConfig.exportConfig()
+  window.$message?.success('配置已导出')
+}
+
+// 导入配置
+const handleImport = async (options) => {
+  try {
+    const importedConfig = await appConfig.importConfig(options.file.file)
+    config.value = importedConfig
+    reinitializeAIClient() // 导入配置后需要重新初始化 AI 客户端
+    window.$message?.success('配置已导入')
+  } catch (error) {
+    window.$message?.error('导入失败')
+  }
+  return false
+}
+
+// 调试配置
+const debugConfig = () => {
+  try {
+    // 直接使用 appConfig 的调试方法
+    appConfig.debug()
+    
+    // 额外的测试：尝试保存并读取
+    console.log('\n=== 执行保存测试 ===')
+    const testConfig = {
+      ...config.value,
+      _test: {
+        timestamp: new Date().toISOString(),
+        message: '这是一个测试'
+      }
+    }
+    
+    const saveResult = appConfig.saveConfig(testConfig)
+    console.log('保存结果:', saveResult)
+    
+    if (saveResult) {
+      console.log('\n=== 验证读取 ===')
+      const readConfig = appConfig.getConfig()
+      console.log('读取到的配置:', readConfig)
+      console.log('测试数据存在:', !!readConfig._test)
+      
+      // 清理测试数据
+      if (readConfig._test) {
+        delete readConfig._test
+        appConfig.saveConfig(readConfig)
+      }
+      
+      const fullPath = appConfig.getConfigFullPath()
+      if (fullPath) {
+        window.$message?.success('调试成功！配置文件: ' + fullPath)
+      } else {
+        window.$message?.info('调试成功！使用 localStorage 存储')
+      }
+    } else {
+      window.$message?.error('保存配置失败，请查看控制台')
+    }
+  } catch (error) {
+    console.error('调试失败:', error)
+    window.$message?.error('调试失败: ' + error.message)
+  }
+}
+
+// 显示配置文件路径
+const showConfigPath = () => {
+  try {
+    const fullPath = appConfig.getConfigFullPath()
+    
+    if (!fullPath) {
+      configPath.value = '浏览器 localStorage: wps_addon_config'
+      window.$message?.info('配置保存在 localStorage')
+      return
+    }
+
+    configPath.value = fullPath
+    
+    // 尝试复制到剪贴板
+    navigator.clipboard?.writeText(fullPath).then(() => {
+      window.$message?.success('路径已复制到剪贴板')
+    }).catch(() => {
+      window.$message?.info('路径已显示')
+    })
+  } catch (error) {
+    console.error('获取路径失败:', error)
+    configPath.value = '获取失败: ' + error.message
+    window.$message?.error('获取路径失败')
   }
 }
 
 // 关闭对话框
 const closeDialog = () => {
-  console.log('关闭设置页面')
   window.close()
 }
 </script>
 
+<style scoped>
+/* 隐藏滚动条 */
+div::-webkit-scrollbar {
+  display: none;
+}
+</style>

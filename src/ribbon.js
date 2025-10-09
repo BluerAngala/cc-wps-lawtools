@@ -1,7 +1,7 @@
 // ribbon.js 初始化 wps 加载项
 
 import Util from './services/wps/wpsUtils.js'
-import { wpsConfigManager } from './services/wps/wpsConfigManager.js'
+import { appConfig } from './utils/appConfig.js'
 import { showWelcomeDialog, showSettingsDialog } from './utils/dialogHelper.js'
 
 console.log('ribbon.js 已加载并初始化')
@@ -12,12 +12,12 @@ function OnAddinLoad() {
 
   // 延迟一点时间确保WPS完全初始化
   setTimeout(() => {
-    const isFirstLoad = wpsConfigManager.isFirstLoad()
+    const isFirstLoad = appConfig.isFirstLoad()
 
     if (isFirstLoad) {
       console.log('检测到首次加载，显示欢迎页面')
       showWelcomeDialog()
-      wpsConfigManager.markFirstLoadCompleted()
+      appConfig.markFirstLoadCompleted()
     } else {
       console.log('非首次加载，跳过欢迎页面')
     }
@@ -91,7 +91,7 @@ function OnAction(control) {
       {
         console.log('点击了重置首次加载按钮')
         try {
-          const result = wpsConfigManager.resetFirstLoad()
+          const result = appConfig.resetFirstLoad()
           console.log('重置首次加载结果:', result)
           window.$message?.success('首次加载状态已重置，下次启动将显示欢迎页面')
         } catch (error) {

@@ -2,8 +2,7 @@
  * 合同服务统一管理器 - 整合所有合同相关功能
  */
 
-// 使用全局消息提示
-import { configManager } from '../../utils/configManager.js'
+import { appConfig } from '../../utils/appConfig.js'
 import { TaskManager } from './taskManager.js'
 import { dataSubmitter } from './dataSubmitter.js'
 
@@ -83,11 +82,11 @@ export class ContractService {
    * @param {Object} configs - 配置对象
    */
   saveConfig(configs) {
-    const result = configManager.saveConfig(configs, true)
-    if (result.success) {
-      window.$message?.success(result.message)
+    const success = appConfig.saveConfig(configs)
+    if (success) {
+      window.$message?.success('配置已保存')
     } else {
-      window.$message?.error(result.message)
+      window.$message?.error('保存配置失败')
     }
   }
 
@@ -96,7 +95,7 @@ export class ContractService {
    * @returns {Object} 默认配置
    */
   resetConfig() {
-    const defaultConfigs = configManager.resetConfig()
+    const defaultConfigs = appConfig.reset()
     window.$message?.success('配置已重置为默认值')
     return defaultConfigs
   }
@@ -106,18 +105,14 @@ export class ContractService {
    * @returns {Object} 配置对象
    */
   loadConfig() {
-    const savedConfig = configManager.loadConfig()
-    if (savedConfig) {
-      const configs = {
-        extractor: savedConfig.extractor || {},
-        keyword: savedConfig.keyword || {},
-        review: savedConfig.review || {}
-      }
-      window.$message?.success('已加载上次保存的配置')
-      return configs
-    } else {
-      return configManager.getDefaultConfig()
+    const allConfig = appConfig.getConfig()
+    const configs = {
+      extractor: allConfig.extractor || {},
+      keyword: allConfig.keyword || {},
+      review: allConfig.review || {}
     }
+    window.$message?.success('已加载配置')
+    return configs
   }
 
   /**

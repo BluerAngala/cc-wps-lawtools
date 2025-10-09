@@ -6,26 +6,44 @@ import {
   validateExtractTags,
   generateContractReviewPrompt
 } from './promptGenerator.js'
+import { appConfig } from '../../utils/appConfig.js'
 
-// 替换为你的 SiliconFlow API 密钥
-const API_KEY = import.meta.env.VITE_AI_API_KEY
+// 获取 AI 配置（优先使用统一配置，回退到环境变量）
+const getAIConfig = () => {
+  const config = appConfig.get('ai')
+  return {
+    apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY,
+    baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL,
+    timeout: config.timeout || 30000
+  }
+}
 
-// SiliconFlow API 的基础 URL
-const BASE_URL = import.meta.env.VITE_AI_API_BASE_URL
+const aiConfig = getAIConfig()
 
-if (!API_KEY || !BASE_URL) {
-  throw new Error('SiliconFlow API 密钥或基础 URL 未配置')
+if (!aiConfig.apiKey || !aiConfig.baseUrl) {
+  console.warn('AI API 未配置，请在设置页面配置')
 }
 
 // 创建 axios 实例
-const apiClient = axios.create({
-  baseURL: BASE_URL,
-  timeout: 30000, // 30秒超时
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${API_KEY}`
-  }
-})
+const createApiClient = () => {
+  const config = getAIConfig()
+  return axios.create({
+    baseURL: config.baseUrl,
+    timeout: config.timeout,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.apiKey}`
+    }
+  })
+}
+
+let apiClient = createApiClient()
+
+// 提供重新初始化方法（配置更新后调用）
+export const reinitializeAIClient = () => {
+  apiClient = createApiClient()
+  console.log('AI 客户端已重新初始化')
+}
 
 // 请求拦截器
 apiClient.interceptors.request.use(

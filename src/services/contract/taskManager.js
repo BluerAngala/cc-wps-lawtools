@@ -99,8 +99,12 @@ export class TaskManager {
     console.log('执行任务:', ruleType, params)
 
     try {
+      // 特殊处理：关键词模式下的 contractReview 应该直接执行，不需要 AI
+      const isKeywordMode = params.mode === 'keyword'
+      const needsAI = this.AI_RULE_TYPES.includes(ruleType) && !isKeywordMode
+
       // 对于不需要AI处理的规则，直接执行
-      if (!this.AI_RULE_TYPES.includes(ruleType)) {
+      if (!needsAI) {
         const result = await this.executeDirectTask(ruleType, params)
         onComplete?.(result)
         return result
@@ -164,10 +168,18 @@ export class TaskManager {
           alignment: params.alignment
         })
       case 'contractReview':
-        return await taskPane.onbuttonclick('contractReview', {
-          reviewRules: params.reviewRules,
-          aiResult: params.aiResult
-        })
+        // 关键词模式：直接调用 addComment（已支持批注和修订）
+        if (params.mode === 'keyword') {
+          return await taskPane.onbuttonclick('addComment', {
+            keywordList: params.keywordList
+          })
+        } else {
+          // AI 预审模式
+          return await taskPane.onbuttonclick('contractReview', {
+            reviewRules: params.reviewRules,
+            aiResult: params.aiResult
+          })
+        }
       case 'analyzeDocStructure':
         return await taskPane.onbuttonclick('analyzeDocStructure', {
           aiResult: params.aiResult

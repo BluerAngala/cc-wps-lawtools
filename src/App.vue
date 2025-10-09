@@ -35,8 +35,17 @@ const AppContent = {
 const message = ref('你好，wps加载项')
 let documentWatcher = null
 
-console.log(message.value)
-console.log('window', window)
+console.debug('自定义消息', message.value)
+// window 对象
+console.debug('window', window)
+// wps Application 对象
+console.debug('wps Application', window.Application)
+// wps Application.Env 对象
+console.debug('wps Application.Env', window.Application.Env)
+// wps Application.FileSystem 对象
+console.debug('wps Application.FileSystem', window.Application.FileSystem)
+// wps PluginStorage 对象
+console.debug('wps PluginStorage', window.Application.PluginStorage)
 
 onMounted(() => {
   // 初始化缓存管理器
