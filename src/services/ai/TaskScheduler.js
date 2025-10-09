@@ -3,7 +3,7 @@
  * 集成文档解析、缓存管理和AI调用功能
  */
 
-import { DocumentParser } from './DocumentParser.js'
+import { DocumentParser } from '../document/DocumentParser.js'
 import { CacheManager } from './CacheManager.js'
 import { apiClient } from './siliconflow.js'
 import {

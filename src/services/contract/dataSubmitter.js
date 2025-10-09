@@ -2,7 +2,7 @@
  * 数据提交管理器 - 处理合同数据的提交和保存
  */
 
-import { kdocsHandler } from '../services/kdocs.js'
+import { kdocsHandler } from '../kdocs/kdocs.js'
 import taskPane from '../wps/wpsTestHelper.js'
 
 export class DataSubmitter {

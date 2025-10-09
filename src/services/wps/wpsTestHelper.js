@@ -1,6 +1,6 @@
 import Util from './wpsUtils.js'
-import { kdocsHandler } from '../services/kdocs.js'
-import TaskScheduler from '../services/ai/TaskScheduler.js'
+import { kdocsHandler } from '../kdocs/kdocs.js'
+import TaskScheduler from '../ai/TaskScheduler.js'
 
 // 任务窗格处理类 负责处理任务窗格的各个操作
 class TaskPaneHandler {

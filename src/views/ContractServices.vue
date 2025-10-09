@@ -53,7 +53,7 @@ import {
 } from '@vicons/ionicons5'
 import ContractExtractor from '../components/ContractExtractor.vue'
 import SmartCommenter from '../components/SmartCommenter.vue'
-import { contractService } from '../utils/contractService.js'
+import { contractService } from '../services/contract/contractService.js'
 
 console.log('合同审查组件已加载')
 

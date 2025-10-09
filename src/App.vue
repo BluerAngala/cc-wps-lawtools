@@ -14,7 +14,7 @@ import { NConfigProvider, NMessageProvider, NDialogProvider, useMessage, useDial
 import { RouterView } from 'vue-router'
 
 // 引入文档监听器
-import DocumentWatcher from './wps/DocumentWatcher.js'
+import DocumentWatcher from './services/wps/DocumentWatcher.js'
 // 引入缓存管理器
 import { CacheManager } from './services/ai/CacheManager.js'
 

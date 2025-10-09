@@ -3,7 +3,7 @@
  */
 
 // 使用全局消息提示
-import { configManager } from './configManager.js'
+import { configManager } from '../../utils/configManager.js'
 import { TaskManager } from './taskManager.js'
 import { dataSubmitter } from './dataSubmitter.js'
 

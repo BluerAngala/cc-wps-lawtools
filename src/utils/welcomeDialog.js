@@ -42,11 +42,10 @@ export function showWelcomeDialog() {
   }
 }
 
-// 清理函数
+// 清理函数（WPS原生对话框不需要手动清理）
 export function cleanupWelcomeDialog() {
   const container = document.getElementById('welcome-dialog-container')
   if (container) {
     container.remove()
-    dialogInstance = null
   }
 }

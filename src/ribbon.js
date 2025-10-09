@@ -1,7 +1,7 @@
 // ribbon.js 初始化 wps 加载项
 
-import Util from './wps/wpsUtils.js'
-import { wpsConfigManager } from './utils/wpsConfigManager.js'
+import Util from './services/wps/wpsUtils.js'
+import { wpsConfigManager } from './services/wps/wpsConfigManager.js'
 import { showWelcomeDialog } from './utils/welcomeDialog.js'
 
 console.log('ribbon.js 已加载并初始化')

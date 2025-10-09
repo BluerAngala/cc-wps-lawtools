@@ -212,8 +212,8 @@ import {
   NCollapse, NCollapseItem, NAlert, NCode, NInput, NFormItem, 
   NDivider, NList, NListItem, NThing 
 } from 'naive-ui'
-import taskPane from '../wps/wpsTestHelper.js'
-import { desensitizeText } from '../utils/desensitize.js'
+import taskPane from '../services/wps/wpsTestHelper.js'
+import { desensitizeText } from '../services/document/desensitize.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
 
 console.log('TaskPane组件已加载')
