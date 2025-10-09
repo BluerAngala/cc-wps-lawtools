@@ -5,6 +5,9 @@
 // 使用全局消息提示
 import TaskScheduler from '../ai/TaskScheduler.js'
 import taskPane from '../wps/wpsTestHelper.js'
+import { keywordProcessor } from './keywordProcessor.js'
+import { reviewProcessor } from './reviewProcessor.js'
+import { extractionProcessor } from './extractionProcessor.js'
 
 export class TaskManager {
   constructor(options = {}) {
@@ -56,10 +59,39 @@ export class TaskManager {
     // 清理可能存在的旧监听器
     this.cleanupTaskListeners(taskId)
 
-    const handleTaskComplete = (task) => {
+    const handleTaskComplete = async (task) => {
       if (task.id === taskId) {
-        if (onComplete) {
-          onComplete(task.result, params)
+        try {
+          // 根据任务类型进行后处理
+          let processedResult = task.result
+          
+          if (ruleType === 'extractText') {
+            // 合同信息抽取：验证和处理数据
+            const validation = extractionProcessor.validateExtractedData(task.result)
+            if (!validation.isValid) {
+              console.warn(validation.message)
+            }
+            processedResult = extractionProcessor.processExtractionResult(task.result)
+          } else if (ruleType === 'contractReview') {
+            // AI合同预审：根据actionType执行批注或修订
+            const actionType = params.actionType || 'comment'
+            if (actionType === 'comment') {
+              processedResult = await reviewProcessor.addReviewComments(task.result)
+            } else if (actionType === 'revision') {
+              processedResult = await reviewProcessor.addReviewRevisions(task.result)
+            }
+          }
+
+          if (onComplete) {
+            onComplete(processedResult, params)
+          }
+        } catch (error) {
+          console.error('处理任务结果时出错:', error)
+          if (onError) {
+            onError(error)
+          } else {
+            window.$message?.error(`处理失败: ${error.message}`)
+          }
         }
         this.cleanupTaskListeners(taskId)
       }
@@ -158,9 +190,7 @@ export class TaskManager {
   async executeDirectTask(ruleType, params) {
     switch (ruleType) {
       case 'keywordComment':
-        return await taskPane.onbuttonclick('addComment', {
-          keywordList: params.keywordList
-        })
+        return await keywordProcessor.processKeywords(params.keywordList)
       case 'addHeader':
         return await taskPane.onbuttonclick('addHeader', {
           headerText: params.headerText,
@@ -168,11 +198,9 @@ export class TaskManager {
           alignment: params.alignment
         })
       case 'contractReview':
-        // 关键词模式：直接调用 addComment（已支持批注和修订）
+        // 关键词模式：使用关键词处理器
         if (params.mode === 'keyword') {
-          return await taskPane.onbuttonclick('addComment', {
-            keywordList: params.keywordList
-          })
+          return await keywordProcessor.processKeywords(params.keywordList)
         } else {
           // AI 预审模式
           return await taskPane.onbuttonclick('contractReview', {

@@ -9,7 +9,7 @@ import UnoCSS from 'unocss/vite'
 import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
   return {
     base: './',
     plugins: [
@@ -31,10 +31,20 @@ export default defineConfig(() => {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
+    define: {
+      // 生产环境禁用 info 级别日志
+      ...(mode === 'production' && {
+        'console.log': '(() => {})',
+        'console.info': '(() => {})',
+        'console.debug': '(() => {})'
+      })
+    },
     server: {
       host: '0.0.0.0',
+
+      // 开发环境 代理金山文档API请求，解决CORS问题
       proxy: {
-        // 代理金山文档API请求，解决CORS问题
+        // 开发环境 代理金山文档API请求，解决CORS问题
         '/api/kdocs': {
           target: 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn',
           changeOrigin: true,
