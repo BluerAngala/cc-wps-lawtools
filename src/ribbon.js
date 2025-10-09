@@ -2,7 +2,7 @@
 
 import Util from './services/wps/wpsUtils.js'
 import { wpsConfigManager } from './services/wps/wpsConfigManager.js'
-import { showWelcomeDialog } from './utils/welcomeDialog.js'
+import { showWelcomeDialog, showSettingsDialog } from './utils/dialogHelper.js'
 
 console.log('ribbon.js 已加载并初始化')
 
@@ -67,6 +67,14 @@ function OnAction(control) {
           'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
         )
         externalTaskPane.Visible = false
+      }
+      break
+
+    // 设置
+    case 'btnSettings':
+      {
+        console.log('点击了设置按钮')
+        showSettingsDialog()
       }
       break
 

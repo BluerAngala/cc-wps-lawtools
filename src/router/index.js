@@ -21,6 +21,11 @@ const router = createRouter({
       path: '/contractreview',
       name: '合同审查',
       component: () => import('../views/ContractServices.vue')
+    },
+    {
+      path: '/settings',
+      name: '设置',
+      component: () => import('../views/SettingsPage.vue')
     }
   ]
 })
