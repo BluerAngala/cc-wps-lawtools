@@ -228,49 +228,30 @@ const handleImport = async (options) => {
   return false
 }
 
-// 调试配置
+// 查看配置信息
 const debugConfig = () => {
   try {
-    // 直接使用 appConfig 的调试方法
-    appConfig.debug()
+    const info = appConfig.getConfigInfo()
     
-    // 额外的测试：尝试保存并读取
-    console.log('\n=== 执行保存测试 ===')
-    const testConfig = {
-      ...config.value,
-      _test: {
-        timestamp: new Date().toISOString(),
-        message: '这是一个测试'
-      }
+    console.log('配置信息:', info)
+    
+    if (!info.isWPSAvailable) {
+      window.$message?.warning('WPS 环境不可用')
+      return
     }
     
-    const saveResult = appConfig.saveConfig(testConfig)
-    console.log('保存结果:', saveResult)
+    const messages = [
+      `配置目录: ${info.configDir}`,
+      `配置文件: ${info.configFile}`,
+      `目录存在: ${info.dirExists ? '是' : '否'}`,
+      `文件存在: ${info.fileExists ? '是' : '否'}`
+    ]
     
-    if (saveResult) {
-      console.log('\n=== 验证读取 ===')
-      const readConfig = appConfig.getConfig()
-      console.log('读取到的配置:', readConfig)
-      console.log('测试数据存在:', !!readConfig._test)
-      
-      // 清理测试数据
-      if (readConfig._test) {
-        delete readConfig._test
-        appConfig.saveConfig(readConfig)
-      }
-      
-      const fullPath = appConfig.getConfigFullPath()
-      if (fullPath) {
-        window.$message?.success('调试成功！配置文件: ' + fullPath)
-      } else {
-        window.$message?.info('调试成功！使用 localStorage 存储')
-      }
-    } else {
-      window.$message?.error('保存配置失败，请查看控制台')
-    }
+    console.log(messages.join('\n'))
+    window.$message?.success(`配置文件位置: ${info.configFile}`)
   } catch (error) {
-    console.error('调试失败:', error)
-    window.$message?.error('调试失败: ' + error.message)
+    console.error('获取配置信息失败:', error)
+    window.$message?.error('获取配置信息失败: ' + error.message)
   }
 }
 
@@ -280,8 +261,8 @@ const showConfigPath = () => {
     const fullPath = appConfig.getConfigFullPath()
     
     if (!fullPath) {
-      configPath.value = '浏览器 localStorage: wps_addon_config'
-      window.$message?.info('配置保存在 localStorage')
+      configPath.value = 'WPS 环境不可用'
+      window.$message?.warning('WPS 环境不可用，无法获取配置文件路径')
       return
     }
 

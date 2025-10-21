@@ -56,15 +56,23 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { NButton, NTag, NAlert, NSpace } from 'naive-ui'
 import ConfigForm from './ConfigForm.vue'
 
 // Props
-defineProps({
+const props = defineProps({
   processing: {
     type: Boolean,
     default: false
+  },
+  keywordConfig: {
+    type: Object,
+    default: () => ({})
+  },
+  reviewConfig: {
+    type: Object,
+    default: () => ({})
   }
 })
 
@@ -74,71 +82,10 @@ const emit = defineEmits(['execute', 'update-config'])
 // 当前模式
 const currentMode = ref('keyword')
 
-// 配置表单
+// 配置表单（从 props 初始化，不使用硬编码的默认值）
 const configForm = reactive({
-  keywordList: [
-    { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注' },
-    {
-      keyword: '付款方式',
-      comment:
-        '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
-      actionType: '批注'
-    },
-    {
-      keyword: '费用',
-      comment:
-        '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
-      actionType: '批注'
-    },
-    {
-      keyword: '验收',
-      comment:
-        '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。',
-      actionType: '批注'
-    },
-    { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误', actionType: '批注' },
-    { keyword: '仲裁', comment: '建议约定统一约定法院管辖', actionType: '修订' },
-    { keyword: '"广东特支计划"', comment: '提醒确认项目名称以及期数是否准确无误', actionType: '批注' },
-    {
-      keyword: '培养期为',
-      comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！',
-      actionType: '批注'
-    },
-    {
-      keyword: '资金发放安排',
-      comment:
-        '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
-      actionType: '批注'
-    },
-    { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注' }
-  ],
-  reviewKeywordList: [
-    {
-      keyword: '争议解决',
-      comment: '请AI审查合同中的争议解决条款，检查是否约定了明确的纠纷处理方式（仲裁或法院管辖），并评估条款的有效性和合理性',
-      actionType: '批注'
-    },
-    {
-      keyword: '违约责任',
-      comment: '请AI分析违约责任条款的完整性，检查违约金标准是否合理，免责条款是否过于宽泛，并提出改进建议',
-      actionType: '批注'
-    },
-    {
-      keyword: '付款条件',
-      comment: '请AI审查并优化付款条款，确保付款方式、期限、条件表述清晰，识别潜在的付款风险并提出修订建议',
-      actionType: '修订'
-    },
-    {
-      keyword: '合同期限',
-      comment: '请AI检查合同期限条款的明确性，包括起止时间、续约机制、提前终止条件，并评估是否存在歧义',
-      actionType: '批注'
-    },
-    {
-      keyword: '知识产权',
-      comment: '请AI全面审查知识产权相关条款，包括权利归属、使用范围、侵权责任分担、保密义务等，确保权责清晰',
-      actionType: '批注'
-    }
-  ]
+  keywordList: [],
+  reviewKeywordList: []
 })
 
 // 方法
@@ -179,4 +126,30 @@ const updateConfig = (configData) => {
   }
   emit('update-config', configForm)
 }
+
+// 监听 props 变化，同步配置
+watch(
+  () => props.keywordConfig,
+  (newConfig) => {
+    if (newConfig && newConfig.keywordList) {
+      configForm.keywordList = newConfig.keywordList
+    }
+  },
+  { immediate: true, deep: true }
+)
+
+watch(
+  () => props.reviewConfig,
+  (newConfig) => {
+    if (newConfig && newConfig.contractReviewRules) {
+      // review 配置使用 contractReviewRules 字段，转换为组件内部格式
+      configForm.reviewKeywordList = newConfig.contractReviewRules.map(rule => ({
+        keyword: rule.reviewRules,
+        comment: rule.reviewRequirements,
+        actionType: rule.actionType
+      }))
+    }
+  },
+  { immediate: true, deep: true }
+)
 </script>

@@ -27,6 +27,7 @@
         :processing="contractService.isTaskProcessing('extractText')"
         :extracted-data="extractedData"
         :submitting="submitting"
+        :extractor-config="configs.extractor"
         @execute="executeExtraction"
         @submit-data="submitExtractedData"
         @update:extracted-data="extractedData = $event"
@@ -36,6 +37,8 @@
       <!-- 智能文档处理组件 -->
       <SmartCommenter
         :processing="contractService.isTaskProcessing('keywordComment') || contractService.isTaskProcessing('contractReview')"
+        :keyword-config="configs.keyword"
+        :review-config="configs.review"
         @execute="executeSmartComment"
         @update-config="updateSmartConfig"
       />
@@ -54,6 +57,7 @@ import {
 import ContractExtractor from '../components/ContractExtractor.vue'
 import SmartCommenter from '../components/SmartCommenter.vue'
 import { contractService } from '../services/contract/contractService.js'
+import { appConfig } from '../utils/appConfig.js'
 
 console.log('合同审查组件已加载')
 
@@ -68,7 +72,37 @@ const configs = ref({
 // 统一的配置更新方法
 const updateConfig = (type, config) => {
   configs.value[type] = config
-  contractService.saveConfig(configs.value)
+  // 静默保存（不显示提示）
+  saveConfigToAppConfig(false)
+}
+
+// 保存配置到 appConfig
+const saveConfigToAppConfig = (showMessage = true) => {
+  const allConfig = appConfig.getConfig()
+  
+  // 更新对应的配置项
+  if (configs.value.extractor) {
+    allConfig.extractor = configs.value.extractor
+  }
+  if (configs.value.keyword) {
+    allConfig.keyword = configs.value.keyword
+  }
+  if (configs.value.review) {
+    allConfig.review = configs.value.review
+  }
+  
+  const success = appConfig.saveConfig(allConfig)
+  
+  // 只在需要时显示消息
+  if (showMessage) {
+    if (success) {
+      window.$message?.success('配置已保存')
+    } else {
+      window.$message?.error('保存配置失败')
+    }
+  }
+  
+  return success
 }
 
 // 组件事件处理方法（极简版）
@@ -91,13 +125,41 @@ const executeSmartComment = (config) => {
   }
 }
 
-const updateExtractorConfig = (config) => updateConfig('extractor', config)
-const updateSmartConfig = (config) => updateConfig('smart', config)
+const updateExtractorConfig = (configForm) => {
+  // 保存提取配置
+  if (configForm.extractTags) {
+    updateConfig('extractor', { extractTags: configForm.extractTags.value })
+  }
+}
+
+const updateSmartConfig = (configForm) => {
+  // 保存关键词配置
+  if (configForm.keywordList) {
+    updateConfig('keyword', { keywordList: configForm.keywordList })
+  }
+  
+  // 保存审查配置（转换为标准格式）
+  if (configForm.reviewKeywordList) {
+    const contractReviewRules = configForm.reviewKeywordList.map(item => ({
+      reviewRules: item.keyword,
+      reviewRequirements: item.comment,
+      actionType: item.actionType
+    }))
+    updateConfig('review', { contractReviewRules })
+  }
+}
 
 // 配置管理方法（简化）
-const saveConfig = () => contractService.saveConfig(configs.value)
+const saveConfig = () => {
+  // 显式保存，显示提示消息
+  saveConfigToAppConfig(true)
+}
+
 const resetConfig = () => {
-  configs.value = contractService.resetConfig()
+  const defaultConfig = appConfig.reset()
+  // 重新加载配置
+  loadConfig()
+  window.$message?.success('配置已重置为默认值')
 }
 const clearCache = () => contractService.clearCache()
 

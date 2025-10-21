@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
 import { 
   NButton, NTag, NAlert, NDivider, NIcon, NForm, NFormItem, 
   NInput, NGrid, NGridItem 
@@ -105,18 +105,22 @@ const props = defineProps({
   submitting: {
     type: Boolean,
     default: false
+  },
+  extractorConfig: {
+    type: Object,
+    default: () => ({})
   }
 })
 
 // Emits
 const emit = defineEmits(['execute', 'submit-data', 'update:extracted-data', 'update-config'])
 
-// 配置表单
+// 配置表单（从 props 初始化）
 const configForm = reactive({
   extractTags: {
     label: '提取数据要素',
     type: 'tags',
-    value: ['合同名称', '甲方', '乙方', '其他方', '合同金额'],
+    value: [],
     inputValue: ''
   }
 })
@@ -154,4 +158,14 @@ const updateExtractedItem = (key, value) => {
   emit('update:extracted-data', updatedData)
 }
 
+// 监听 props 变化，同步配置
+watch(
+  () => props.extractorConfig,
+  (newConfig) => {
+    if (newConfig && newConfig.extractTags) {
+      configForm.extractTags.value = newConfig.extractTags
+    }
+  },
+  { immediate: true, deep: true }
+)
 </script>

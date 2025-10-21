@@ -78,16 +78,12 @@ export class ContractService {
   }
 
   /**
-   * 保存配置
+   * 保存配置（静默保存，不显示提示）
    * @param {Object} configs - 配置对象
+   * @returns {boolean} 是否保存成功
    */
   saveConfig(configs) {
-    const success = appConfig.saveConfig(configs)
-    if (success) {
-      window.$message?.success('配置已保存')
-    } else {
-      window.$message?.error('保存配置失败')
-    }
+    return appConfig.saveConfig(configs)
   }
 
   /**
@@ -111,7 +107,6 @@ export class ContractService {
       keyword: allConfig.keyword || {},
       review: allConfig.review || {}
     }
-    window.$message?.success('已加载配置')
     return configs
   }
 
