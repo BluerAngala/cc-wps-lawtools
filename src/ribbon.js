@@ -10,18 +10,18 @@ console.log('ribbon.js 已加载并初始化')
 function OnAddinLoad() {
   console.log('WPS加载项已加载完成')
 
-  // // 延迟一点时间确保WPS完全初始化
-  // setTimeout(() => {
-  //   const isFirstLoad = appConfig.isFirstLoad()
+  // 延迟一点时间确保WPS完全初始化
+  setTimeout(() => {
+    const isFirstLoad = appConfig.isFirstLoad()
 
-  //   if (isFirstLoad) {
-  //     console.log('检测到首次加载，显示欢迎页面')
-  //     showWelcomeDialog()
-  //     appConfig.markFirstLoadCompleted()
-  //   } else {
-  //     console.log('非首次加载，跳过欢迎页面')
-  //   }
-  // }, 1000)
+    if (isFirstLoad) {
+      console.log('检测到首次加载，显示欢迎页面')
+      showWelcomeDialog()
+      appConfig.markFirstLoadCompleted()
+    } else {
+      console.log('非首次加载，跳过欢迎页面')
+    }
+  }, 1000)
 }
 
 // 注意：showWelcomeDialog 现在从 utils/welcomeDialog.js 导入
