@@ -60,7 +60,7 @@ apiClient.interceptors.request.use(
 // 响应拦截器
 apiClient.interceptors.response.use(
   (response) => {
-    console.log('收到响应:', response.status, response.config.url, response.data)
+    console.log('收到响应:', response.status, response.config.url)
     return response
   },
   (error) => {
@@ -74,19 +74,22 @@ apiClient.interceptors.response.use(
 
       switch (status) {
         case 401:
-          throw new Error('API 密钥无效或已过期')
+          throw new Error('API 密钥无效或已过期，请在设置页面检查配置')
         case 403:
-          throw new Error('没有权限访问此 API')
+          throw new Error('没有权限访问此 API，请检查 API 密钥权限')
         case 429:
           throw new Error('请求频率过高，请稍后重试')
         case 500:
-          throw new Error('服务器内部错误')
+          throw new Error('AI 服务器内部错误，请稍后重试')
         default:
-          throw new Error(`请求失败: ${status} - ${data?.message || '未知错误'}`)
+          throw new Error(`请求失败 (${status}): ${data?.message || data?.error || '未知错误'}`)
       }
     } else if (error.request) {
       // 请求已发送但没有收到响应
-      throw new Error('网络连接失败，请检查网络设置')
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('请求超时，文档内容可能过长或网络较慢。建议：1) 检查网络连接 2) 减少提取标签数量 3) 在设置中增加超时时间')
+      }
+      throw new Error('网络连接失败，请检查：1) 网络是否连接 2) API地址是否正确 3) 是否需要代理')
     } else {
       // 请求配置错误
       throw new Error(`请求配置错误: ${error.message}`)

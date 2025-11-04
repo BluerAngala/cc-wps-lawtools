@@ -156,7 +156,7 @@ const saveConfig = () => {
 }
 
 const resetConfig = () => {
-  const defaultConfig = appConfig.reset()
+  appConfig.reset()
   // 重新加载配置
   loadConfig()
   window.$message?.success('配置已重置为默认值')

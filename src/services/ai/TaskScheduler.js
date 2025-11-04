@@ -139,11 +139,15 @@ export class TaskScheduler {
     this.emit('taskStart', task)
 
     try {
-      console.log(`开始执行任务: ${task.id} (${task.type})`)
+      console.log(`🚀 开始执行任务: ${task.id}`)
+      console.log(`   类型: ${task.type}`)
+      console.log(`   优先级: ${task.priority}`)
+      console.log(`   超时时间: ${this.config.taskTimeout}ms`)
+      console.log(`   内容长度: ${task.content?.length || 0}字符`)
 
       // 设置任务超时
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('任务执行超时')), this.config.taskTimeout)
+        setTimeout(() => reject(new Error(`任务执行超时(${this.config.taskTimeout}ms)，请检查网络连接或在设置中增加超时时间`)), this.config.taskTimeout)
       })
 
       // 执行任务
@@ -161,10 +165,14 @@ export class TaskScheduler {
       this.completedTasks.set(task.id, task)
       this.stats.completedTasks++
 
-      console.log(`任务完成: ${task.id} (耗时: ${processingTime}ms)`)
+      console.log(`✅ 任务完成: ${task.id}`)
+      console.log(`   耗时: ${processingTime}ms`)
+      console.log(`   结果: ${JSON.stringify(result).substring(0, 100)}...`)
       this.emit('taskComplete', task)
     } catch (error) {
-      console.error(`任务执行失败: ${task.id}`, error)
+      console.error(`❌ 任务执行失败: ${task.id}`)
+      console.error(`   错误: ${error.message}`)
+      console.error(`   详情:`, error)
 
       // 重试逻辑
       if (task.retryCount < this.config.retryAttempts) {
@@ -248,25 +256,36 @@ export class TaskScheduler {
    * @returns {Promise<Object>} 分析结果
    */
   async analyzeContent(content, analysisType, options = {}) {
+    console.log(`开始分析: ${analysisType}`)
+    console.log(`文档长度: ${content.length}字符`)
+    console.log(`分析选项:`, options)
+
     // 检查缓存
     const contentHash = this.documentParser.generateContentHash(content)
     const cached = this.cacheManager.get(contentHash, analysisType, options)
     if (cached) {
-      console.log(`缓存命中: ${analysisType}`)
+      console.log(`✅ 缓存命中: ${analysisType}，直接返回缓存结果`)
       return cached
     }
 
+    console.log(`缓存未命中，准备调用AI`)
+
     // 生成提示词
+    console.log(`生成提示词 - 类型: ${analysisType}`)
     const prompt = this.generatePrompt(content, analysisType, options)
+    console.log(`提示词生成完成，长度: ${prompt.length}字符`)
 
     // 调用AI服务
     const response = await this.callAI(prompt, options)
 
     // 解析响应
+    console.log(`解析AI响应 - 类型: ${analysisType}`)
     const result = this.parseAIResponse(response, analysisType)
+    console.log(`响应解析完成`)
 
     // 保存到缓存
     this.cacheManager.set(contentHash, analysisType, result, options)
+    console.log(`✅ 结果已缓存`)
 
     return result
   }
@@ -294,8 +313,12 @@ export class TaskScheduler {
   async callAI(prompt, options = {}) {
     const model = options.model || this.aiConfig.defaultModel
 
+    console.log(`准备调用AI - 模型: ${model}, Prompt长度: ${prompt.length}字符`)
+
     for (let attempt = 0; attempt < this.aiConfig.maxRetries; attempt++) {
       try {
+        console.log(`AI调用尝试 ${attempt + 1}/${this.aiConfig.maxRetries}`)
+        
         const response = await apiClient.post('/chat/completions', {
           model,
           messages: [{ role: 'user', content: prompt }],
@@ -303,11 +326,20 @@ export class TaskScheduler {
           temperature: 0.1
         })
 
+        console.log('AI调用成功，响应长度:', response.data.choices[0].message.content.length)
         return response.data.choices[0].message.content
       } catch (error) {
-        console.error(`AI调用失败 (尝试 ${attempt + 1}/${this.aiConfig.maxRetries}):`, error)
+        console.error(`AI调用失败 (尝试 ${attempt + 1}/${this.aiConfig.maxRetries}):`, error.message)
+        
+        // 如果是配置错误或权限错误，不重试直接抛出
+        if (error.message.includes('API 密钥') || error.message.includes('权限')) {
+          throw error
+        }
+        
         if (attempt < this.aiConfig.maxRetries - 1) {
-          await this.delay(this.aiConfig.retryDelay * (attempt + 1))
+          const delay = this.aiConfig.retryDelay * (attempt + 1)
+          console.log(`${delay}ms后重试...`)
+          await this.delay(delay)
         } else {
           throw error
         }
