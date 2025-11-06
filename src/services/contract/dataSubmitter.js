@@ -4,6 +4,18 @@
 
 import { kdocsHandler } from '../kdocs/kdocs.js'
 import taskPane from '../wps/wpsTestHelper.js'
+import { fetchCompanyInfo } from '../ai/coze.js'
+
+// 特定主体信息映射
+const specialSubjects = {
+  '中共广东省委宣传部': {
+    info: '广东省委宣传部是广东省委主管意识形态的综合职能部门，位于广东省广州市越秀区合群三马路26号省委大院。统一社会信用代码为11440000006939561H。'
+  },
+  '中共广东省委宣传部机关工会委员会': {
+    info: '广东省委宣传部是依法设立的工会，位于广东省广州市越秀区合群三马路26号省委大院。统一社会信用代码为81440000742971228Y。'
+  }
+  // 可以继续添加更多特定主体
+}
 
 export class DataSubmitter {
   constructor() {
@@ -13,9 +25,9 @@ export class DataSubmitter {
   /**
    * 处理抽取的合同数据
    * @param {Object} rawResult - AI抽取的原始结果
-   * @returns {Object} 处理后的数据
+   * @returns {Promise<Object>} 处理后的数据
    */
-  processExtractedData(rawResult) {
+  async processExtractedData(rawResult) {
     console.log('processExtractedData:', rawResult)
 
     if (!rawResult || typeof rawResult !== 'object' || rawResult.error) {
@@ -33,7 +45,112 @@ export class DataSubmitter {
     // 处理特殊合同类型
     finalData = this.handleSpecialContractTypes(finalData)
 
+    // 自动获取主体信息
+    try {
+      console.log('开始获取主体信息...')
+      window.$message?.info('正在获取主体信息...')
+      
+      // 获取甲方信息
+      const 甲方 = finalData['甲方'] || finalData['甲方名称']
+      if (甲方 && 甲方.trim()) {
+        finalData['甲方主体信息'] = await this.fetchSubjectInfo(甲方.trim(), '甲方')
+      }
+
+      // 获取乙方信息
+      const 乙方 = finalData['乙方'] || finalData['乙方名称']
+      if (乙方 && 乙方.trim()) {
+        finalData['乙方主体信息'] = await this.fetchSubjectInfo(乙方.trim(), '乙方')
+      }
+      
+      window.$message?.success('主体信息获取成功')
+    } catch (error) {
+      console.error('获取主体信息失败:', error)
+      window.$message?.warning('主体信息获取失败，请手动填写')
+      // 失败时添加空字段，允许用户手动填写
+      finalData['甲方主体信息'] = finalData['甲方主体信息'] || ''
+      finalData['乙方主体信息'] = finalData['乙方主体信息'] || ''
+    }
+
     return finalData
+  }
+
+  /**
+   * 获取单个主体信息
+   * @param {string} subjectName - 主体名称
+   * @param {string} subjectType - 主体类型（甲方/乙方）
+   * @returns {Promise<string>} - 主体信息字符串
+   */
+  async fetchSubjectInfo(subjectName, subjectType) {
+    console.log(`开始获取${subjectType}信息:`, subjectName)
+
+    try {
+      // 检查是否是特定主体
+      if (specialSubjects[subjectName]) {
+        console.log(`使用${subjectType}特定主体映射`)
+        return specialSubjects[subjectName].info
+      }
+
+      // 调用 coze API 获取企业信息
+      const companyInfo = await fetchCompanyInfo(subjectName)
+      
+      if (companyInfo.code) {
+        console.log(`${subjectType}信息获取成功`)
+        return this.formatCompanyInfo(companyInfo)
+      } else {
+        console.warn(`${subjectType}信息查询失败:`, companyInfo.msg)
+        return `${subjectName}（${companyInfo.msg}）`
+      }
+    } catch (error) {
+      console.error(`获取${subjectType}信息失败:`, error)
+      return `${subjectName}（查询失败：${error.message}）`
+    }
+  }
+
+  /**
+   * 格式化企业信息为字符串
+   * @param {Object} companyInfo - 企业信息对象
+   * @returns {string} - 格式化后的字符串
+   * @example "广东汉剧传承研究院是依法设立的事业单位，统一社会信用代码是 12441400091783572D ，业务范围是开展广东汉剧的传承研究、培训展演和剧种推介工作等"
+   */
+  formatCompanyInfo(companyInfo) {
+    const name = companyInfo.name || '企业'
+    const type = companyInfo.companyOrgType || '组织'
+    const creditCode = companyInfo.creditCode || '未知'
+    let businessScope = companyInfo.businessScope || '未知'
+    
+    // 检查是否是非正常数据（包含【】标记）
+    const hasAbnormalData = 
+      name.includes('【未查询到') || 
+      type.includes('【未查询到') || 
+      creditCode.includes('【未查询到') || 
+      businessScope.includes('【未查询到')
+    
+    // 如果是非正常数据，直接返回原始信息，不进行格式化
+    if (hasAbnormalData) {
+      return `名称：${name}，企业类型：${type}，统一社会信用代码：${creditCode}，业务范围：${businessScope}`
+    }
+    
+    // 正常数据：截取业务范围前4个分号的内容
+    if (businessScope !== '未知') {
+      // 匹配中文分号和英文分号
+      const parts = businessScope.split(/[;；]/)
+      if (parts.length > 4) {
+        // 取前4项
+        businessScope = parts.slice(0, 4).join('；')
+      } else if (parts.length > 1) {
+        // 有分号但不足4项
+        businessScope = parts.join('；')
+      }
+      
+      // 去除末尾的标点符号（包括：。，；;、等）
+      businessScope = businessScope.replace(/[。，；;、：:！!？?【】[\]《》<>""'']+$/, '')
+      
+      // 在末尾加"等"
+      businessScope = businessScope + '等'
+    }
+    
+    // 正常数据：按照指定格式
+    return `${name}是依法设立的${type}，统一社会信用代码是 ${creditCode} ，业务范围是${businessScope}`
   }
 
   /**
@@ -56,7 +173,7 @@ export class DataSubmitter {
    * 标准化字段
    */
   normalizeFields(data) {
-    const requiredFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额', '对接客户']
+    const requiredFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额', '对接客户', '甲方主体信息', '乙方主体信息']
     const normalizedData = { ...data }
 
     requiredFields.forEach((field) => {

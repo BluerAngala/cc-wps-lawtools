@@ -107,8 +107,8 @@ const saveConfigToAppConfig = (showMessage = true) => {
 
 // 组件事件处理方法（极简版）
 const executeExtraction = (config) => {
-  contractService.executeTask('extractText', config, (result) => {
-    const processedData = contractService.processExtractedData(result)
+  contractService.executeTask('extractText', config, async (result) => {
+    const processedData = await contractService.processExtractedData(result)
     if (processedData) {
       extractedData.value = processedData
     }

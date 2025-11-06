@@ -55,10 +55,10 @@ export class ContractService {
   /**
    * 处理数据抽取结果
    * @param {Object} result - 抽取结果
-   * @returns {Object} 处理后的数据
+   * @returns {Promise<Object>} 处理后的数据
    */
-  processExtractedData(result) {
-    return dataSubmitter.processExtractedData(result)
+  async processExtractedData(result) {
+    return await dataSubmitter.processExtractedData(result)
   }
 
   /**

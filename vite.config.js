@@ -31,13 +31,9 @@ export default defineConfig(({ mode }) => {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
-    define: {
-      // 生产环境禁用 info 级别日志
-      ...(mode === 'production' && {
-        'console.log': '(() => {})',
-        'console.info': '(() => {})',
-        'console.debug': '(() => {})'
-      })
+    esbuild: {
+      // 生产环境移除 console
+      drop: mode === 'production' ? ['console', 'debugger'] : []
     },
     server: {
       host: '0.0.0.0',
