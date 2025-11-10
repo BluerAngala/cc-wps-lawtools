@@ -40,7 +40,7 @@
                   <n-input v-model:value="config.ai.baseUrl" @update:value="autoSave" placeholder="https://api.siliconflow.cn/v1"/>
                 </n-form-item>
                 <n-form-item label="模型">
-                  <n-input v-model:value="config.ai.model" @update:value="autoSave" placeholder="Qwen/Qwen2.5-7B-Instruct"/>
+                  <n-input v-model:value="config.ai.model" @update:value="autoSave" placeholder="moonshotai/Kimi-K2-Instruct-0905"/>
                 </n-form-item>
                 <n-form-item label="超时时间(ms)">
                   <n-input-number v-model:value="config.ai.timeout" @update:value="autoSave" :min="5000" :max="120000" :step="1000" class="w-full"/>
@@ -136,7 +136,7 @@ import { reinitializeAIClient } from '../services/ai/siliconflow.js'
 
 const activeTab = ref('ai')
 const config = ref({
-  ai: { apiKey: '', baseUrl: '', model: '', timeout: 30000 },
+  ai: { apiKey: '', baseUrl: '', model: '', timeout: 120000 },
   kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
   system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
 })
@@ -172,7 +172,7 @@ const autoSave = () => {
 // 重置当前标签页
 const resetTab = (tab) => {
   const defaults = {
-    ai: { apiKey: '', baseUrl: 'https://api.siliconflow.cn/v1', model: 'Qwen/Qwen2.5-7B-Instruct', timeout: 30000 },
+    ai: { apiKey: '', baseUrl: 'https://api.siliconflow.cn/v1', model: 'moonshotai/Kimi-K2-Instruct-0905', timeout: 120000 },
     kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
     system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
   }

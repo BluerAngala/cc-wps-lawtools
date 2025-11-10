@@ -6,6 +6,8 @@
 import { documentSegmenter } from './documentSegmenter.js'
 import { wpsDocumentService } from '../wps/wpsDocumentService.js'
 import { reviewAIService } from './reviewAIService.js'
+import { reviewChecklistGenerator } from './reviewChecklistGenerator.js'
+import { appConfig } from '../../utils/appConfig.js'
 
 export class ContractReviewEngine {
   constructor() {
@@ -100,38 +102,56 @@ export class ContractReviewEngine {
       }
     }
 
+    // 生成审查清单（用于展示）
+    const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType)
+    const userRules = options.useCustomRules ? this.getUserReviewRules() : []
+    const checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
+    
     // 生成总结
     results.summary = {
       totalIssues: results.issues.length,
       totalRisks: results.risks.length,
-      segmentCount: segments.length
+      segmentCount: segments.length,
+      checklistCount: checklist.length
     }
+    
+    results.checklist = checklist // 返回审查清单
 
     return results
   }
 
   /**
-   * 审查单个段
+   * 审查单个段（结合审查清单）
    */
   async reviewSegment(segment, fullText, contractType, reviewedItems, options) {
-    // 关键：使用完整上下文，而不是只发送段内容
+    // 1. 生成审查清单
+    const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType)
+    
+    // 2. 获取用户自定义规则（仅在useCustomRules为true时）
+    const userRules = options.useCustomRules ? this.getUserReviewRules() : []
+    
+    // 3. 合并清单
+    const checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
+    
+    // 4. 关键：使用完整上下文，而不是只发送段内容
     const context = {
       currentSegment: segment.content,
       fullDocument: fullText, // 完整文档用于上下文
       segmentPosition: {
         section: segment.section.title,
         index: segment.section.number
-      }
+      },
+      checklist: checklist // 传递审查清单
     }
 
-    // AI审查（传递完整上下文）
+    // 5. AI审查（传递完整上下文和审查清单）
     const aiResult = await this.aiService.reviewClause(
       context,
       contractType,
       options
     )
 
-    // 去重
+    // 6. 去重
     const uniqueIssues = (aiResult.issues || []).filter(issue => {
       const key = `${issue.keyword || ''}_${issue.comment?.substring(0, 50) || ''}`
       if (reviewedItems.has(key)) {
@@ -148,16 +168,44 @@ export class ContractReviewEngine {
   }
 
   /**
-   * 全文审查
+   * 获取用户自定义审查规则
+   */
+  getUserReviewRules() {
+    try {
+      const config = appConfig.getConfig()
+      const reviewConfig = config.review || {}
+      const userRules = reviewConfig.contractReviewRules || []
+      
+      console.log(`[审查引擎] 加载用户规则: ${userRules.length} 条`)
+      
+      return userRules
+    } catch (error) {
+      console.error('获取用户规则失败:', error)
+      return []
+    }
+  }
+
+  /**
+   * 全文审查（结合审查清单）
    */
   async reviewByFullText(fullText, contractType, options) {
+    // 1. 生成审查清单
+    const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType)
+    
+    // 2. 获取用户自定义规则（仅在useCustomRules为true时）
+    const userRules = options.useCustomRules ? this.getUserReviewRules() : []
+    
+    // 3. 合并清单
+    const checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
+    
     const context = {
       currentSegment: fullText,
       fullDocument: fullText,
       segmentPosition: {
         section: '全文',
         index: 0
-      }
+      },
+      checklist: checklist // 传递审查清单
     }
 
     const aiResult = await this.aiService.reviewClause(
@@ -170,9 +218,11 @@ export class ContractReviewEngine {
       issues: aiResult.issues || [],
       risks: aiResult.risks || [],
       contractType: contractType,
+      checklist: checklist, // 返回审查清单
       summary: {
         totalIssues: (aiResult.issues || []).length,
-        totalRisks: (aiResult.risks || []).length
+        totalRisks: (aiResult.risks || []).length,
+        checklistCount: checklist.length
       }
     }
   }
@@ -182,6 +232,7 @@ export class ContractReviewEngine {
    */
   async applyComments(segment, issues) {
     let appliedCount = 0
+    let skippedCount = 0
 
     for (const issue of issues) {
       try {
@@ -193,14 +244,23 @@ export class ContractReviewEngine {
           const success = this.wpsService.addComment(range, issue.comment)
           if (success) {
             appliedCount++
-            console.log(`[审查引擎] ✅ 批注已添加: ${issue.keyword || issue.position}`)
+            console.log(`[审查引擎] ✅ 批注已添加: ${(issue.keyword || issue.position || '未知').substring(0, 30)}...`)
+          } else {
+            skippedCount++
+            console.warn(`[审查引擎] ⚠️ 批注添加失败（可能重复）: ${(issue.keyword || issue.position || '未知').substring(0, 30)}...`)
           }
         } else {
-          console.warn(`[审查引擎] ⚠️ 未找到定位点: ${issue.keyword || issue.position}`)
+          skippedCount++
+          console.warn(`[审查引擎] ⚠️ 未找到定位点，跳过批注: ${(issue.keyword || issue.position || '未知').substring(0, 30)}...`)
         }
       } catch (error) {
-        console.error(`[审查引擎] ❌ 添加批注失败:`, error)
+        skippedCount++
+        console.error(`[审查引擎] ❌ 添加批注失败:`, error, `问题: ${(issue.keyword || issue.position || '未知').substring(0, 30)}...`)
       }
+    }
+
+    if (skippedCount > 0) {
+      console.warn(`[审查引擎] 共跳过 ${skippedCount} 个批注（无法定位）`)
     }
 
     return appliedCount
@@ -260,7 +320,16 @@ export class ContractReviewEngine {
       )
       
       if (keywordRange) {
+        console.log(`[定位] ✅ 找到完整关键词`)
         return keywordRange
+      }
+      
+      // 如果keyword匹配完全失败，尝试在整个文档中查找（不限制在segment内）
+      console.warn(`[定位] ⚠️ 在段内未找到关键词，尝试全文档查找: ${cleanKeyword.substring(0, 30)}...`)
+      const fullDocRange = this.wpsService.findRangeByKeyword(cleanKeyword)
+      if (fullDocRange) {
+        console.log(`[定位] ✅ 在全文档中找到关键词`)
+        return fullDocRange
       }
     }
 
@@ -268,25 +337,14 @@ export class ContractReviewEngine {
     if (issue.position) {
       const positionRange = this.wpsService.findRangeByPosition(issue.position, segment)
       if (positionRange) {
+        console.log(`[定位] ✅ 通过position定位: ${issue.position}`)
         return positionRange
       }
     }
 
-    // 方法3：基于段范围定位（兜底，但尽量缩小范围）
-    // 如果段内容太长，只定位到段的前半部分
-    const segmentLength = segment.endChar - segment.startChar
-    if (segmentLength > 500) {
-      // 如果段太长，只定位到前500字符
-      return this.wpsService.getRangeByCharPosition(
-        segment.startChar,
-        segment.startChar + 500
-      )
-    }
-    
-    return this.wpsService.getRangeByCharPosition(
-      segment.startChar,
-      segment.endChar
-    )
+    // 方法3：如果所有定位都失败，返回null（不添加批注，避免错误定位）
+    console.warn(`[定位] ❌ 无法定位问题，跳过批注。keyword: ${issue.keyword?.substring(0, 30) || '无'}, position: ${issue.position || '无'}`)
+    return null
   }
 
   /**

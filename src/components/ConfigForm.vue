@@ -76,7 +76,7 @@
           class="add-rule-btn"
         >
           <template #icon><PlusIcon /></template>
-          添加关键词
+          添加规则
         </n-button>
       </div>
 

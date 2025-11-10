@@ -4,7 +4,7 @@
     <div class="wps-header mb-4">
       <div class="flex items-center gap-2">
         <span class="text-lg">🤖</span>
-        <span class="wps-title">AI抽取合同信息</span>
+        <span class="wps-title">AI提取合同信息</span>
         <n-tag v-if="processing" type="warning" size="small">处理中</n-tag>
       </div>
       <n-button
@@ -13,7 +13,7 @@
         :loading="processing"
         :disabled="processing"
       >
-        {{ processing ? '抽取中...' : '开始抽取' }}
+        {{ processing ? '提取中...' : '开始提取' }}
       </n-button>
     </div>
 
@@ -27,12 +27,12 @@
         </div>
       </div>
 
-      <!-- 抽取结果展示 -->
+      <!-- 提取结果展示 -->
       <div v-if="extractedData" class="mt-6">
         <n-divider>
           <template #default>
             <n-icon><DocumentIcon /></n-icon>
-            <span class="ml-2">抽取结果</span>
+            <span class="ml-2">提取结果</span>
           </template>
         </n-divider>
 

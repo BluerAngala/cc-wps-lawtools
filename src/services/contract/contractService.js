@@ -21,7 +21,7 @@ export class ContractService {
     // 结果消息映射
     this.resultMessages = {
       keywordComment: '关键词批注添加完成！',
-      extractText: 'AI合同信息抽取完成！',
+      extractText: 'AI合同信息提取完成！',
       contractReview: 'AI合同预审完成！',
       contractReviewNew: '合同审查完成！'
     }
@@ -63,8 +63,8 @@ export class ContractService {
   }
 
   /**
-   * 处理数据抽取结果（直接调用，无需包装）
-   * @param {Object} result - 抽取结果
+   * 处理数据提取结果（直接调用，无需包装）
+   * @param {Object} result - 提取结果
    * @returns {Promise<Object>} 处理后的数据
    */
   async processExtractedData(result) {
@@ -72,8 +72,8 @@ export class ContractService {
   }
 
   /**
-   * 提交抽取的数据（直接调用，消息提示已在 dataSubmitter 中处理）
-   * @param {Object} extractedData - 抽取的数据
+   * 提交提取的数据（直接调用，消息提示已在 dataSubmitter 中处理）
+   * @param {Object} extractedData - 提取的数据
    * @returns {Promise}
    */
   async submitExtractedData(extractedData) {

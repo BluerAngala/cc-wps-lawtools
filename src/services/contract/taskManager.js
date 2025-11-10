@@ -36,9 +36,9 @@ export class TaskManager {
             let processedResult = task.result
             
             if (ruleType === 'extractText') {
-              // 合同信息抽取：简单验证后直接返回
+              // 合同信息提取：简单验证后直接返回
               if (!task.result || Object.keys(task.result).length === 0) {
-                throw new Error('抽取数据为空')
+                throw new Error('提取数据为空')
               }
               processedResult = task.result
             } else if (ruleType === 'contractReview') {
@@ -87,7 +87,7 @@ export class TaskManager {
     console.log('执行任务:', ruleType, params)
 
     try {
-      // 特殊处理：关键词模式下的 contractReview 应该直接执行，不需要 AI
+      // 特殊处理：关键词批注下的 contractReview 应该直接执行，不需要 AI
       const isKeywordMode = params.mode === 'keyword'
       const needsAI = this.AI_RULE_TYPES.includes(ruleType) && !isKeywordMode
 
@@ -153,7 +153,7 @@ export class TaskManager {
           alignment: params.alignment
         })
       case 'contractReview':
-        // 关键词模式：使用关键词处理器
+        // 关键词批注：使用关键词处理器
         if (params.mode === 'keyword') {
           return await keywordProcessor.processKeywords(params.keywordList)
         } else {

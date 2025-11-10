@@ -175,20 +175,44 @@ export class WPSDocumentService {
       // 清理keyword，去除多余空格和换行
       const cleanKeyword = keyword.trim().replace(/\s+/g, ' ')
       
+      if (!cleanKeyword || cleanKeyword.length < 3) {
+        console.warn(`[定位] 关键词太短: ${cleanKeyword}`)
+        return null
+      }
+      
       // 获取段落信息
       const paragraphs = this.getParagraphs()
+      
+      if (!paragraphs || paragraphs.length === 0) {
+        console.warn('[定位] 无法获取段落信息')
+        return null
+      }
       
       // 在指定范围内查找段落
       const relevantParagraphs = paragraphs.filter(para => {
         if (endChar) {
-          return para.startChar >= startChar && para.endChar <= endChar
+          // 段落与目标范围有交集即可
+          return para.startChar < endChar && para.endChar > startChar
         }
         return para.startChar >= startChar
       })
       
+      if (relevantParagraphs.length === 0) {
+        console.warn(`[定位] 在范围内未找到段落: ${startChar}-${endChar || 'end'}`)
+        // 如果指定了范围但没找到，尝试全文档查找
+        if (endChar !== null) {
+          return this.findRangeByKeyword(keyword)
+        }
+        return null
+      }
+      
       // 优先在段落中查找（更精准）
       for (const para of relevantParagraphs) {
         const paraText = para.text.trim()
+        
+        if (!paraText || paraText.length < cleanKeyword.length) {
+          continue
+        }
         
         // 尝试精确匹配
         let index = paraText.indexOf(cleanKeyword)
@@ -202,11 +226,15 @@ export class WPSDocumentService {
             // 创建精确的Range
             const targetRange = paraRange.Duplicate
             const keywordLength = cleanKeyword.length > 50 ? 30 : (cleanKeyword.length > 20 ? 20 : cleanKeyword.length)
-            targetRange.SetRange(
-              paraRange.Start + startOffset,
-              paraRange.Start + startOffset + keywordLength
-            )
-            return targetRange
+            const actualStart = paraRange.Start + startOffset
+            const actualEnd = actualStart + keywordLength
+            
+            // 确保Range在段落范围内
+            if (actualStart >= paraRange.Start && actualEnd <= paraRange.End) {
+              targetRange.SetRange(actualStart, actualEnd)
+              console.log(`[定位] ✅ 在段落 ${para.index} 中找到精确匹配: ${cleanKeyword.substring(0, 30)}...`)
+              return targetRange
+            }
           }
         }
         
@@ -223,36 +251,44 @@ export class WPSDocumentService {
           if (startOffset !== -1) {
             const targetRange = paraRange.Duplicate
             const keywordLength = normalizedKeyword.length > 50 ? 30 : (normalizedKeyword.length > 20 ? 20 : normalizedKeyword.length)
-            targetRange.SetRange(
-              paraRange.Start + startOffset,
-              paraRange.Start + startOffset + keywordLength
-            )
-            return targetRange
+            const actualStart = paraRange.Start + startOffset
+            const actualEnd = actualStart + keywordLength
+            
+            // 确保Range在段落范围内
+            if (actualStart >= paraRange.Start && actualEnd <= paraRange.End) {
+              targetRange.SetRange(actualStart, actualEnd)
+              console.log(`[定位] ✅ 在段落 ${para.index} 中找到模糊匹配: ${cleanKeyword.substring(0, 30)}...`)
+              return targetRange
+            }
           }
         }
       }
       
-      // 如果段落查找失败，回退到字符位置查找
-      const fullText = this.getFullText()
-      const searchText = endChar ? fullText.substring(startChar, endChar) : fullText.substring(startChar)
+      // 如果段落查找失败，回退到字符位置查找（仅在指定范围内）
+      if (endChar !== null) {
+        const fullText = this.getFullText()
+        const searchText = fullText.substring(startChar, endChar)
+        
+        let index = searchText.indexOf(cleanKeyword)
+        if (index !== -1) {
+          const actualStart = startChar + index
+          let keywordLength = cleanKeyword.length
+          if (cleanKeyword.length > 50) {
+            keywordLength = 30
+          } else if (cleanKeyword.length > 20) {
+            keywordLength = 20
+          }
+          const actualEnd = actualStart + keywordLength
+          
+          console.log(`[定位] ✅ 通过字符位置找到: ${cleanKeyword.substring(0, 30)}...`)
+          return this.getRangeByCharPosition(actualStart, actualEnd)
+        }
+      }
       
-      let index = searchText.indexOf(cleanKeyword)
-      if (index === -1) {
-        return null
-      }
-
-      const actualStart = startChar + index
-      let keywordLength = cleanKeyword.length
-      if (cleanKeyword.length > 50) {
-        keywordLength = 30
-      } else if (cleanKeyword.length > 20) {
-        keywordLength = 20
-      }
-      const actualEnd = actualStart + keywordLength
-
-      return this.getRangeByCharPosition(actualStart, actualEnd)
+      console.warn(`[定位] ❌ 未找到关键词: ${cleanKeyword.substring(0, 30)}...`)
+      return null
     } catch (error) {
-      console.error('查找关键词失败:', error)
+      console.error('查找关键词失败:', error, `keyword: ${keyword?.substring(0, 30)}...`)
       return null
     }
   }

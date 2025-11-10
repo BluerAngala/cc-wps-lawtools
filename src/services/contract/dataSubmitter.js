@@ -23,15 +23,15 @@ export class DataSubmitter {
   }
 
   /**
-   * 处理抽取的合同数据
-   * @param {Object} rawResult - AI抽取的原始结果
+   * 处理提取的合同数据
+   * @param {Object} rawResult - AI提取的原始结果
    * @returns {Promise<Object>} 处理后的数据
    */
   async processExtractedData(rawResult) {
     console.log('processExtractedData:', rawResult)
 
     if (!rawResult || typeof rawResult !== 'object' || rawResult.error) {
-      console.warn('未找到有效的抽取数据或存在错误:', rawResult)
+      console.warn('未找到有效的提取数据或存在错误:', rawResult)
       return null
     }
 
@@ -299,8 +299,8 @@ export class DataSubmitter {
   }
 
   /**
-   * 提交抽取的数据（完整流程）
-   * @param {Object} extractedData - 抽取的数据
+   * 提交提取的数据（完整流程）
+   * @param {Object} extractedData - 提取的数据
    * @returns {Promise<Object>} 提交结果
    */
   async submitExtractedData(extractedData) {

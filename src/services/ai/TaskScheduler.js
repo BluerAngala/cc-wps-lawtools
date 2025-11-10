@@ -6,10 +6,22 @@
 import { DocumentParser } from '../document/DocumentParser.js'
 import { CacheManager } from './CacheManager.js'
 import { apiClient } from './siliconflow.js'
+import axios from 'axios'
+import { appConfig } from '../../utils/appConfig.js'
 import {
   generateContractExtractionPrompt,
   generateContractReviewPrompt
 } from './promptGenerator.js'
+
+// 获取 AI 配置（与siliconflow.js保持一致）
+const getAIConfig = () => {
+  const config = appConfig.get('ai') || {}
+  return {
+    apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
+    baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
+    timeout: config.timeout || 120000 // 默认120秒
+  }
+}
 
 export class TaskScheduler {
   constructor(options = {}) {
@@ -21,7 +33,7 @@ export class TaskScheduler {
     // AI服务配置
     this.aiConfig = {
       maxTokensPerChunk: options.maxTokensPerChunk || 3000,
-      defaultModel: options.defaultModel || 'deepseek-ai/DeepSeek-V3',
+      defaultModel: options.defaultModel || 'moonshotai/Kimi-K2-Instruct-0905',
       maxRetries: options.maxRetries || 3,
       retryDelay: options.retryDelay || 1000,
       ...options.ai
@@ -30,7 +42,7 @@ export class TaskScheduler {
     // 调度器配置
     this.config = {
       maxConcurrentTasks: options.maxConcurrentTasks || 3,
-      taskTimeout: options.taskTimeout || 30000, // 30秒超时
+      taskTimeout: options.taskTimeout || 120000, // 120秒超时
       retryAttempts: options.retryAttempts || 2,
       priorityLevels: ['high', 'medium', 'low'],
       ...options
@@ -319,11 +331,25 @@ export class TaskScheduler {
       try {
         console.log(`AI调用尝试 ${attempt + 1}/${this.aiConfig.maxRetries}`)
         
-        const response = await apiClient.post('/chat/completions', {
+        // 获取最新的超时配置（每次调用时重新读取，确保使用最新配置）
+        const currentConfig = getAIConfig()
+        const requestTimeout = options.timeout || currentConfig.timeout || 120000
+        
+        // 创建临时axios实例，使用最新的超时配置
+        const tempClient = axios.create({
+          baseURL: currentConfig.baseUrl,
+          timeout: requestTimeout,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${currentConfig.apiKey}`
+          }
+        })
+        
+        const response = await tempClient.post('/chat/completions', {
           model,
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: this.aiConfig.maxTokensPerChunk,
-          temperature: 0.1
+          max_tokens: options.maxTokens || this.aiConfig.maxTokensPerChunk,
+          temperature: options.temperature !== undefined ? options.temperature : 0.1
         })
 
         console.log('AI调用成功，响应长度:', response.data.choices[0].message.content.length)

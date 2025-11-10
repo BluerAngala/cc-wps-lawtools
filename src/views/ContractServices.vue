@@ -22,7 +22,7 @@
     </div>
 
     <div class="space-y-4">
-      <!-- AI合同信息抽取组件 -->
+      <!-- AI合同信息提取组件 -->
       <ContractExtractor
         :processing="contractService.isTaskProcessing('extractText')"
         :extracted-data="extractedData"
@@ -34,18 +34,13 @@
         @update-config="updateExtractorConfig"
       />
 
-      <!-- 智能文档处理组件 -->
+      <!-- 智能文档处理组件（整合了合同审查功能） -->
       <SmartCommenter
-        :processing="contractService.isTaskProcessing('keywordComment') || contractService.isTaskProcessing('contractReview')"
+        :processing="contractService.isTaskProcessing('keywordComment') || contractService.isTaskProcessing('contractReview') || contractService.isTaskProcessing('contractReviewNew')"
         :keyword-config="configs.keyword"
         :review-config="configs.review"
         @execute="executeSmartComment"
         @update-config="updateSmartConfig"
-      />
-
-      <!-- 合同审查组件（新版本） -->
-      <ContractReviewer
-        :processing="contractService.isTaskProcessing('contractReviewNew')"
       />
     </div>
   </div>
@@ -61,14 +56,13 @@ import {
 } from '@vicons/ionicons5'
 import ContractExtractor from '../components/ContractExtractor.vue'
 import SmartCommenter from '../components/SmartCommenter.vue'
-import ContractReviewer from '../components/ContractReviewer.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { appConfig } from '../utils/appConfig.js'
 
 console.log('合同审查组件已加载')
 
 // 响应式数据
-const extractedData = ref(null) // 存储抽取的合同信息
+const extractedData = ref(null) // 存储提取的合同信息
 const submitting = ref(false) // 提交状态
 const configs = ref({
   extractor: {},
@@ -125,10 +119,8 @@ const executeSmartComment = (config) => {
   if (config.mode === 'keyword') {
     // 关键词模式：直接执行关键词处理
     contractService.executeTask('keywordComment', config)
-  } else if (config.mode === 'review') {
-    // AI预审模式：开发中
-    window.$message?.warning('AI预审模式开发中，敬请期待！')
   }
+  // AI审查模式（aiReview和aiLawyer）已在SmartCommenter组件内部处理，不需要在这里处理
 }
 
 const updateExtractorConfig = (configForm) => {
@@ -173,7 +165,7 @@ const loadConfig = () => {
   configs.value = contractService.loadConfig()
 }
 
-// 提交抽取的数据（简化）
+// 提交提取的数据（简化）
 const submitExtractedData = async () => {
   if (!extractedData.value) return
 

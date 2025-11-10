@@ -10,11 +10,11 @@ import { appConfig } from '../../utils/appConfig.js'
 
 // 获取 AI 配置（优先使用统一配置，回退到环境变量）
 const getAIConfig = () => {
-  const config = appConfig.get('ai')
+  const config = appConfig.get('ai') || {}
   return {
-    apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY,
-    baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL,
-    timeout: config.timeout || 30000
+    apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
+    baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
+    timeout: config.timeout || 120000 // 默认120秒
   }
 }
 
@@ -101,11 +101,11 @@ apiClient.interceptors.response.use(
  * 调用 SiliconFlow AI 处理文档内容
  * @param {Object} params - 参数对象
  * @param {string} params.content - 要处理的文档内容
- * @param {string} params.model - 使用的模型名称，默认为 'deepseek-ai/DeepSeek-V3'
+ * @param {string} params.model - 使用的模型名称，默认为 'moonshotai/Kimi-K2-Instruct-0905'
  * @returns {Promise<string>} AI 处理后的结果
  * @returns {Promise<string>} AI 处理后的结果
  */
-async function processDocumentContent({ content, model = 'deepseek-ai/DeepSeek-V3' }) {
+async function processDocumentContent({ content, model = 'moonshotai/Kimi-K2-Instruct-0905' }) {
   try {
     const response = await apiClient.post('/chat/completions', {
       model: model,
@@ -135,7 +135,7 @@ async function processDocumentContent({ content, model = 'deepseek-ai/DeepSeek-V
 async function processContractElements({
   content,
   extractTags,
-  model = 'deepseek-ai/DeepSeek-V3'
+  model = 'moonshotai/Kimi-K2-Instruct-0905'
 }) {
   try {
     let promptContent
@@ -185,7 +185,7 @@ async function processContractElements({
  * @param {string} params.model - 使用的模型名称
  * @returns {Promise<string>} AI 处理后的结果
  */
-async function processDocumentStructure({ content, model = 'deepseek-ai/DeepSeek-V3' }) {
+async function processDocumentStructure({ content, model = 'moonshotai/Kimi-K2-Instruct-0905' }) {
   try {
     const promptContent = `请分析以下文档的内容结构，提取出所有的一级标题、二级标题、三级标题。
 
@@ -241,7 +241,7 @@ async function processContractReview({
   reviewRules,
   reviewRequirements,
   actionType,
-  model = 'deepseek-ai/DeepSeek-V3'
+  model = 'moonshotai/Kimi-K2-Instruct-0905'
 }) {
   try {
     let promptContent

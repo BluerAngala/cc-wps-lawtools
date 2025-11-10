@@ -11,8 +11,8 @@ class AppConfigManager {
       ai: {
         apiKey: import.meta.env.VITE_AI_API_KEY || '',
         baseUrl: import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
-        model: 'Qwen/Qwen2.5-7B-Instruct',
-        timeout: 30000
+        model: 'moonshotai/Kimi-K2-Instruct-0905',
+        timeout: 120000
       },
       
       // 金山文档配置
