@@ -45,10 +45,9 @@ export class DataSubmitter {
     // 处理特殊合同类型
     finalData = this.handleSpecialContractTypes(finalData)
 
-    // 自动获取主体信息
+    // 自动获取主体信息（静默处理，不显示中间提示）
     try {
       console.log('开始获取主体信息...')
-      window.$message?.info('正在获取主体信息...')
       
       // 获取甲方信息
       const 甲方 = finalData['甲方'] || finalData['甲方名称']
@@ -62,10 +61,11 @@ export class DataSubmitter {
         finalData['乙方主体信息'] = await this.fetchSubjectInfo(乙方.trim(), '乙方')
       }
       
-      window.$message?.success('主体信息获取成功')
+      // 只在成功时静默处理，不显示提示（最终会在 contractService 中统一显示完成提示）
+      console.log('主体信息获取成功')
     } catch (error) {
       console.error('获取主体信息失败:', error)
-      window.$message?.warning('主体信息获取失败，请手动填写')
+      // 失败时静默处理，不显示警告（避免过多提示）
       // 失败时添加空字段，允许用户手动填写
       finalData['甲方主体信息'] = finalData['甲方主体信息'] || ''
       finalData['乙方主体信息'] = finalData['乙方主体信息'] || ''
@@ -233,17 +233,6 @@ export class DataSubmitter {
     }
   }
 
-  /**
-   * 验证和处理字段数据（复用标准化逻辑）
-   * @param {Object} extractedData - 抽取的数据
-   * @returns {Object} 处理后的字段数据
-   */
-  validateAndProcessFields(extractedData) {
-    // 直接复用normalizeFields方法，避免重复逻辑
-    const fields = this.normalizeFields(extractedData)
-    console.log('处理后的字段数据:', fields)
-    return fields
-  }
 
   /**
    * 创建金山文档记录
@@ -327,7 +316,7 @@ export class DataSubmitter {
       }
 
       // 2. 数据验证和处理
-      const fields = this.validateAndProcessFields(extractedData)
+      const fields = this.normalizeFields(extractedData)
 
       // 3. 调用金山文档接口创建记录
       const kdocsResult = await this.createKdocsRecord(fields)

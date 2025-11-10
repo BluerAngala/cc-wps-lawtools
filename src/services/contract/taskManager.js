@@ -7,7 +7,6 @@ import TaskScheduler from '../ai/TaskScheduler.js'
 import taskPane from '../wps/wpsTestHelper.js'
 import { keywordProcessor } from './keywordProcessor.js'
 import { reviewProcessor } from './reviewProcessor.js'
-import { extractionProcessor } from './extractionProcessor.js'
 
 export class TaskManager {
   constructor(options = {}) {
@@ -18,113 +17,70 @@ export class TaskManager {
       retryAttempts: options.retryAttempts || 2
     })
 
-    // 任务监听器管理
-    this.taskListeners = new Map()
-
     // 需要AI处理的规则类型
     this.AI_RULE_TYPES = ['extractText', 'contractReview', 'analyzeDocStructure']
-
-    // 执行结果映射
-    this.resultMessages = {
-      addHeader: '页眉添加成功！',
-      keywordComment: '关键词批注添加完成！',
-      extractText: 'AI合同信息抽取完成！',
-      contractReview: 'AI合同预审完成！',
-      analyzeDocStructure: '文档内容结构分析完成！'
-    }
   }
 
   /**
-   * 清理任务监听器
-   * @param {string} taskId - 任务ID
-   */
-  cleanupTaskListeners(taskId) {
-    const listeners = this.taskListeners.get(taskId)
-    if (listeners) {
-      this.taskScheduler.off('taskComplete', listeners.onComplete)
-      this.taskScheduler.off('taskError', listeners.onError)
-      this.taskListeners.delete(taskId)
-    }
-  }
-
-  /**
-   * 创建任务事件监听器
+   * 等待任务完成（简化版，使用 Promise）
    * @param {string} taskId - 任务ID
    * @param {string} ruleType - 规则类型
    * @param {Object} params - 参数
-   * @param {Function} onComplete - 完成回调
-   * @param {Function} onError - 错误回调
+   * @returns {Promise} 任务结果
    */
-  createTaskListeners(taskId, ruleType, params, onComplete, onError) {
-    // 清理可能存在的旧监听器
-    this.cleanupTaskListeners(taskId)
-
-    const handleTaskComplete = async (task) => {
-      if (task.id === taskId) {
-        try {
-          // 根据任务类型进行后处理
-          let processedResult = task.result
-          
-          if (ruleType === 'extractText') {
-            // 合同信息抽取：验证和处理数据
-            const validation = extractionProcessor.validateExtractedData(task.result)
-            if (!validation.isValid) {
-              console.warn(validation.message)
+  async waitForTaskComplete(taskId, ruleType, params) {
+    return new Promise((resolve, reject) => {
+      const handleComplete = async (task) => {
+        if (task.id === taskId) {
+          try {
+            let processedResult = task.result
+            
+            if (ruleType === 'extractText') {
+              // 合同信息抽取：简单验证后直接返回
+              if (!task.result || Object.keys(task.result).length === 0) {
+                throw new Error('抽取数据为空')
+              }
+              processedResult = task.result
+            } else if (ruleType === 'contractReview') {
+              // AI合同预审：根据actionType执行批注或修订
+              const actionType = params.actionType || 'comment'
+              if (actionType === 'comment') {
+                processedResult = await reviewProcessor.addReviewComments(task.result)
+              } else if (actionType === 'revision') {
+                processedResult = await reviewProcessor.addReviewRevisions(task.result)
+              }
             }
-            processedResult = extractionProcessor.processExtractionResult(task.result)
-          } else if (ruleType === 'contractReview') {
-            // AI合同预审：根据actionType执行批注或修订
-            const actionType = params.actionType || 'comment'
-            if (actionType === 'comment') {
-              processedResult = await reviewProcessor.addReviewComments(task.result)
-            } else if (actionType === 'revision') {
-              processedResult = await reviewProcessor.addReviewRevisions(task.result)
-            }
-          }
 
-          if (onComplete) {
-            onComplete(processedResult, params)
-          }
-        } catch (error) {
-          console.error('处理任务结果时出错:', error)
-          if (onError) {
-            onError(error)
-          } else {
-            window.$message?.error(`处理失败: ${error.message}`)
+            this.taskScheduler.off('taskComplete', handleComplete)
+            this.taskScheduler.off('taskError', handleError)
+            resolve(processedResult)
+          } catch (error) {
+            this.taskScheduler.off('taskComplete', handleComplete)
+            this.taskScheduler.off('taskError', handleError)
+            reject(error)
           }
         }
-        this.cleanupTaskListeners(taskId)
       }
-    }
 
-    const handleTaskError = (task, error) => {
-      if (task.id === taskId) {
-        console.error('任务执行失败:', error)
-        if (onError) {
-          onError(error)
-        } else {
-          window.$message?.error(`任务执行失败: ${error.message}`)
+      const handleError = (task, error) => {
+        if (task.id === taskId) {
+          this.taskScheduler.off('taskComplete', handleComplete)
+          this.taskScheduler.off('taskError', handleError)
+          reject(error)
         }
-        this.cleanupTaskListeners(taskId)
       }
-    }
 
-    // 存储监听器引用
-    this.taskListeners.set(taskId, {
-      onComplete: handleTaskComplete,
-      onError: handleTaskError
+      this.taskScheduler.on('taskComplete', handleComplete)
+      this.taskScheduler.on('taskError', handleError)
     })
-
-    this.taskScheduler.on('taskComplete', handleTaskComplete)
-    this.taskScheduler.on('taskError', handleTaskError)
   }
 
   /**
-   * 执行任务
+   * 执行任务（简化版，使用 Promise）
    * @param {string} ruleType - 规则类型
    * @param {Object} params - 参数
-   * @param {Function} onComplete - 完成回调
-   * @param {Function} onError - 错误回调
+   * @param {Function} onComplete - 完成回调（兼容旧接口）
+   * @param {Function} onError - 错误回调（兼容旧接口）
    * @returns {Promise} 执行结果
    */
   async executeTask(ruleType, params = {}, onComplete = null, onError = null) {
@@ -153,11 +109,10 @@ export class TaskManager {
         options: params
       })
 
-      // 创建事件监听器
-      this.createTaskListeners(taskId, ruleType, params, onComplete, onError)
-
-      window.$message?.info('任务正在处理中...')
-      return taskId
+      // 等待任务完成（不显示"处理中"提示，用户已点击按钮知道在处理）
+      const result = await this.waitForTaskComplete(taskId, ruleType, params)
+      onComplete?.(result)
+      return result
     } catch (error) {
       console.error('任务执行失败:', error)
       onError?.(error)
@@ -219,22 +174,10 @@ export class TaskManager {
   }
 
   /**
-   * 清理所有任务监听器
+   * 清理资源（简化版）
    */
   cleanup() {
-    this.taskListeners.forEach((_, taskId) => {
-      this.cleanupTaskListeners(taskId)
-    })
-    this.taskListeners.clear()
-  }
-
-  /**
-   * 获取任务结果消息
-   * @param {string} ruleType - 规则类型
-   * @returns {string} 消息文本
-   */
-  getResultMessage(ruleType) {
-    return this.resultMessages[ruleType] || '任务执行完成！'
+    // TaskScheduler 会自动清理，这里不需要额外操作
   }
 }
 

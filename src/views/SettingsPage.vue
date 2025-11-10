@@ -94,7 +94,6 @@
                   <n-space>
                     <n-button @click="handleResetFirstLoad">重置首次加载</n-button>
                     <n-button type="warning" @click="handleResetAll">重置所有配置</n-button>
-                    <n-button type="info" @click="debugConfig">🔧 调试配置</n-button>
                   </n-space>
                 </n-card>
 
@@ -228,34 +227,7 @@ const handleImport = async (options) => {
   return false
 }
 
-// 查看配置信息
-const debugConfig = () => {
-  try {
-    const info = appConfig.getConfigInfo()
-    
-    console.log('配置信息:', info)
-    
-    if (!info.isWPSAvailable) {
-      window.$message?.warning('WPS 环境不可用')
-      return
-    }
-    
-    const messages = [
-      `配置目录: ${info.configDir}`,
-      `配置文件: ${info.configFile}`,
-      `目录存在: ${info.dirExists ? '是' : '否'}`,
-      `文件存在: ${info.fileExists ? '是' : '否'}`
-    ]
-    
-    console.log(messages.join('\n'))
-    window.$message?.success(`配置文件位置: ${info.configFile}`)
-  } catch (error) {
-    console.error('获取配置信息失败:', error)
-    window.$message?.error('获取配置信息失败: ' + error.message)
-  }
-}
-
-// 显示配置文件路径
+// 显示配置文件路径（合并了 debugConfig 和 showConfigPath 的功能）
 const showConfigPath = () => {
   try {
     const fullPath = appConfig.getConfigFullPath()
@@ -267,6 +239,10 @@ const showConfigPath = () => {
     }
 
     configPath.value = fullPath
+    
+    // 输出调试信息到控制台
+    const info = appConfig.getConfigInfo()
+    console.log('配置信息:', info)
     
     // 尝试复制到剪贴板
     navigator.clipboard?.writeText(fullPath).then(() => {

@@ -2,7 +2,7 @@
 
 /**
  * 显示 WPS 原生对话框
- * @param {string} routePath - 路由路径，如 '/' 或 '/settings'
+ * @param {string} page - 页面名称，如 'home' 或 'settings'
  * @param {Object} options - 可选配置项
  * @param {number} options.width - 对话框宽度（逻辑像素），默认 600
  * @param {number} options.height - 对话框高度（逻辑像素），默认 450
@@ -11,7 +11,7 @@
  * @param {number} options.resizeEdge - 缩放边框宽度，默认 2
  * @param {string} options.caption - 标题文字，默认空（无边框时忽略）
  */
-export function showWPSDialog(routePath, options = {}) {
+export function showWPSDialog(page, options = {}) {
   const {
     width = 600,
     height = 450,
@@ -21,7 +21,7 @@ export function showWPSDialog(routePath, options = {}) {
     caption = ''
   } = options
 
-  console.log(`准备显示 WPS 对话框: ${routePath}`, options)
+  console.log(`准备显示 WPS 对话框: ${page}`, options)
   
   try {
     if (typeof window.Application === 'undefined') {
@@ -30,8 +30,9 @@ export function showWPSDialog(routePath, options = {}) {
       return
     }
 
-    // 构建完整 URL
-    const dialogUrl = window.location.origin + window.location.pathname + '#' + routePath
+    // 构建完整 URL，使用 URL 参数指定页面
+    const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/index.html')
+    const dialogUrl = `${baseUrl}?page=${page}`
     console.log('对话框 URL:', dialogUrl)
     
     // 计算物理像素（考虑设备像素比）
@@ -64,13 +65,13 @@ export function showWPSDialog(routePath, options = {}) {
   }
 }
 
-// 显示欢迎弹窗（兼容旧接口）
+// 显示欢迎弹窗
 export function showWelcomeDialog() {
-  showWPSDialog('/', { width: 600, height: 450 })
+  showWPSDialog('home', { width: 600, height: 450 })
 }
 
-// 显示设置弹窗（兼容旧接口）
+// 显示设置弹窗
 export function showSettingsDialog() {
-  showWPSDialog('/settings', { width: 800, height: 600 })
+  showWPSDialog('settings', { width: 800, height: 600 })
 }
 

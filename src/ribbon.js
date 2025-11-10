@@ -46,8 +46,8 @@ function OnAction(control) {
     // 合同审查
     case 'btnContractReview':
       {
-        // 构建本地网页的路径
-        const url = Util.GetUrlPath() + Util.GetRouterHash() + '/contractreview'
+        // 构建本地网页的路径，使用 URL 参数指定页面
+        const url = Util.GetUrlPath() + '/index.html?page=contractreview'
         // 打开任务窗格并配置参数
         Util.wpsService.createTaskPane(url, 'contractreview', { width: 850 })
       }
@@ -104,8 +104,8 @@ function OnAction(control) {
     // 调试窗格
     case 'btnShowTaskPane':
       {
-        // 构建本地网页的路径
-        const url = Util.GetUrlPath() + Util.GetRouterHash() + '/taskpane'
+        // 构建本地网页的路径，使用 URL 参数指定页面
+        const url = Util.GetUrlPath() + '/index.html?page=taskpane'
         // 打开任务窗格并配置参数
         Util.wpsService.createTaskPane(url, 'taskpane', { width: 850 })
       }

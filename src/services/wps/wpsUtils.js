@@ -206,21 +206,12 @@ function GetUrlPath() {
   return `${protocol}//${hostname}${portPart}`
 }
 
-function GetRouterHash() {
-  if (window.location.protocol === 'file:') {
-    return ''
-  }
-
-  return '/#'
-}
-
 // 创建单例实例
 const wpsService = new WPSService()
 
 export default {
   WPS_Enum,
   GetUrlPath,
-  GetRouterHash,
   WPSService,
   wpsService
 }

@@ -11,12 +11,24 @@
 <script setup>
 import { ref, onMounted, onUnmounted, h } from 'vue'
 import { NConfigProvider, NMessageProvider, NDialogProvider, useMessage, useDialog } from 'naive-ui'
-import { RouterView } from 'vue-router'
 
 // 引入文档监听器
 import DocumentWatcher from './services/wps/DocumentWatcher.js'
 // 引入缓存管理器
 import { CacheManager } from './services/ai/CacheManager.js'
+
+// 引入页面组件
+import HomePage from './views/HomePage.vue'
+import ContractServices from './views/ContractServices.vue'
+import SettingsPage from './views/SettingsPage.vue'
+import TestPage from './views/TestPage.vue'
+
+// 获取当前页面参数
+function getCurrentPage() {
+  const params = new URLSearchParams(window.location.search)
+  const page = params.get('page') || 'home'
+  return page
+}
 
 // 创建内部组件来访问消息实例
 const AppContent = {
@@ -28,14 +40,28 @@ const AppContent = {
     window.$message = message
     window.$dialog = dialog
     
-    return () => h(RouterView)
+    // 根据 URL 参数渲染对应组件
+    const currentPage = ref(getCurrentPage())
+    
+    const renderComponent = () => {
+      switch (currentPage.value) {
+        case 'contractreview':
+          return h(ContractServices)
+        case 'settings':
+          return h(SettingsPage)
+        case 'taskpane':
+          return h(TestPage)
+        case 'home':
+        default:
+          return h(HomePage)
+      }
+    }
+    
+    return renderComponent
   }
 }
 
-const message = ref('你好，wps加载项')
 let documentWatcher = null
-
-console.debug('自定义消息', message.value)
 // window 对象
 console.debug('window', window)
 // wps Application 对象

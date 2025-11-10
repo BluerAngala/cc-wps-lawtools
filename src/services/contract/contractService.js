@@ -1,5 +1,5 @@
 /**
- * 合同服务统一管理器 - 整合所有合同相关功能
+ * 合同服务统一管理器 - 整合所有合同相关功能（简化版）
  */
 
 import { appConfig } from '../../utils/appConfig.js'
@@ -15,6 +15,13 @@ export class ContractService {
     })
 
     this.processingTasks = new Set()
+    
+    // 结果消息映射
+    this.resultMessages = {
+      keywordComment: '关键词批注添加完成！',
+      extractText: 'AI合同信息抽取完成！',
+      contractReview: 'AI合同预审完成！'
+    }
   }
 
   /**
@@ -41,7 +48,7 @@ export class ContractService {
           if (onComplete) {
             onComplete(result)
           }
-          window.$message?.success(this.taskManager.getResultMessage(taskType))
+          window.$message?.success(this.resultMessages[taskType] || '任务执行完成！')
         },
         (error) => window.$message?.error(error.message || '任务执行失败')
       )
@@ -53,7 +60,7 @@ export class ContractService {
   }
 
   /**
-   * 处理数据抽取结果
+   * 处理数据抽取结果（直接调用，无需包装）
    * @param {Object} result - 抽取结果
    * @returns {Promise<Object>} 处理后的数据
    */
@@ -62,52 +69,38 @@ export class ContractService {
   }
 
   /**
-   * 提交抽取的数据
+   * 提交抽取的数据（直接调用，消息提示已在 dataSubmitter 中处理）
    * @param {Object} extractedData - 抽取的数据
    * @returns {Promise}
    */
   async submitExtractedData(extractedData) {
-    try {
-      const result = await dataSubmitter.submitExtractedData(extractedData)
-      window.$message?.success(result.message)
-      return result
-    } catch (error) {
-      window.$message?.error(error.message)
-      throw error
-    }
+    return await dataSubmitter.submitExtractedData(extractedData)
   }
 
   /**
-   * 保存配置（静默保存，不显示提示）
-   * @param {Object} configs - 配置对象
-   * @returns {boolean} 是否保存成功
+   * 保存配置（直接调用 appConfig，无需包装）
    */
   saveConfig(configs) {
     return appConfig.saveConfig(configs)
   }
 
   /**
-   * 重置配置
-   * @returns {Object} 默认配置
+   * 重置配置（直接调用 appConfig）
    */
   resetConfig() {
-    const defaultConfigs = appConfig.reset()
-    window.$message?.success('配置已重置为默认值')
-    return defaultConfigs
+    return appConfig.reset()
   }
 
   /**
-   * 加载配置
-   * @returns {Object} 配置对象
+   * 加载配置（简化，直接返回配置对象）
    */
   loadConfig() {
     const allConfig = appConfig.getConfig()
-    const configs = {
+    return {
       extractor: allConfig.extractor || {},
       keyword: allConfig.keyword || {},
       review: allConfig.review || {}
     }
-    return configs
   }
 
   /**

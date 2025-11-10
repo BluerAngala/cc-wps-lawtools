@@ -49,7 +49,13 @@
       </div>
 
       <div class="mt-4">
-        <ConfigForm :config="getCurrentConfig()" :mode="currentMode" @update-config="updateConfig" />
+        <ConfigForm 
+          :config="currentMode === 'keyword' 
+            ? { keywordList: { type: 'keywordList', value: configForm.keywordList } }
+            : { keywordList: { type: 'keywordList', value: configForm.reviewKeywordList } }" 
+          :mode="currentMode" 
+          @update-config="updateConfig" 
+        />
       </div>
     </div>
   </div>
@@ -107,14 +113,6 @@ const executeCommenting = () => {
 
 const switchMode = (mode) => {
   currentMode.value = mode
-}
-
-const getCurrentConfig = () => {
-  if (currentMode.value === 'keyword') {
-    return { keywordList: { type: 'keywordList', value: configForm.keywordList } }
-  } else {
-    return { keywordList: { type: 'keywordList', value: configForm.reviewKeywordList } }
-  }
 }
 
 const updateConfig = (configData) => {
