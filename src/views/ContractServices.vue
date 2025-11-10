@@ -42,6 +42,11 @@
         @execute="executeSmartComment"
         @update-config="updateSmartConfig"
       />
+
+      <!-- 合同审查组件（新版本） -->
+      <ContractReviewer
+        :processing="contractService.isTaskProcessing('contractReviewNew')"
+      />
     </div>
   </div>
 </template>
@@ -56,6 +61,7 @@ import {
 } from '@vicons/ionicons5'
 import ContractExtractor from '../components/ContractExtractor.vue'
 import SmartCommenter from '../components/SmartCommenter.vue'
+import ContractReviewer from '../components/ContractReviewer.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { appConfig } from '../utils/appConfig.js'
 

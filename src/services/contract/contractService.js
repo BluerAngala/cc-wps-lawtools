@@ -5,6 +5,7 @@
 import { appConfig } from '../../utils/appConfig.js'
 import { TaskManager } from './taskManager.js'
 import { dataSubmitter } from './dataSubmitter.js'
+import { contractReviewEngine } from './contractReviewEngine.js'
 
 export class ContractService {
   constructor() {
@@ -15,12 +16,14 @@ export class ContractService {
     })
 
     this.processingTasks = new Set()
+    this.reviewEngine = contractReviewEngine
     
     // 结果消息映射
     this.resultMessages = {
       keywordComment: '关键词批注添加完成！',
       extractText: 'AI合同信息抽取完成！',
-      contractReview: 'AI合同预审完成！'
+      contractReview: 'AI合同预审完成！',
+      contractReviewNew: '合同审查完成！'
     }
   }
 
@@ -141,6 +144,32 @@ export class ContractService {
    */
   isTaskProcessing(taskType) {
     return this.processingTasks.has(taskType)
+  }
+
+  /**
+   * 合同审查（新版本）
+   * @param {Object} options - 审查选项
+   * @returns {Promise<Object>} 审查结果
+   */
+  async reviewContract(options = {}) {
+    // 防重复执行
+    if (this.processingTasks.has('contractReviewNew')) {
+      window.$message?.warning('合同审查正在执行中，请稍候...')
+      return
+    }
+
+    this.processingTasks.add('contractReviewNew')
+
+    try {
+      const result = await this.reviewEngine.review(options)
+      return result
+    } catch (error) {
+      console.error('合同审查失败:', error)
+      window.$message?.error(error.message || '合同审查失败')
+      throw error
+    } finally {
+      this.processingTasks.delete('contractReviewNew')
+    }
   }
 
   /**
