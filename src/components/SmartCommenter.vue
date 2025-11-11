@@ -1,22 +1,5 @@
 <template>
-  <n-card title="智能文档处理" size="small" class="wps-card">
-    <template #header-extra>
-      <n-space>
-        <n-button
-          type="primary"
-          :loading="processing || isAIProcessing"
-          @click="executeCommenting"
-          size="small"
-          :disabled="isAIProcessing"
-        >
-          <template #icon>
-            <DocumentSearchIcon />
-          </template>
-          {{ (processing || isAIProcessing) ? '处理中...' : '开始处理' }}
-        </n-button>
-      </n-space>
-    </template>
-
+  <n-card size="small" class="wps-card">
     <n-space vertical :size="16">
       <!-- 模式切换 -->
       <n-alert 
@@ -286,9 +269,6 @@ import {
   NThing,
   NProgress
 } from 'naive-ui'
-import {
-  SearchOutline as DocumentSearchIcon
-} from '@vicons/ionicons5'
 import ConfigForm from './ConfigForm.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { reviewAIService } from '../services/contract/reviewAIService.js'
@@ -695,6 +675,11 @@ watch(
   },
   { immediate: true, deep: true }
 )
+
+defineExpose({
+  triggerExecute: executeCommenting,
+  isAIProcessing
+})
 </script>
 
 <style scoped>

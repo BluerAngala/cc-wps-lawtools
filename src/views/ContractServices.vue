@@ -24,16 +24,30 @@
     <!-- 折叠面板（手风琴模式） -->
     <n-collapse :default-expanded-names="['extractor']" accordion class="mt-4">
       <!-- AI合同信息提取 -->
-      <n-collapse-item name="extractor" title="🤖 AI提取合同信息">
-        <template #header-extra>
-          <n-tag v-if="contractService.isTaskProcessing('extractText')" type="warning" size="small">处理中</n-tag>
+      <n-collapse-item name="extractor">
+        <template #header>
+          <div class="flex items-center justify-between w-full pr-2">
+            <div class="flex items-center gap-2">
+              <span>🤖</span>
+              <span>AI提取合同信息</span>
+              <n-tag v-if="contractService.isTaskProcessing('extractText')" type="warning" size="small">处理中</n-tag>
+            </div>
+            <n-button
+              type="primary"
+              size="small"
+              :loading="contractService.isTaskProcessing('extractText')"
+              :disabled="contractService.isTaskProcessing('extractText')"
+              @click.stop="executeExtraction(configs.extractor)"
+            >
+              {{ contractService.isTaskProcessing('extractText') ? '提取中...' : '开始提取' }}
+            </n-button>
+          </div>
         </template>
         <ContractExtractor
           :processing="contractService.isTaskProcessing('extractText')"
           :extracted-data="extractedData"
           :submitting="submitting"
           :extractor-config="configs.extractor"
-          @execute="executeExtraction"
           @submit-data="submitExtractedData"
           @update:extracted-data="extractedData = $event"
           @update-config="updateExtractorConfig"
@@ -41,17 +55,27 @@
       </n-collapse-item>
 
       <!-- 智能文档处理 -->
-      <n-collapse-item name="smart" title="⚡ 智能文档处理">
-        <template #header-extra>
-          <n-tag 
-            v-if="contractService.isTaskProcessing('keywordComment') || contractService.isTaskProcessing('contractReview') || contractService.isTaskProcessing('contractReviewNew')" 
-            type="warning" 
-            size="small"
-          >
-            处理中
-          </n-tag>
+      <n-collapse-item name="smart">
+        <template #header>
+          <div class="flex items-center justify-between w-full pr-2">
+            <div class="flex items-center gap-2">
+              <span>⚡</span>
+              <span>智能文档处理</span>
+              <n-tag v-if="smartProcessing || smartAIProcessing" type="warning" size="small">处理中</n-tag>
+            </div>
+            <n-button
+              type="primary"
+              size="small"
+              :loading="smartProcessing || smartAIProcessing"
+              :disabled="smartProcessing || smartAIProcessing"
+              @click.stop="triggerSmartProcess"
+            >
+              {{ smartProcessing || smartAIProcessing ? '处理中...' : '开始处理' }}
+            </n-button>
+          </div>
         </template>
         <SmartCommenter
+          ref="smartCommenterRef"
           :processing="contractService.isTaskProcessing('keywordComment') || contractService.isTaskProcessing('contractReview') || contractService.isTaskProcessing('contractReviewNew')"
           :keyword-config="configs.keyword"
           :review-config="configs.review"
@@ -61,7 +85,25 @@
       </n-collapse-item>
 
       <!-- 一键处理结果 -->
-      <n-collapse-item name="batch" title="📄 一键处理结果">
+      <n-collapse-item name="batch">
+        <template #header>
+          <div class="flex items-center justify-between w-full pr-2">
+            <div class="flex items-center gap-2">
+              <span>📄</span>
+              <span>一键处理结果</span>
+              <n-tag v-if="batchProcessing" type="warning" size="small">处理中</n-tag>
+            </div>
+            <n-button
+              type="primary"
+              size="small"
+              :loading="batchProcessing"
+              :disabled="batchProcessing"
+              @click.stop="handleBatchProcess"
+            >
+              {{ batchProcessing ? '处理中...' : '开始处理' }}
+            </n-button>
+          </div>
+        </template>
         <div class="p-4">
           <n-alert type="info" :closable="false" show-icon class="mb-4">
             <template #header>一键处理说明</template>
@@ -73,21 +115,6 @@
               </ul>
             </template>
           </n-alert>
-
-          <div class="flex justify-center">
-            <n-button
-              type="primary"
-              size="large"
-              :loading="batchProcessing"
-              @click="handleBatchProcess"
-              :disabled="batchProcessing"
-            >
-              <template #icon>
-                <DocumentIcon />
-              </template>
-              {{ batchProcessing ? '处理中...' : '开始处理' }}
-            </n-button>
-          </div>
 
           <div v-if="batchResult" class="mt-4">
             <n-divider>处理结果</n-divider>
@@ -105,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,
@@ -128,6 +155,20 @@ const configs = ref({
   extractor: {},
   smart: {}
 })
+const smartCommenterRef = ref(null)
+const smartProcessing = computed(
+  () =>
+    contractService.isTaskProcessing('keywordComment') ||
+    contractService.isTaskProcessing('contractReview') ||
+    contractService.isTaskProcessing('contractReviewNew')
+)
+const smartAIProcessing = computed(() => smartCommenterRef.value?.isAIProcessing?.value ?? false)
+
+const triggerSmartProcess = () => {
+  if (smartCommenterRef.value?.triggerExecute) {
+    smartCommenterRef.value.triggerExecute()
+  }
+}
 
 // 统一的配置更新方法
 const updateConfig = (type, config) => {
@@ -166,7 +207,7 @@ const saveConfigToAppConfig = (showMessage = true) => {
 }
 
 // 组件事件处理方法（极简版）
-const executeExtraction = (config) => {
+const executeExtraction = (config = {}) => {
   contractService.executeTask('extractText', config, async (result) => {
     const processedData = await contractService.processExtractedData(result)
     if (processedData) {

@@ -1,22 +1,5 @@
 <template>
   <div class="wps-card">
-    <!-- 卡片头部 -->
-    <div class="wps-header mb-4">
-      <div class="flex items-center gap-2">
-        <span class="text-lg">🤖</span>
-        <span class="wps-title">AI提取合同信息</span>
-        <n-tag v-if="processing" type="warning" size="small">处理中</n-tag>
-      </div>
-      <n-button
-        type="primary"
-        @click="executeExtraction"
-        :loading="processing"
-        :disabled="processing"
-      >
-        {{ processing ? '提取中...' : '开始提取' }}
-      </n-button>
-    </div>
-
     <div>
       <!-- 配置区域 -->
       <div class="mb-5">
@@ -82,8 +65,7 @@
 <script setup>
 import { reactive, watch } from 'vue'
 import { 
-  NButton, NTag, NAlert, NDivider, NIcon, NForm, NFormItem, 
-  NInput, NGrid, NGridItem 
+  NButton, NTag, NAlert, NDivider, NIcon, NForm, NFormItem, NInput, NGrid, NGridItem 
 } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,
@@ -113,7 +95,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['execute', 'submit-data', 'update:extracted-data', 'update-config'])
+const emit = defineEmits(['submit-data', 'update:extracted-data', 'update-config'])
 
 // 配置表单（从 props 初始化）
 const configForm = reactive({
@@ -126,13 +108,6 @@ const configForm = reactive({
 })
 
 // 方法
-const executeExtraction = () => {
-  const config = {
-    extractTags: configForm.extractTags.value
-  }
-  emit('execute', config)
-}
-
 const updateConfig = (configData) => {
   Object.assign(configForm, configData)
   emit('update-config', configForm)
