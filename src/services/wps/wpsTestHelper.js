@@ -88,6 +88,9 @@ class TaskPaneHandler {
 
       const sections = doc.Sections
       if (sections.Count > 0) {
+        // 去除首页不同，确保首页页眉也能写入
+        sections.Item(1).PageSetup.DifferentFirstPageHeaderFooter = false
+        
         const header = sections.Item(1).Headers.Item(1)
         const range = header.Range
 
