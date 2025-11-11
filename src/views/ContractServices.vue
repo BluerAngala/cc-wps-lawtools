@@ -97,7 +97,7 @@
               type="primary"
               size="small"
               :loading="batchProcessing"
-              :disabled="batchProcessing"
+              :disabled="batchProcessing || !batchActionEnabled"
               @click.stop="handleBatchProcess"
             >
               {{ batchProcessing ? '处理中...' : '开始处理' }}
@@ -107,19 +107,28 @@
         <div class="p-4">
           <n-alert type="info" :closable="false" show-icon class="mb-4">
             <template #header>一键处理说明</template>
-            <template #default>
-              点击"开始处理"按钮，将自动执行以下操作：
-              <ul class="mt-2 ml-4 list-disc">
-                <li>重命名文档：在原文件名前添加「已修订」前缀</li>
-                <li>导出PDF：导出包含文档批注的PDF文件</li>
-              </ul>
-            </template>
+            <template #default>勾选需要执行的操作，系统会自动完成。</template>
           </n-alert>
+
+          <n-form label-placement="left" label-width="auto" size="small" class="mb-4">
+            <n-form-item label="文档重命名">
+              <n-space align="center" :size="12">
+                <n-switch v-model:value="batchOptions.rename" size="small" />
+                <span class="text-sm text-gray-600">为文档添加「已修订」前缀</span>
+              </n-space>
+            </n-form-item>
+            <n-form-item label="导出PDF">
+              <n-space align="center" :size="12">
+                <n-switch v-model:value="batchOptions.exportPdf" size="small" />
+                <span class="text-sm text-gray-600">生成包含批注的PDF文件</span>
+              </n-space>
+            </n-form-item>
+          </n-form>
 
           <div v-if="batchResult" class="mt-4">
             <n-divider>处理结果</n-divider>
             <n-alert :type="batchResult.success ? 'success' : 'error'" :closable="false" show-icon>
-              <template #header>{{ batchResult.success ? '处理成功' : '处理失败' }}</template>
+              <template #header>{{ batchResult.success ? '处理完成' : '处理失败' }}</template>
               <template #default>
                 <div class="whitespace-pre-line text-sm">{{ batchResult.message }}</div>
               </template>
@@ -133,7 +142,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider } from 'naive-ui'
+import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,
   Refresh as RefreshIcon,
@@ -155,6 +164,10 @@ const configs = ref({
   extractor: {},
   smart: {}
 })
+const batchOptions = ref({
+  rename: true,
+  exportPdf: false
+})
 const smartCommenterRef = ref(null)
 const smartProcessing = computed(
   () =>
@@ -163,6 +176,7 @@ const smartProcessing = computed(
     contractService.isTaskProcessing('contractReviewNew')
 )
 const smartAIProcessing = computed(() => smartCommenterRef.value?.isAIProcessing?.value ?? false)
+const batchActionEnabled = computed(() => batchOptions.value.rename || batchOptions.value.exportPdf)
 
 const triggerSmartProcess = () => {
   if (smartCommenterRef.value?.triggerExecute) {
@@ -266,6 +280,11 @@ const clearCache = () => contractService.clearCache()
 const handleBatchProcess = async () => {
   if (batchProcessing.value) return
 
+  if (!batchOptions.value.rename && !batchOptions.value.exportPdf) {
+    window.$message?.warning('请至少选择一个操作')
+    return
+  }
+
   // 检查WPS环境
   if (typeof window.Application === 'undefined') {
     window.$message?.error('请在 WPS 环境中使用此功能')
@@ -281,140 +300,163 @@ const handleBatchProcess = async () => {
   batchProcessing.value = true
   batchResult.value = null
 
+  const shouldRename = batchOptions.value.rename
+  const shouldExport = batchOptions.value.exportPdf
+
+  let renameAttempted = false
   let renameSuccess = false
+  let pdfAttempted = false
   let pdfSuccess = false
-  let newFileName = ''
+  let newFileName = doc.Name
   let pdfFullPath = ''
 
   try {
-    // 获取原文件的目录路径和文件名
     const directory = doc.Path || ''
     const originalName = doc.Name
     const pathSeparator = directory.includes('/') ? '/' : '\\'
-    
+
     console.log('[一键处理] 开始处理...')
     console.log('[一键处理] 原文件路径:', directory)
     console.log('[一键处理] 原文件名:', originalName)
-    
-    // 1. 重命名文档（使用「已修订」前缀）
-    console.log('[一键处理] 步骤1: 开始重命名文档...')
-    const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
-    const extension = originalName.match(/\.[^/.]+$/)?.[0] || ''
-    newFileName = `「已修订」${nameWithoutExt}${extension}`
-    const newFullPath = directory ? `${directory}${pathSeparator}${newFileName}` : newFileName
 
-    console.log('[一键处理] 新文件路径:', newFullPath)
-    doc.SaveAs2(newFullPath)
-    renameSuccess = true
-    console.log('[一键处理] ✅ 文档重命名成功:', newFullPath)
+    let currentFileName = originalName
 
-    // 2. 导出PDF（包含批注，使用完整路径）
-    console.log('[一键处理] 步骤2: 开始导出PDF...')
-    const pdfFileName = newFileName.replace(/\.[^/.]+$/, '.pdf')
-    pdfFullPath = directory ? `${directory}${pathSeparator}${pdfFileName}` : pdfFileName
-    
-    console.log('[一键处理] PDF保存路径:', pdfFullPath)
-    console.log('[一键处理] 开始调用 ExportAsFixedFormat...')
-    
-    // ExportAsFixedFormat 参数说明：
-    // outputPath, exportFormat(17=PDF), openAfterExport, optimizeFor,
-    // range, from, to, item, includeDocProps, keepIRM, createBookmarks,
-    // docStructureTags, bitmapMissingFonts, useDocumentPrintSettings
-    try {
-      doc.ExportAsFixedFormat(
-        pdfFullPath,   // OutputFileName (完整路径)
-        17,            // ExportFormat (wdExportFormatPDF)
-        false,         // OpenAfterExport
-        0,             // OptimizeFor (wdExportOptimizeForPrint)
-        0,             // Range (wdExportAllDocument)
-        1,             // From
-        1,             // To
-        7,             // Item (wdExportDocumentContents - 包含批注)
-        true,          // IncludeDocProps
-        true,          // KeepIRM
-        0,             // CreateBookmarks (wdExportCreateNoBookmarks)
-        true,          // DocStructureTags
-        true,          // BitmapMissingFonts
-        false          // UseDocumentPrintSettings
-      )
-      pdfSuccess = true
-      console.log('[一键处理] ✅ PDF导出调用成功:', pdfFullPath)
-      
-      // 等待PDF导出完成（ExportAsFixedFormat可能是异步的）
-      console.log('[一键处理] 等待PDF文件生成...')
-      await new Promise(resolve => setTimeout(resolve, 1000)) // 等待1秒
-      
-      // 验证PDF文件是否存在（如果FileSystem可用）
-      if (window.Application?.FileSystem) {
-        const fs = window.Application.FileSystem
-        let fileExists = false
-        let checkCount = 0
-        const maxChecks = 5 // 最多检查5次
-        
-        // 多次检查，因为文件可能还在写入中
-        while (checkCount < maxChecks && !fileExists) {
-          fileExists = fs.Exists(pdfFullPath)
-          if (fileExists) {
-            console.log('[一键处理] ✅ PDF文件已确认存在:', pdfFullPath)
-            break
-          }
-          checkCount++
-          if (checkCount < maxChecks) {
-            console.log(`[一键处理] 等待文件生成中... (${checkCount}/${maxChecks})`)
-            await new Promise(resolve => setTimeout(resolve, 500)) // 再等待0.5秒
-          }
-        }
-        
-        if (!fileExists) {
-          console.warn('[一键处理] ⚠️ 文件系统检查未找到PDF文件，但导出可能已成功')
-          console.warn('[一键处理] ⚠️ 请手动检查路径:', pdfFullPath)
-          console.warn('[一键处理] ⚠️ 注意：WPS云盘文件可能需要同步时间')
-        }
-      } else {
-        console.log('[一键处理] ⚠️ FileSystem不可用，无法验证文件')
-      }
-    } catch (pdfError) {
-      console.error('[一键处理] ❌ PDF导出失败:', pdfError)
-      console.error('[一键处理] PDF错误详情:', pdfError.message, pdfError.stack)
-      throw new Error(`PDF导出失败: ${pdfError.message || '未知错误'}`)
+    if (shouldRename) {
+      renameAttempted = true
+      console.log('[一键处理] 步骤1: 开始重命名文档...')
+      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
+      const extension = originalName.match(/\.[^/.]+$/)?.[0] || ''
+      newFileName = `「已修订」${nameWithoutExt}${extension}`
+      const newFullPath = directory ? `${directory}${pathSeparator}${newFileName}` : newFileName
+
+      console.log('[一键处理] 新文件路径:', newFullPath)
+      doc.SaveAs2(newFullPath)
+      renameSuccess = true
+      currentFileName = newFileName
+      console.log('[一键处理] ✅ 文档重命名成功:', newFullPath)
     }
 
-    // 生成结果消息
+    if (shouldExport) {
+      pdfAttempted = true
+      console.log('[一键处理] 步骤2: 开始导出PDF...')
+      const pdfFileName = currentFileName.replace(/\.[^/.]+$/, '.pdf')
+      pdfFullPath = directory ? `${directory}${pathSeparator}${pdfFileName}` : pdfFileName
+
+      console.log('[一键处理] PDF保存路径:', pdfFullPath)
+      console.log('[一键处理] 开始调用 ExportAsFixedFormat...')
+
+      try {
+        doc.ExportAsFixedFormat(
+          pdfFullPath,
+          17,
+          false,
+          0,
+          0,
+          1,
+          1,
+          7,
+          true,
+          true,
+          0,
+          true,
+          true,
+          false
+        )
+        pdfSuccess = true
+        console.log('[一键处理] ✅ PDF导出调用成功:', pdfFullPath)
+
+        console.log('[一键处理] 等待PDF文件生成...')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        if (window.Application?.FileSystem) {
+          const fs = window.Application.FileSystem
+          let fileExists = false
+          let checkCount = 0
+          const maxChecks = 5
+
+          while (checkCount < maxChecks && !fileExists) {
+            fileExists = fs.Exists(pdfFullPath)
+            if (fileExists) {
+              console.log('[一键处理] ✅ PDF文件已确认存在:', pdfFullPath)
+              break
+            }
+            checkCount++
+            if (checkCount < maxChecks) {
+              console.log(`[一键处理] 等待文件生成中... (${checkCount}/${maxChecks})`)
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
+          }
+
+          if (!fileExists) {
+            console.warn('[一键处理] ⚠️ 文件系统检查未找到PDF文件，但导出可能已成功')
+            console.warn('[一键处理] ⚠️ 请手动检查路径:', pdfFullPath)
+            console.warn('[一键处理] ⚠️ 注意：WPS云盘文件可能需要同步时间')
+          }
+        } else {
+          console.log('[一键处理] ⚠️ FileSystem不可用，无法验证文件')
+        }
+      } catch (pdfError) {
+        console.error('[一键处理] ❌ PDF导出失败:', pdfError)
+        console.error('[一键处理] PDF错误详情:', pdfError.message, pdfError.stack)
+        throw new Error(`PDF导出失败: ${pdfError.message || '未知错误'}`)
+      }
+    }
+
     const messages = []
-    if (renameSuccess) {
+    if (renameAttempted && renameSuccess) {
       messages.push(`文档已重命名为"${newFileName}"`)
     }
-    if (pdfSuccess) {
+    if (pdfAttempted && pdfSuccess) {
+      const pdfFileName = pdfFullPath.split(pathSeparator).pop() || pdfFullPath
       messages.push(`PDF已导出为"${pdfFileName}"`)
       messages.push(`PDF保存路径: ${pdfFullPath}`)
     }
+    if (!renameAttempted) {
+      messages.push('已跳过文档重命名')
+    }
+    if (!pdfAttempted) {
+      messages.push('已跳过导出PDF')
+    }
+
+    const successFlags = []
+    if (renameAttempted) successFlags.push(renameSuccess)
+    if (pdfAttempted) successFlags.push(pdfSuccess)
+    const overallSuccess = successFlags.length > 0 && successFlags.every(Boolean)
 
     batchResult.value = {
-      success: renameSuccess && pdfSuccess,
+      success: overallSuccess,
       message: messages.join('\n')
     }
-    
-    if (renameSuccess && pdfSuccess) {
+
+    if (overallSuccess) {
       window.$message?.success('一键处理完成')
     } else {
-      window.$message?.warning('处理部分完成，请查看详情')
+      window.$message?.warning('部分操作未成功，请查看详情')
     }
   } catch (error) {
     console.error('[一键处理] ❌ 处理失败:', error)
     console.error('[一键处理] 错误详情:', error.message, error.stack)
-    
+
     const errorMessages = []
-    if (renameSuccess) {
-      errorMessages.push(`文档已重命名为"${newFileName}"`)
+    if (renameAttempted) {
+      if (renameSuccess) {
+        errorMessages.push(`文档已重命名为"${newFileName}"`)
+      } else {
+        errorMessages.push('文档重命名失败')
+      }
     } else {
-      errorMessages.push('文档重命名失败')
+      errorMessages.push('已跳过文档重命名')
     }
-    if (pdfSuccess) {
-      errorMessages.push(`PDF已导出为"${pdfFullPath}"`)
+    if (pdfAttempted) {
+      if (pdfSuccess) {
+        errorMessages.push(`PDF已导出为"${pdfFullPath}"`)
+      } else {
+        errorMessages.push(`PDF导出失败: ${error.message || '未知错误'}`)
+      }
     } else {
-      errorMessages.push(`PDF导出失败: ${error.message || '未知错误'}`)
+      errorMessages.push('已跳过导出PDF')
     }
-    
+
     batchResult.value = {
       success: false,
       message: errorMessages.join('\n')
