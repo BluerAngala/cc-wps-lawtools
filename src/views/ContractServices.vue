@@ -123,6 +123,12 @@
                 <span class="text-sm text-gray-600">生成包含批注的PDF文件</span>
               </n-space>
             </n-form-item>
+            <n-form-item label="删除原文件" v-if="batchOptions.rename">
+              <n-space align="center" :size="12">
+                <n-switch v-model:value="batchOptions.deleteOriginal" size="small" />
+                <span class="text-sm text-gray-600">重命名后删除原始文件</span>
+              </n-space>
+            </n-form-item>
           </n-form>
 
           <div v-if="batchResult" class="mt-4">
@@ -166,7 +172,8 @@ const configs = ref({
 })
 const batchOptions = ref({
   rename: true,
-  exportPdf: false
+  exportPdf: false,
+  deleteOriginal: true
 })
 const smartCommenterRef = ref(null)
 const smartProcessing = computed(
@@ -302,9 +309,13 @@ const handleBatchProcess = async () => {
 
   const shouldRename = batchOptions.value.rename
   const shouldExport = batchOptions.value.exportPdf
+  const shouldDeleteOriginal = batchOptions.value.deleteOriginal && shouldRename
 
   let renameAttempted = false
   let renameSuccess = false
+  let deleteAttempted = false
+  let deleteSuccess = false
+  let deleteUnsupported = false
   let pdfAttempted = false
   let pdfSuccess = false
   let newFileName = doc.Name
@@ -314,6 +325,7 @@ const handleBatchProcess = async () => {
     const directory = doc.Path || ''
     const originalName = doc.Name
     const pathSeparator = directory.includes('/') ? '/' : '\\'
+    const originalFullPath = directory ? `${directory}${pathSeparator}${originalName}` : originalName
 
     console.log('[一键处理] 开始处理...')
     console.log('[一键处理] 原文件路径:', directory)
@@ -334,6 +346,24 @@ const handleBatchProcess = async () => {
       renameSuccess = true
       currentFileName = newFileName
       console.log('[一键处理] ✅ 文档重命名成功:', newFullPath)
+
+      if (shouldDeleteOriginal) {
+        const fs = window.Application?.FileSystem
+        if (fs && typeof fs.unlinkSync === 'function') {
+          deleteAttempted = true
+          try {
+            fs.unlinkSync(originalFullPath)
+            deleteSuccess = true
+            console.log('[一键处理] ✅ 原文件已删除:', originalFullPath)
+          } catch (deleteError) {
+            console.error('[一键处理] ❌ 删除原文件失败:', deleteError)
+            throw new Error(`删除原文件失败: ${deleteError.message || '未知错误'}`)
+          }
+        } else {
+          deleteUnsupported = true
+          console.warn('[一键处理] ⚠️ unlinkSync 方法不可用，无法自动删除原文件')
+        }
+      }
     }
 
     if (shouldExport) {
@@ -406,20 +436,26 @@ const handleBatchProcess = async () => {
     if (renameAttempted && renameSuccess) {
       messages.push(`文档已重命名为"${newFileName}"`)
     }
+    if (deleteAttempted) {
+      messages.push(deleteSuccess ? '原文件已删除' : '原文件删除失败')
+    } else if (shouldDeleteOriginal && deleteUnsupported) {
+      messages.push('当前环境不支持自动删除原文件，请手动删除原文件')
+    } else if (shouldRename) {
+      messages.push('保留了原始文件副本')
+    } else {
+      messages.push('已跳过文档重命名')
+    }
     if (pdfAttempted && pdfSuccess) {
       const pdfFileName = pdfFullPath.split(pathSeparator).pop() || pdfFullPath
       messages.push(`PDF已导出为"${pdfFileName}"`)
       messages.push(`PDF保存路径: ${pdfFullPath}`)
-    }
-    if (!renameAttempted) {
-      messages.push('已跳过文档重命名')
     }
     if (!pdfAttempted) {
       messages.push('已跳过导出PDF')
     }
 
     const successFlags = []
-    if (renameAttempted) successFlags.push(renameSuccess)
+    if (renameAttempted) successFlags.push(renameSuccess && (!deleteAttempted || deleteSuccess))
     if (pdfAttempted) successFlags.push(pdfSuccess)
     const overallSuccess = successFlags.length > 0 && successFlags.every(Boolean)
 
@@ -443,6 +479,11 @@ const handleBatchProcess = async () => {
         errorMessages.push(`文档已重命名为"${newFileName}"`)
       } else {
         errorMessages.push('文档重命名失败')
+      }
+      if (deleteAttempted) {
+        errorMessages.push(deleteSuccess ? '原文件已删除' : '原文件删除失败')
+      } else if (shouldDeleteOriginal && deleteUnsupported) {
+        errorMessages.push('当前环境不支持自动删除原文件，请手动删除原文件')
       }
     } else {
       errorMessages.push('已跳过文档重命名')
