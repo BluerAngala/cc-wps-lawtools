@@ -7,37 +7,171 @@ export class DocumentSegmenter {
   /**
    * 智能分段：结合多种策略
    * @param {string} documentText - 文档文本
+   * @param {Array} paragraphs - WPS段落信息（可选）
    * @returns {Array} 分段数组
    */
-  segmentDocument(documentText) {
+  segmentDocument(documentText, paragraphs = null) {
     if (!documentText || !documentText.trim()) {
       return []
+    }
+
+    // 策略0：如果提供了段落信息，优先使用段落信息分段（最准确）
+    if (paragraphs && paragraphs.length > 0) {
+      const paraSegments = this.segmentByWPSParagraphs(documentText, paragraphs)
+      if (paraSegments.length > 1) {
+        console.log(`[分段] 使用WPS段落信息分段，共 ${paraSegments.length} 段`)
+        return this.enrichSegments(paraSegments)
+      }
     }
 
     // 策略1：基于章节标题分段（最准确，合同文档通常有明确的章节结构）
     const sectionSegments = this.segmentBySections(documentText)
     if (sectionSegments.length > 1) {
-      console.log(`使用章节标题分段，共 ${sectionSegments.length} 段`)
+      console.log(`[分段] 使用章节标题分段，共 ${sectionSegments.length} 段`)
       return this.enrichSegments(sectionSegments)
     }
 
     // 策略2：基于语义分段（识别合同关键结构）
     const semanticSegments = this.segmentBySemantics(documentText)
     if (semanticSegments.length > 1) {
-      console.log(`使用语义分段，共 ${semanticSegments.length} 段`)
+      console.log(`[分段] 使用语义分段，共 ${semanticSegments.length} 段`)
       return this.enrichSegments(semanticSegments)
     }
 
     // 策略3：基于段落分段（次优）
     const paragraphSegments = this.segmentByParagraphs(documentText)
     if (paragraphSegments.length > 1) {
-      console.log(`使用段落分段，共 ${paragraphSegments.length} 段`)
+      console.log(`[分段] 使用段落分段，共 ${paragraphSegments.length} 段`)
       return this.enrichSegments(paragraphSegments)
     }
 
     // 策略4：基于长度分段（最后兜底）- 只在确实无法识别结构时使用
-    console.log(`使用长度分段（无法识别文档结构，使用长度分段）`)
-    return this.segmentByLength(documentText, 2000) // 每段2000字符
+    console.warn(`[分段] 无法识别文档结构，使用长度分段（每段2000字符）`)
+    const lengthSegments = this.segmentByLength(documentText, 2000)
+    console.log(`[分段] 长度分段完成，共 ${lengthSegments.length} 段`)
+    return lengthSegments
+  }
+
+  /**
+   * 策略0：基于WPS段落信息分段（最准确，利用WPS API的段落结构）
+   */
+  segmentByWPSParagraphs(documentText, paragraphs) {
+    const segments = []
+    let currentSegment = null
+    let currentContent = []
+    let charOffset = 0
+    const MIN_SEGMENT_LENGTH = 500 // 最小段长度，避免过度分段
+
+    // 章节标题模式（用于识别段落是否为章节标题）
+    const sectionPatterns = [
+      /^第([一二三四五六七八九十百千万\d]+)[条款章]\s*(.+)$/,
+      /^第([一二三四五六七八九十百千万\d]+)条\s*(.+)$/,
+      /^第([一二三四五六七八九十百千万\d]+)[条款章]$/,
+      /^([一二三四五六七八九十百千万]+)[、．.]\s*(.+)$/,
+      /^(\d+)[、．.]\s*(.+)$/,
+      /^[（(](\d+)[）)]\s*(.+)$/,
+      /^第([一二三四五六七八九十百千万\d]+)章[：:]\s*(.+)$/,
+      /^第([一二三四五六七八九十百千万\d]+)节[：:]\s*(.+)$/,
+      /^(合同主体|合同标的|服务内容|合同金额|付款方式|履行期限|违约责任|争议解决|合同生效)[：:]\s*(.+)$/,
+      /^(甲方|乙方|委托方|受托方|服务方|接受服务方)[：:]\s*(.+)$/
+    ]
+
+    for (let i = 0; i < paragraphs.length; i++) {
+      const para = paragraphs[i]
+      const paraText = para.text.trim()
+
+      // 跳过空段落
+      if (!paraText || paraText.length < 3) {
+        continue
+      }
+
+      // 检查是否是章节标题
+      let isSection = false
+      let sectionInfo = null
+
+      for (const pattern of sectionPatterns) {
+        const match = paraText.match(pattern)
+        if (match) {
+          isSection = true
+          sectionInfo = {
+            title: paraText,
+            number: match[1] || match[0],
+            titleText: match[2] || ''
+          }
+          break
+        }
+      }
+
+      // 如果当前段落是章节标题，保存上一个段
+      if (isSection && currentSegment) {
+        const content = currentContent.join('\n')
+        // 如果段太短，合并到新章节（避免过度分段）
+        // 但如果已经有内容，还是保存（即使是短段）
+        if (content.length > 0) {
+          segments.push({
+            section: currentSegment,
+            content: content,
+            startChar: charOffset - content.length,
+            endChar: charOffset
+          })
+        }
+        currentContent = []
+      }
+
+      // 开始新章节或继续当前章节
+      if (isSection) {
+        currentSegment = sectionInfo
+      } else if (!currentSegment) {
+        // 如果还没有章节，创建一个默认章节
+        currentSegment = {
+          title: paraText.substring(0, 30),
+          number: 1,
+          titleText: paraText.substring(0, 30)
+        }
+      }
+
+      currentContent.push(paraText)
+      charOffset += paraText.length + 1 // +1 for \n
+      
+      // 如果当前段已经很长（超过3000字符），强制分段（避免单段过长）
+      const currentContentLength = currentContent.join('\n').length
+      if (currentContentLength > 3000 && currentSegment) {
+        const content = currentContent.join('\n')
+        segments.push({
+          section: currentSegment,
+          content: content,
+          startChar: charOffset - content.length,
+          endChar: charOffset
+        })
+        // 创建新段，继续累积
+        currentSegment = {
+          title: `${currentSegment.title}（续）`,
+          number: segments.length + 1,
+          titleText: currentSegment.titleText
+        }
+        currentContent = []
+      }
+    }
+
+    // 保存最后一个段
+    if (currentSegment && currentContent.length > 0) {
+      const content = currentContent.join('\n')
+      // 如果最后一段太短，合并到上一段
+      if (content.length < MIN_SEGMENT_LENGTH && segments.length > 0) {
+        const lastSegment = segments[segments.length - 1]
+        lastSegment.content += '\n' + content
+        lastSegment.endChar = charOffset
+      } else {
+        segments.push({
+          section: currentSegment,
+          content: content,
+          startChar: charOffset - content.length,
+          endChar: charOffset
+        })
+      }
+    }
+
+    return segments
   }
 
   /**
@@ -47,14 +181,22 @@ export class DocumentSegmenter {
     const segments = []
     const lines = text.split('\n')
 
-    // 章节标题模式
+    // 章节标题模式（增强版，支持更多格式）
     const sectionPatterns = [
       /^第([一二三四五六七八九十百千万\d]+)[条款章]\s*(.+)$/,
       /^第([一二三四五六七八九十百千万\d]+)条\s*(.+)$/,
       /^第([一二三四五六七八九十百千万\d]+)[条款章]$/,
       /^([一二三四五六七八九十百千万]+)[、．.]\s*(.+)$/,
       /^(\d+)[、．.]\s*(.+)$/,
-      /^[（(](\d+)[）)]\s*(.+)$/
+      /^[（(](\d+)[）)]\s*(.+)$/,
+      // 增强：支持更多格式
+      /^第([一二三四五六七八九十百千万\d]+)章[：:]\s*(.+)$/,
+      /^第([一二三四五六七八九十百千万\d]+)节[：:]\s*(.+)$/,
+      /^([一二三四五六七八九十百千万\d]+)[、．]\s*(.+)$/,
+      /^(\d+)[、．]\s*(.+)$/,
+      // 支持合同常见标题格式
+      /^(合同主体|合同标的|服务内容|合同金额|付款方式|履行期限|违约责任|争议解决|合同生效)[：:]\s*(.+)$/,
+      /^(甲方|乙方|委托方|受托方|服务方|接受服务方)[：:]\s*(.+)$/
     ]
 
     let currentSection = null
