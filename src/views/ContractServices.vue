@@ -167,11 +167,20 @@ const loadConfig = () => {
 
 // 提交提取的数据（简化）
 const submitExtractedData = async () => {
-  if (!extractedData.value) return
+  if (!extractedData.value) {
+    window.$message?.warning('没有可提交的数据')
+    return
+  }
 
   submitting.value = true
   try {
-    await contractService.submitExtractedData(extractedData.value)
+    const result = await contractService.submitExtractedData(extractedData.value)
+    if (result?.success) {
+      window.$message?.success(result.message || '数据提交成功！')
+    }
+  } catch (error) {
+    console.error('提交数据失败:', error)
+    window.$message?.error(error.message || '提交数据失败，请稍后重试')
   } finally {
     submitting.value = false
   }
