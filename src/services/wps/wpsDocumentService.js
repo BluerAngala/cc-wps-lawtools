@@ -1,17 +1,31 @@
+import Util from './wpsUtils.js'
+
 /**
  * WPS 文档服务
  * 提供文档读取、结构识别、批注应用等功能
  */
 
 export class WPSDocumentService {
-  constructor() {
-    this.doc = null
-    this.init()
+  constructor(wpsService = Util?.wpsService) {
+    this.wpsService = wpsService
+    this._paragraphCache = {
+      id: null,
+      paragraphs: []
+    }
   }
 
-  init() {
-    if (typeof window.Application !== 'undefined') {
-      this.doc = window.Application.ActiveDocument
+  /**
+   * 获取当前活动文档
+   */
+  getDocument() {
+    if (this.wpsService && typeof this.wpsService.getActiveDoc === 'function') {
+      return this.wpsService.getActiveDoc()
+    }
+    try {
+      return window.Application?.ActiveDocument ?? null
+    } catch (error) {
+      console.warn('获取活动文档失败:', error)
+      return null
     }
   }
 
@@ -19,41 +33,27 @@ export class WPSDocumentService {
    * 检查WPS环境
    */
   checkWPSEnvironment() {
+    const doc = this.getDocument()
     if (typeof window.Application === 'undefined') {
       throw new Error('请在 WPS 环境中使用此功能')
     }
-    if (!this.doc) {
+    if (!doc) {
       throw new Error('未找到活动文档')
     }
-    return true
+    return doc
   }
 
   /**
    * 获取文档完整文本（保留段落结构）
    */
   getFullText() {
-    this.checkWPSEnvironment()
+    const doc = this.checkWPSEnvironment()
     try {
-      // 方法1：直接获取Range文本（可能丢失段落信息）
-      const fullText = this.doc.Range().Text
-      
-      // 方法2：通过段落获取，保留段落结构
-      const paragraphs = []
-      for (let i = 1; i <= this.doc.Paragraphs.Count; i++) {
-        const para = this.doc.Paragraphs.Item(i)
-        const paraText = para.Range.Text
-        paragraphs.push({
-          index: i,
-          text: paraText,
-          range: para.Range,
-          startChar: para.Range.Start,
-          endChar: para.Range.End
-        })
+      const fullText = doc.Range().Text
+      this._paragraphCache = {
+        id: this.getDocumentId(doc),
+        paragraphs: this.collectParagraphs(doc)
       }
-      
-      // 保存段落信息供后续使用
-      this._paragraphs = paragraphs
-      
       return fullText
     } catch (error) {
       console.error('获取文档文本失败:', error)
@@ -65,17 +65,26 @@ export class WPSDocumentService {
    * 获取段落信息（用于精确定位）
    */
   getParagraphs() {
-    if (!this._paragraphs) {
-      this.getFullText() // 触发段落信息收集
+    const doc = this.getDocument()
+    if (!doc) return []
+
+    const docId = this.getDocumentId(doc)
+
+    if (this._paragraphCache.id !== docId) {
+      this._paragraphCache = {
+        id: docId,
+        paragraphs: this.collectParagraphs(doc)
+      }
     }
-    return this._paragraphs || []
+
+    return this._paragraphCache.paragraphs
   }
 
   /**
    * 获取文档结构（章节、段落）
    */
   getDocumentStructure() {
-    this.checkWPSEnvironment()
+    const doc = this.checkWPSEnvironment()
 
     const structure = {
       paragraphs: [],
@@ -84,8 +93,8 @@ export class WPSDocumentService {
 
     try {
       // 遍历所有段落
-      for (let i = 1; i <= this.doc.Paragraphs.Count; i++) {
-        const para = this.doc.Paragraphs.Item(i)
+      for (let i = 1; i <= doc.Paragraphs.Count; i++) {
+        const para = doc.Paragraphs.Item(i)
         const text = para.Range.Text.trim()
 
         // 判断是否是章节标题（基于样式、格式）
@@ -147,17 +156,17 @@ export class WPSDocumentService {
    * 根据字符位置获取 WPS Range
    */
   getRangeByCharPosition(startChar, endChar) {
-    this.checkWPSEnvironment()
+    const doc = this.checkWPSEnvironment()
 
     try {
-      const fullRange = this.doc.Range()
+      const fullRange = doc.Range()
       const startRange = fullRange.Duplicate
       const endRange = fullRange.Duplicate
 
       startRange.SetRange(startChar, startChar)
       endRange.SetRange(endChar, endChar)
 
-      const range = this.doc.Range(startRange.Start, endRange.End)
+      const range = doc.Range(startRange.Start, endRange.End)
       return range
     } catch (error) {
       console.error('获取Range失败:', error)
@@ -225,7 +234,7 @@ export class WPSDocumentService {
           if (startOffset !== -1) {
             // 创建精确的Range
             const targetRange = paraRange.Duplicate
-            const keywordLength = cleanKeyword.length > 50 ? 30 : (cleanKeyword.length > 20 ? 20 : cleanKeyword.length)
+            const keywordLength = cleanKeyword.length
             const actualStart = paraRange.Start + startOffset
             const actualEnd = actualStart + keywordLength
             
@@ -250,7 +259,7 @@ export class WPSDocumentService {
           
           if (startOffset !== -1) {
             const targetRange = paraRange.Duplicate
-            const keywordLength = normalizedKeyword.length > 50 ? 30 : (normalizedKeyword.length > 20 ? 20 : normalizedKeyword.length)
+            const keywordLength = cleanKeyword.length
             const actualStart = paraRange.Start + startOffset
             const actualEnd = actualStart + keywordLength
             
@@ -272,12 +281,7 @@ export class WPSDocumentService {
         let index = searchText.indexOf(cleanKeyword)
         if (index !== -1) {
           const actualStart = startChar + index
-          let keywordLength = cleanKeyword.length
-          if (cleanKeyword.length > 50) {
-            keywordLength = 30
-          } else if (cleanKeyword.length > 20) {
-            keywordLength = 20
-          }
+          const keywordLength = cleanKeyword.length
           const actualEnd = actualStart + keywordLength
           
           console.log(`[定位] ✅ 通过字符位置找到: ${cleanKeyword.substring(0, 30)}...`)
@@ -328,7 +332,7 @@ export class WPSDocumentService {
    * 根据章节号查找Range（基于段落）
    */
   findRangeByPosition(position, segment) {
-    this.checkWPSEnvironment()
+    const doc = this.checkWPSEnvironment()
 
     try {
       const paragraphs = this.getParagraphs()
@@ -347,7 +351,7 @@ export class WPSDocumentService {
           // 返回段落的前半部分（更精准）
           const paraRange = para.range.Duplicate
           const midPoint = paraRange.Start + Math.floor((paraRange.End - paraRange.Start) / 2)
-          const targetRange = this.doc.Range(paraRange.Start, midPoint)
+          const targetRange = doc.Range(paraRange.Start, midPoint)
           return targetRange
         }
       }
@@ -395,7 +399,7 @@ export class WPSDocumentService {
    * 添加修订标记
    */
   addRevision(range, originalText, revisedText, reason) {
-    this.checkWPSEnvironment()
+    const doc = this.checkWPSEnvironment()
 
     if (!range) {
       console.warn('Range为空，无法添加修订')
@@ -404,7 +408,7 @@ export class WPSDocumentService {
 
     try {
       // 启用修订跟踪
-      this.doc.TrackRevisions = true
+      doc.TrackRevisions = true
 
       // 替换文本（会自动标记为修订）
       range.Text = revisedText
@@ -426,11 +430,40 @@ export class WPSDocumentService {
    */
   isDocumentAvailable() {
     try {
-      return typeof window.Application !== 'undefined' && 
-             window.Application.ActiveDocument !== null
+      return this.getDocument() !== null
     } catch (error) {
       return false
     }
+  }
+
+  /**
+   * 收集文档段落信息
+   */
+  collectParagraphs(doc) {
+    const paragraphs = []
+    try {
+      for (let i = 1; i <= doc.Paragraphs.Count; i++) {
+        const para = doc.Paragraphs.Item(i)
+        const paraRange = para.Range
+        paragraphs.push({
+          index: i,
+          text: paraRange.Text,
+          range: paraRange,
+          startChar: paraRange.Start,
+          endChar: paraRange.End
+        })
+      }
+    } catch (error) {
+      console.error('收集段落信息失败:', error)
+    }
+    return paragraphs
+  }
+
+  /**
+   * 获取文档唯一标识
+   */
+  getDocumentId(doc) {
+    return doc?.FullName || doc?.Name || ''
   }
 }
 

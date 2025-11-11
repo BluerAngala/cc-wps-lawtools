@@ -282,9 +282,9 @@ export class ContractReviewEngine {
     }
 
     for (const issue of issues) {
+      const searchKeyword = issue.searchKeyword || issue.keyword || ''
       try {
         // 检查是否已应用过相同内容的批注
-        const searchKeyword = issue.searchKeyword || issue.keyword || ''
         const commentKey = `${searchKeyword.trim().substring(0, 30)}_${(issue.comment || '').trim().substring(0, 50)}`
         if (this._appliedComments.has(commentKey)) {
           duplicateCount++

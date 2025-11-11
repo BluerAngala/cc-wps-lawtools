@@ -1,4 +1,5 @@
 import Util from './wpsUtils.js'
+import { wpsDocumentService } from './wpsDocumentService.js'
 import { kdocsHandler } from '../kdocs/kdocs.js'
 import TaskScheduler from '../ai/TaskScheduler.js'
 
@@ -6,6 +7,7 @@ import TaskScheduler from '../ai/TaskScheduler.js'
 class TaskPaneHandler {
   constructor() {
     this.wpsService = Util.wpsService
+    this.documentService = wpsDocumentService
     // 初始化AI框架
     this.taskScheduler = new TaskScheduler({
       maxConcurrentTasks: 3,
@@ -17,7 +19,7 @@ class TaskPaneHandler {
 
   // 使用统一的WPS服务
   getActiveDoc() {
-    return this.wpsService.getActiveDoc()
+    return this.documentService.getDocument()
   }
 
   getTaskPane() {
@@ -26,6 +28,17 @@ class TaskPaneHandler {
 
   enableRevisionMode(doc) {
     this.wpsService.enableRevisionMode(doc)
+  }
+
+  ensureDocument() {
+    try {
+      return this.documentService.checkWPSEnvironment()
+    } catch (error) {
+      const message = error?.message || '当前未检测到可用文档'
+      window.$message?.error(message)
+      console.warn(message)
+      return null
+    }
   }
 
   async onbuttonclick(idStr, param) {
@@ -78,7 +91,7 @@ class TaskPaneHandler {
   }
 
   async addHeader(param) {
-    const doc = this.getActiveDoc()
+    const doc = this.ensureDocument()
     if (!doc || !param?.headerText) {
       return { success: false, message: '文档不存在或页眉文本为空' }
     }
@@ -137,16 +150,19 @@ class TaskPaneHandler {
 
   // 处理关键词批注和修订（统一方法）
   async addComment(param) {
-    const doc = this.getActiveDoc()
-    if (!doc) return
+    const doc = this.ensureDocument()
+    if (!doc) {
+      return { success: false, message: '未找到活动文档' }
+    }
 
     const keywordList = param?.keywordList
     if (!keywordList?.length) {
-      alert('请先在前端配置关键词列表')
-      return
+      window.$message?.warning('请先在前端配置关键词列表')
+      return { success: false, message: '关键词列表为空' }
     }
 
     this.enableRevisionMode(doc)
+
     let commentCount = 0
     let revisionCount = 0
 
@@ -155,121 +171,61 @@ class TaskPaneHandler {
       if (!keyword) return
 
       const actionType = item?.actionType || '批注'
-      const comment = item?.comment || `关键词"${keyword}"需要重点关注`
+      const comment = item?.comment || `关键词 "${keyword}" 需要重点关注`
       const suggestedText = item?.suggestedText || ''
+      const range = this.documentService.findRangeByKeyword(keyword)
 
-      // 查找关键词
-      const selection = doc.Range()
-      selection.Find?.ClearFormatting()
-      selection.Find.Text = keyword
+      if (!range) return
 
-      if (selection.Find?.Execute()) {
-        if (actionType === '修订' && suggestedText) {
-          // 修订模式：替换文本并添加批注
-          selection.Text = suggestedText
-          const commentRange = selection.Duplicate
-          commentRange?.Collapse(0)
-          commentRange?.Comments?.Add(commentRange, comment || `已修订为"${suggestedText}"`)
+      if (actionType === '修订' && suggestedText) {
+        const originalText = range.Text
+        const revisionReason = item?.reason || comment
+        if (this.documentService.addRevision(range, originalText, suggestedText, revisionReason)) {
           revisionCount++
-        } else {
-          // 批注模式：只添加批注
-          const commentRange = selection.Duplicate
-          commentRange?.Collapse(0)
-          commentRange?.Comments?.Add(commentRange, comment)
-          commentCount++
         }
+      } else if (this.documentService.addComment(range, comment)) {
+        commentCount++
       }
     })
 
     const totalCount = commentCount + revisionCount
     console.log(`处理完成: ${commentCount}个批注, ${revisionCount}个修订`)
-    
+
     if (totalCount > 0) {
       window.$message?.success(`成功处理 ${commentCount} 个批注和 ${revisionCount} 个修订`)
-    } else {
-      alert('未找到任何指定的关键词')
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      return { success: true, commentCount, revisionCount }
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    window.$message?.warning('未找到任何指定的关键词')
+    return { success: false, message: '未找到指定关键词' }
   }
 
   // 抽取文档中的特定数据要素
   async extractText(param) {
-    const doc = this.getActiveDoc()
+    const doc = this.ensureDocument()
     if (!doc) {
-      console.error('extractText: 无法获取活动文档')
       return ''
     }
 
-    // 如果只是获取文档内容，直接返回
-    if (!param || Object.keys(param).length === 0) {
-      try {
-        // 调试文档对象的可用方法
-        console.log('extractText: 文档对象可用方法检查')
-        console.log('doc.Range:', typeof doc.Range)
-        console.log('doc.Content:', typeof doc.Content)
-        console.log('window.Application.Selection:', !!window.Application?.Selection)
+    try {
+      const extractedText = this.documentService.getFullText()
 
-        // 尝试多种方式获取文档内容
-        let extractedText = ''
-
-        // 方法1: 使用Range获取全部内容
-        if (doc.Range) {
-          console.log('extractText: 尝试使用Range方法')
-          try {
-            extractedText = doc.Range().Text
-            console.log('extractText: Range方法成功，内容长度:', extractedText?.length || 0)
-          } catch (rangeError) {
-            console.error('extractText: Range方法失败:', rangeError)
-          }
-        }
-
-        // 方法2: 如果Range方法失败，尝试使用Content
-        if (!extractedText && doc.Content) {
-          console.log('extractText: 尝试使用Content方法')
-          try {
-            extractedText = doc.Content.Text
-            console.log('extractText: Content方法成功，内容长度:', extractedText?.length || 0)
-          } catch (contentError) {
-            console.error('extractText: Content方法失败:', contentError)
-          }
-        }
-
-        // 方法3: 如果还是失败，尝试使用Selection
-        if (!extractedText && window.Application?.Selection) {
-          console.log('extractText: 尝试使用Selection方法')
-          try {
-            // 先选择全部内容
-            window.Application.Selection.WholeStory()
-            extractedText = window.Application.Selection.Text
-            console.log('extractText: Selection方法成功，内容长度:', extractedText?.length || 0)
-          } catch (selectionError) {
-            console.error('extractText: Selection方法失败:', selectionError)
-          }
-        }
-
-        console.log('获取文档内容，长度:', extractedText?.length || 0)
-        console.log('文档内容预览:', extractedText?.substring(0, 100) + '...')
-
+      if (!param || Object.keys(param).length === 0) {
         if (!extractedText || extractedText.trim().length === 0) {
           console.warn('extractText: 文档内容为空，可能文档未正确加载或没有内容')
           return ''
         }
 
+        console.log('获取文档内容，长度:', extractedText.length)
+        console.log('文档内容预览:', `${extractedText.substring(0, 100)}...`)
         return extractedText
-      } catch (error) {
-        console.error('extractText: 获取文档内容时出错:', error)
-        return ''
       }
-    }
 
-    // 获取用户配置的提取标签
-    const extractTags = param?.extractContent || ['甲方名称', '乙方名称', '合同金额']
-    console.log('正在处理抽取文案，提取标签:', extractTags)
+      // 获取用户配置的提取标签
+      const extractTags = param?.extractContent || ['甲方名称', '乙方名称', '合同金额']
+      console.log('正在处理抽取文案，提取标签:', extractTags)
 
-    const extractedText = doc.Range().Text
-
-    try {
       // 使用新的AI框架
       const taskConfig = {
         type: 'extractText',
@@ -302,20 +258,20 @@ class TaskPaneHandler {
         }
       })
     } catch (error) {
-      console.error('创建AI任务失败:', error)
-      alert('创建AI任务失败，请稍后重试')
+      console.error('extractText: 获取文档内容时出错:', error)
+      return ''
     }
   }
 
   // AI合同预审
   async contractReview(param) {
-    const doc = this.getActiveDoc()
+    const doc = this.ensureDocument()
     if (!doc) return
 
     const { actionType = 'comment' } = param || {}
     console.log('开始合同预审，操作类型:', actionType)
 
-    const extractedText = doc.Range().Text
+    const extractedText = this.documentService.getFullText()
     console.log('提取的文档内容:', extractedText)
 
     try {
@@ -334,9 +290,9 @@ class TaskPaneHandler {
             console.log('AI预审结果:', reviewData)
 
             if (actionType === 'comment') {
-              this.addReviewComments(doc, reviewData)
+              this.addReviewComments(reviewData)
             } else if (actionType === 'revision') {
-              this.addReviewRevisions(doc, reviewData)
+              this.addReviewRevisions(reviewData)
             }
 
             console.log('合同预审完成')
@@ -361,7 +317,7 @@ class TaskPaneHandler {
   }
 
   // 添加预审批注
-  async addReviewComments(doc, reviewData) {
+  async addReviewComments(reviewData) {
     if (!reviewData?.issues || !Array.isArray(reviewData.issues)) {
       console.log('没有发现需要批注的问题')
       return
@@ -372,14 +328,8 @@ class TaskPaneHandler {
       const { keyword, comment } = issue
       if (!keyword || !comment) return
 
-      const selection = doc.Range()
-      selection.Find?.ClearFormatting()
-      selection.Find.Text = keyword
-
-      if (selection.Find?.Execute()) {
-        const commentRange = selection.Duplicate
-        commentRange?.Collapse(0)
-        commentRange?.Comments?.Add(commentRange, comment)
+      const range = this.documentService.findRangeByKeyword(keyword)
+      if (range && this.documentService.addComment(range, comment)) {
         addedCount++
       }
     })
@@ -392,11 +342,14 @@ class TaskPaneHandler {
   }
 
   // 添加预审修订
-  async addReviewRevisions(doc, reviewData) {
+  async addReviewRevisions(reviewData) {
     if (!reviewData?.revisions || !Array.isArray(reviewData.revisions)) {
       console.log('没有发现需要修订的内容')
       return
     }
+
+    const doc = this.ensureDocument()
+    if (!doc) return
 
     this.enableRevisionMode(doc)
     let revisedCount = 0
@@ -405,17 +358,11 @@ class TaskPaneHandler {
       const { original, suggested, reason } = revision
       if (!original || !suggested) return
 
-      const selection = doc.Range()
-      selection.Find?.ClearFormatting()
-      selection.Find.Text = original
+      const range = this.documentService.findRangeByKeyword(original)
+      if (!range) return
 
-      if (selection.Find?.Execute()) {
-        selection.Text = suggested
-        if (reason) {
-          const commentRange = selection.Duplicate
-          commentRange?.Collapse(0)
-          commentRange?.Comments?.Add(commentRange, `修订原因: ${reason}`)
-        }
+      const originalText = range.Text
+      if (this.documentService.addRevision(range, originalText, suggested, reason)) {
         revisedCount++
       }
     })
@@ -428,10 +375,12 @@ class TaskPaneHandler {
   }
 
   extractFormatted() {
-    const doc = this.getActiveDoc()
-    if (!doc) return
+    if (!this.documentService.isDocumentAvailable()) {
+      window.$message?.error('未检测到活动文档')
+      return
+    }
 
-    const selection = doc?.Selection
+    const selection = window.Application?.Selection
     if (selection?.Text) {
       const range = selection.Range
       const formattedData = {
@@ -457,7 +406,7 @@ class TaskPaneHandler {
   }
 
   updateDocumentText(param) {
-    const doc = this.getActiveDoc()
+    const doc = this.ensureDocument()
     if (!doc) return
 
     const range = doc?.Range()
@@ -469,10 +418,10 @@ class TaskPaneHandler {
   }
 
   async processWithAI() {
-    const doc = this.getActiveDoc()
+    const doc = this.ensureDocument()
     if (!doc) return
 
-    const extractedText = doc.Range().Text
+    const extractedText = this.documentService.getFullText()
     console.log('开始AI处理合同元素提取')
 
     try {
@@ -546,10 +495,12 @@ class TaskPaneHandler {
   }
 
   desensitizeText() {
-    const doc = this.getActiveDoc()
-    if (!doc) return
+    if (!this.documentService.isDocumentAvailable()) {
+      window.$message?.error('未检测到活动文档')
+      return
+    }
 
-    const selection = doc?.Selection
+    const selection = window.Application?.Selection
     if (!selection?.Text) {
       alert('请先选择要脱敏的文本')
       return
@@ -578,8 +529,10 @@ class TaskPaneHandler {
   }
 
   applyDesensitization(param) {
-    const doc = this.getActiveDoc()
-    if (!doc) return
+    if (!this.documentService.isDocumentAvailable()) {
+      window.$message?.error('未检测到活动文档')
+      return
+    }
 
     const desensitizedText = param?.desensitizedText
     if (!desensitizedText) {
@@ -587,7 +540,7 @@ class TaskPaneHandler {
       return
     }
 
-    const selection = doc?.Selection
+    const selection = window.Application?.Selection
     if (selection) {
       selection.Text = desensitizedText
       console.log('脱敏文本已应用')
@@ -597,10 +550,10 @@ class TaskPaneHandler {
   }
 
   async analyzeDocStructure() {
-    const doc = this.getActiveDoc()
+    const doc = this.ensureDocument()
     if (!doc) return
 
-    const content = doc.Range().Text
+    const content = this.documentService.getFullText()
     console.log('开始AI文档结构分析...')
 
     try {

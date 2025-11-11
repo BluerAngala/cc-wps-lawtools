@@ -5,7 +5,6 @@
 
 import { DocumentParser } from '../document/DocumentParser.js'
 import { CacheManager } from './CacheManager.js'
-import { apiClient } from './siliconflow.js'
 import axios from 'axios'
 import { appConfig } from '../../utils/appConfig.js'
 import {
