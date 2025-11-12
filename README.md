@@ -14,6 +14,11 @@ https://env-00jxg9mus2ok-static.normal.cloudstatic.cn/publish.html
 
 ## 更新日志
 
+### 2025年11月12日
+
+- 优化合同审查页面显示
+- 新增文件审查清单
+
 
 
 ### 2025年9月31日

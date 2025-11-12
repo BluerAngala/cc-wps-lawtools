@@ -33,13 +33,11 @@ function OnAction(control) {
   console.log('点击了 ribbon.js 的 OnAction', eleId)
   switch (eleId) {
 
-    // AI助理
-    case 'btnShowAI':
+    // 模板管理
+    case 'btnTemplateManager':
       {
-        Util.wpsService.createExternalTaskPane(
-          'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share',
-          850
-        )
+        const url = Util.GetUrlPath() + '/index.html?page=template'
+        Util.wpsService.createTaskPane(url, 'template', { width: 850 })
       }
       break
 
@@ -50,6 +48,32 @@ function OnAction(control) {
         const url = Util.GetUrlPath() + '/index.html?page=contractreview'
         // 打开任务窗格并配置参数
         Util.wpsService.createTaskPane(url, 'contractreview', { width: 850 })
+      }
+      break
+
+    // 风险扫描
+    case 'btnRiskScan':
+      {
+        const url = Util.GetUrlPath() + '/index.html?page=riskscan'
+        Util.wpsService.createTaskPane(url, 'riskscan', { width: 850 })
+      }
+      break
+
+    // 信息脱敏
+    case 'btnDesensitize':
+      {
+        const url = Util.GetUrlPath() + '/index.html?page=desensitize'
+        Util.wpsService.createTaskPane(url, 'desensitize', { width: 850 })
+      }
+      break
+
+    // AI助理
+    case 'btnShowAI':
+      {
+        Util.wpsService.createExternalTaskPane(
+          'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share',
+          850
+        )
       }
       break
 
@@ -122,10 +146,16 @@ function GetImage(control) {
   const buttonId = control ? control.Id : 'default'
 
   switch (buttonId) {
-    case 'btnShowAI':
-      return './images/logo_card.png'
+    case 'btnTemplateManager':
+      return './images/3.svg'
     case 'btnContractReview':
       return './images/3.svg'
+    case 'btnRiskScan':
+      return './images/3.svg'
+    case 'btnDesensitize':
+      return './images/3.svg'
+    case 'btnShowAI':
+      return './images/logo_card.png'
     case 'btnCommonNav':
       return './images/3.svg'
     case 'btnAboutME':

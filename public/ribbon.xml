@@ -2,14 +2,15 @@
     <ribbon startFromScratch="false">
         <tabs>
             <tab id="wpsAddinTab" label="AI律师工具箱">
-				<group id="btnDemoGroup" label="group1">
-                    <button id="btnShowAI" label="AI 助理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+				<group id="btnDemoGroup" label="核心功能">
+                    <button id="btnTemplateManager" label="模板管理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnContractReview" label="合同审查" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnRiskScan" label="风险扫描" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnDesensitize" label="信息脱敏" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnShowAI" label="AI 助理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnCommonNav" label="常用导航" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
-                    <button id="btnAboutME" label="关于我" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnSettings" label="设置" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
-                    <button id="btnShowWelcome" label="欢迎页面" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
-                    <button id="btnResetFirstLoad" label="重置首次加载" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnAboutME" label="关于我" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
 				    <button id="btnShowTaskPane" label="调试窗格" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                 </group>
             </tab>

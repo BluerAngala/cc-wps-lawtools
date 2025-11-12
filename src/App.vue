@@ -22,6 +22,9 @@ import HomePage from './views/HomePage.vue'
 import ContractServices from './views/ContractServices.vue'
 import SettingsPage from './views/SettingsPage.vue'
 import TestPage from './views/TestPage.vue'
+import TemplateManager from './views/TemplateManager.vue'
+import ContractRiskScan from './views/ContractRiskScan.vue'
+import DesensitizePage from './views/DesensitizePage.vue'
 
 // 获取当前页面参数
 function getCurrentPage() {
@@ -45,8 +48,14 @@ const AppContent = {
     
     const renderComponent = () => {
       switch (currentPage.value) {
+        case 'template':
+          return h(TemplateManager)
         case 'contractreview':
           return h(ContractServices)
+        case 'riskscan':
+          return h(ContractRiskScan)
+        case 'desensitize':
+          return h(DesensitizePage)
         case 'settings':
           return h(SettingsPage)
         case 'taskpane':
