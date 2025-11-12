@@ -8,11 +8,15 @@ export const 诉讼文书模板 = {
     sections: [
       {
         type: 'paragraph',
-        content: '原告：{{原告姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{原告住址}}，联系电话：{{原告电话}}。'
+        content: '原告：{{原告姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{原告住址}}，联系电话：{{原告电话}}。'
       },
       {
         type: 'paragraph',
-        content: '被告：{{被告姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{被告住址}}，联系电话：{{被告电话}}。'
+        content: '委托诉讼代理人：{{代理人姓名}}，{{律师事务所名称}}律师。'
+      },
+      {
+        type: 'paragraph',
+        content: '被告：{{被告姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{被告住址}}，联系电话：{{被告电话}}。'
       },
       { type: 'empty' },
       { type: 'heading', content: '诉讼请求：' },
@@ -21,12 +25,37 @@ export const 诉讼文书模板 = {
       { type: 'paragraph', content: '3. 本案诉讼费用由被告承担。' },
       { type: 'empty' },
       { type: 'heading', content: '事实与理由：' },
-      { type: 'paragraph', content: '{{事实与理由}}' },
+      { type: 'heading', content: '一、基本事实' },
+      { type: 'paragraph', content: '{{基本事实描述}}' },
+      { type: 'paragraph', content: '上述事实有{{证据类型1}}、{{证据类型2}}、{{证据类型3}}等证据材料予以证实（详见证据清单）。' },
+      { type: 'empty' },
+      { type: 'heading', content: '二、法律依据' },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国民法典》第{{条款}}条的规定："{{法律条文内容}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《{{相关法律名称}}》第{{条款2}}条的规定："{{法律条文内容2}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《最高人民法院关于{{相关司法解释名称}}的解释》第{{司法解释条款}}条的规定："{{司法解释内容}}"。'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '三、诉讼理由' },
+      { type: 'paragraph', content: '{{诉讼理由}}' },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '综上所述，原告认为被告的行为已严重侵害了原告的合法权益，特向贵院提起诉讼，恳请贵院依法支持原告的诉讼请求，以维护原告的合法权益。'
+        content: '综上所述，原告认为被告的行为已严重侵害了原告的合法权益，违反了相关法律规定，依法应当承担相应的法律责任。特向贵院提起诉讼，恳请贵院依法支持原告的诉讼请求，以维护原告的合法权益。'
       },
+      { type: 'empty' },
+      { type: 'heading', content: '证据清单：' },
+      { type: 'paragraph', content: '1. {{证据1名称}}（{{页数}}页）；' },
+      { type: 'paragraph', content: '2. {{证据2名称}}（{{页数}}页）；' },
+      { type: 'paragraph', content: '3. {{证据3名称}}（{{页数}}页）；' },
+      { type: 'paragraph', content: '4. {{证据4名称}}（{{页数}}页）。' },
       { type: 'empty' },
       { type: 'paragraph', content: '此致', indent: false },
       { type: 'paragraph', content: '{{法院名称}}', indent: false },
@@ -44,7 +73,11 @@ export const 诉讼文书模板 = {
     sections: [
       {
         type: 'paragraph',
-        content: '答辩人：{{答辩人姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{答辩人住址}}，联系电话：{{答辩人电话}}。'
+        content: '答辩人：{{答辩人姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{答辩人住址}}，联系电话：{{答辩人电话}}。'
+      },
+      {
+        type: 'paragraph',
+        content: '委托诉讼代理人：{{代理人姓名}}，{{律师事务所名称}}律师。'
       },
       { type: 'empty' },
       {
@@ -61,13 +94,26 @@ export const 诉讼文书模板 = {
       { type: 'heading', content: '三、法律依据' },
       {
         type: 'paragraph',
-        content: '根据《{{相关法律名称}}》第{{条款}}条的规定，{{法律依据内容}}。'
+        content: '根据《中华人民共和国民法典》第{{条款}}条的规定："{{法律条文内容}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《{{相关法律名称}}》第{{条款2}}条的规定："{{法律条文内容2}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《最高人民法院关于{{相关司法解释名称}}的解释》第{{司法解释条款}}条的规定："{{司法解释内容}}"。'
       },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '综上所述，答辩人认为原告的诉讼请求缺乏事实和法律依据，请求人民法院依法驳回原告的诉讼请求。'
+        content: '综上所述，答辩人认为原告的诉讼请求缺乏事实和法律依据，请求人民法院依法驳回原告的诉讼请求，并由原告承担本案的诉讼费用。'
       },
+      { type: 'empty' },
+      { type: 'heading', content: '证据清单：' },
+      { type: 'paragraph', content: '1. {{证据1名称}}（{{页数}}页）；' },
+      { type: 'paragraph', content: '2. {{证据2名称}}（{{页数}}页）；' },
+      { type: 'paragraph', content: '3. {{证据3名称}}（{{页数}}页）。' },
       { type: 'empty' },
       { type: 'paragraph', content: '此致', indent: false },
       { type: 'paragraph', content: '{{法院名称}}', indent: false },
@@ -85,11 +131,15 @@ export const 诉讼文书模板 = {
     sections: [
       {
         type: 'paragraph',
-        content: '上诉人（原审{{原告/被告}}）：{{上诉人姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{住址}}，联系电话：{{电话}}。'
+        content: '上诉人（原审{{原告/被告}}）：{{上诉人姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{住址}}，联系电话：{{电话}}。'
       },
       {
         type: 'paragraph',
-        content: '被上诉人（原审{{原告/被告}}）：{{被上诉人姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{住址}}，联系电话：{{电话}}。'
+        content: '委托诉讼代理人：{{代理人姓名}}，{{律师事务所名称}}律师。'
+      },
+      {
+        type: 'paragraph',
+        content: '被上诉人（原审{{原告/被告}}）：{{被上诉人姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{住址}}，联系电话：{{电话}}。'
       },
       { type: 'empty' },
       {
@@ -103,12 +153,24 @@ export const 诉讼文书模板 = {
       { type: 'paragraph', content: '3. 本案一、二审诉讼费用由被上诉人承担。' },
       { type: 'empty' },
       { type: 'heading', content: '上诉理由：' },
-      { type: 'paragraph', content: '{{上诉理由}}' },
+      { type: 'heading', content: '一、一审判决认定事实错误' },
+      { type: 'paragraph', content: '{{事实认定错误}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '二、一审判决适用法律错误' },
+      { type: 'paragraph', content: '{{法律适用错误}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '三、一审判决程序违法' },
+      { type: 'paragraph', content: '{{程序违法情形}}' },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '综上所述，一审判决认定事实不清，适用法律错误，请求二审法院依法改判，支持上诉人的上诉请求。'
+        content: '综上所述，一审判决认定事实不清，适用法律错误，程序违法，请求二审法院依法撤销一审判决，改判支持上诉人的诉讼请求，并由被上诉人承担一、二审诉讼费用。'
       },
+      { type: 'empty' },
+      { type: 'heading', content: '证据清单：' },
+      { type: 'paragraph', content: '1. 一审判决书复印件（{{页数}}页）；' },
+      { type: 'paragraph', content: '2. {{新证据1名称}}（{{页数}}页）；' },
+      { type: 'paragraph', content: '3. {{新证据2名称}}（{{页数}}页）。' },
       { type: 'empty' },
       { type: 'paragraph', content: '此致', indent: false },
       { type: 'paragraph', content: '{{二审法院名称}}', indent: false },
@@ -126,11 +188,15 @@ export const 诉讼文书模板 = {
     sections: [
       {
         type: 'paragraph',
-        content: '申请人（原审{{原告/被告}}）：{{申请人姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{住址}}，联系电话：{{电话}}。'
+        content: '申请人（原审{{原告/被告}}）：{{申请人姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{住址}}，联系电话：{{电话}}。'
       },
       {
         type: 'paragraph',
-        content: '被申请人（原审{{原告/被告}}）：{{被申请人姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{住址}}，联系电话：{{电话}}。'
+        content: '委托诉讼代理人：{{代理人姓名}}，{{律师事务所名称}}律师。'
+      },
+      {
+        type: 'paragraph',
+        content: '被申请人（原审{{原告/被告}}）：{{被申请人姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{住址}}，联系电话：{{电话}}。'
       },
       { type: 'empty' },
       {
@@ -144,12 +210,27 @@ export const 诉讼文书模板 = {
       { type: 'paragraph', content: '3. 本案诉讼费用由被申请人承担。' },
       { type: 'empty' },
       { type: 'heading', content: '申请再审的事实与理由：' },
-      { type: 'paragraph', content: '{{再审理由}}' },
+      { type: 'heading', content: '一、原判决认定事实的主要证据是伪造的' },
+      { type: 'paragraph', content: '{{伪造证据说明}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '二、原判决认定的基本事实缺乏证据证明' },
+      { type: 'paragraph', content: '{{缺乏证据说明}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '三、原判决适用法律确有错误' },
+      { type: 'paragraph', content: '{{法律适用错误说明}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '四、原判决程序违法' },
+      { type: 'paragraph', content: '{{程序违法说明}}' },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '综上所述，原判决认定事实不清，适用法律错误，符合《中华人民共和国民事诉讼法》规定的再审条件，恳请贵院依法再审，维护申请人的合法权益。'
+        content: '综上所述，原判决认定事实不清，适用法律错误，程序违法，符合《中华人民共和国民事诉讼法》第二百零七条规定的再审条件，恳请贵院依法再审，撤销原判决，改判支持申请人的诉讼请求，维护申请人的合法权益。'
       },
+      { type: 'empty' },
+      { type: 'heading', content: '证据清单：' },
+      { type: 'paragraph', content: '1. 原审判决书复印件（{{页数}}页）；' },
+      { type: 'paragraph', content: '2. {{新证据1名称}}（{{页数}}页）；' },
+      { type: 'paragraph', content: '3. {{新证据2名称}}（{{页数}}页）。' },
       { type: 'empty' },
       { type: 'paragraph', content: '此致', indent: false },
       { type: 'paragraph', content: '{{再审法院名称}}', indent: false },
@@ -167,11 +248,15 @@ export const 诉讼文书模板 = {
     sections: [
       {
         type: 'paragraph',
-        content: '申请人：{{申请人姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{住址}}，联系电话：{{电话}}。'
+        content: '申请人：{{申请人姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{住址}}，联系电话：{{电话}}。'
       },
       {
         type: 'paragraph',
-        content: '被申请人：{{被申请人姓名}}，性别：{{性别}}，{{出生日期}}出生，{{民族}}族，住址：{{住址}}，联系电话：{{电话}}。'
+        content: '委托诉讼代理人：{{代理人姓名}}，{{律师事务所名称}}律师。'
+      },
+      {
+        type: 'paragraph',
+        content: '被申请人：{{被申请人姓名}}，{{性别}}，{{出生日期}}出生，{{民族}}族，{{身份证号}}，住址：{{住址}}，联系电话：{{电话}}。'
       },
       { type: 'empty' },
       {

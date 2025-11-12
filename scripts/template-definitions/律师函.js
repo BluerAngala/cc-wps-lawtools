@@ -6,22 +6,38 @@ export const 律师函模板 = {
     description: '律师事务所出具的正式法律函件',
     scene: '法律事务交涉',
     sections: [
-      { type: 'paragraph', content: '{{收件人姓名/公司名称}}：', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}律师函', indent: false, style: 'center' },
+      { type: 'paragraph', content: '（{{年份}}）{{律所简称}}律函字第{{函件编号}}号', indent: false, style: 'center' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '致：{{收件人姓名/公司名称}}', indent: false },
+      { type: 'paragraph', content: '地址：{{收件人地址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{收件人电话}}', indent: false },
+      { type: 'paragraph', content: '传真：{{收件人传真}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{收件人邮箱}}', indent: false },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '{{律师事务所名称}}接受{{委托人姓名/公司名称}}的委托，就{{事由}}一事，特致函如下：'
+        content: '{{律师事务所名称}}接受{{委托人姓名/公司名称}}（以下简称"委托人"）的委托，指派本所{{律师姓名}}律师（执业证号：{{律师执业证号}}），就{{事由}}一事，特致函如下：'
       },
       { type: 'empty' },
       { type: 'heading', content: '一、基本事实' },
       { type: 'paragraph', content: '{{基本事实描述}}' },
+      { type: 'paragraph', content: '上述事实有{{证据类型1}}、{{证据类型2}}、{{证据类型3}}等证据材料予以证实（详见附件清单）。' },
+      { type: 'paragraph', content: '本律师已对委托人提供的相关证据材料进行了全面审查，确认其真实性、合法性和关联性。' },
+      { type: 'paragraph', content: '上述证据材料能够形成完整的证据链，足以证明{{待证事实}}。' },
+      { type: 'paragraph', content: '如贵方对上述事实有异议，请提供相应的证据材料予以反驳。' },
       { type: 'empty' },
       { type: 'heading', content: '二、法律分析' },
       {
         type: 'paragraph',
-        content: '根据《{{相关法律名称}}》第{{条款}}条的规定："{{法律条文内容}}"'
+        content: '根据《中华人民共和国民法典》第{{条款}}条的规定："{{法律条文内容}}"。'
       },
-      { type: 'paragraph', content: '基于上述法律规定，{{法律分析内容}}' },
+      { type: 'paragraph', content: '根据《{{相关法律名称}}》第{{条款2}}条的规定："{{法律条文内容2}}"。' },
+      { type: 'paragraph', content: '根据《最高人民法院关于{{相关司法解释名称}}的解释》第{{司法解释条款}}条的规定："{{司法解释内容}}"。' },
+      { type: 'paragraph', content: '此外，根据《{{相关行政法规名称}}》第{{行政法规条款}}条的规定："{{行政法规内容}}"。' },
+      { type: 'paragraph', content: '基于上述法律规定，{{法律分析内容}}。' },
+      { type: 'paragraph', content: '贵方的行为已构成{{违法行为性质}}，违反了上述法律规定，依法应当承担相应的法律责任，包括但不限于停止侵害、消除影响、赔偿损失等。' },
+      { type: 'paragraph', content: '本律师已就相关法律问题进行了充分的研究和论证，确认上述法律分析准确无误。' },
       { type: 'empty' },
       { type: 'heading', content: '三、律师意见' },
       { type: 'paragraph', content: '{{律师意见}}' },
@@ -29,27 +45,49 @@ export const 律师函模板 = {
       { type: 'paragraph', content: '鉴于上述事实和法律规定，本律师郑重函告贵方：' },
       { type: 'paragraph', content: '{{具体要求}}' },
       { type: 'empty' },
-      { type: 'paragraph', content: '请贵方在收到本函后{{期限}}日内，{{具体行动要求}}。' },
+      { type: 'paragraph', content: '请贵方在收到本函后{{期限}}日内（即{{具体截止日期}}前），{{具体行动要求}}。' },
+      { type: 'paragraph', content: '履行情况请书面回复至本所，联系人：{{联系人姓名}}，联系电话：{{联系电话}}，电子邮箱：{{联系邮箱}}。' },
       { type: 'empty' },
       { type: 'paragraph', content: '如贵方逾期未履行上述义务，我方将依法采取以下法律措施：' },
-      { type: 'paragraph', content: '1. {{法律措施1}}' },
-      { type: 'paragraph', content: '2. {{法律措施2}}' },
+      { type: 'paragraph', content: '1. {{法律措施1}}；' },
+      { type: 'paragraph', content: '2. {{法律措施2}}；' },
+      { type: 'paragraph', content: '3. {{法律措施3}}；' },
+      { type: 'paragraph', content: '4. 申请法院对贵方财产采取保全措施；' },
+      { type: 'paragraph', content: '5. 将贵方列入失信被执行人名单，并通过征信机构予以公示。' },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '同时，我方保留对相关证据进行公证保全的权利，并保留追究贵方其他法律责任的权利。'
+      },
       { type: 'empty' },
       {
         type: 'paragraph',
         content:
-          '由此产生的一切法律后果及费用（包括但不限于诉讼费、律师费、保全费、差旅费等）均由贵方承担。'
+          '由此产生的一切法律后果及费用（包括但不限于诉讼费、律师费、保全费、差旅费、公证费、鉴定费、公告费、执行费等）均由贵方承担。'
       },
+      { type: 'empty' },
+      { type: 'paragraph', content: '本函以{{送达方式}}方式送达，送达之日即为收到之日。' },
+      { type: 'paragraph', content: '如贵方对本函内容有异议，可在收到本函后{{异议期限}}日内向本所提出书面异议，并提供相应的证据材料。' },
+      { type: 'paragraph', content: '如贵方在{{异议期限}}日内未提出异议，视为对上述事实和法律分析的认可。' },
+      { type: 'paragraph', content: '本函仅代表委托人的法律意见，不具有强制执行力。如贵方不履行本函要求，委托人将依法采取相应的法律措施。' },
       { type: 'empty' },
       { type: 'paragraph', content: '特此函告！', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{律师事务所名称}}', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}（盖章）', indent: false },
       { type: 'paragraph', content: '律师：{{律师姓名}}', indent: false },
       { type: 'paragraph', content: '执业证号：{{执业证号}}', indent: false },
       { type: 'paragraph', content: '联系电话：{{联系电话}}', indent: false },
+      { type: 'paragraph', content: '传真：{{传真号码}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{律师邮箱}}', indent: false },
       { type: 'paragraph', content: '地址：{{律所地址}}', indent: false },
+      { type: 'paragraph', content: '邮政编码：{{邮政编码}}', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{日期}}', indent: false }
+      { type: 'paragraph', content: '{{日期}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '附件：{{附件清单}}', indent: false },
+      { type: 'paragraph', content: '1. {{附件1名称}}（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '2. {{附件2名称}}（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '3. {{附件3名称}}（{{页数}}页）', indent: false }
     ]
   },
 
@@ -59,50 +97,98 @@ export const 律师函模板 = {
     description: '用于催收欠款的律师函',
     scene: '债务催收',
     sections: [
-      { type: 'paragraph', content: '{{债务人姓名/公司名称}}：', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}催款律师函', indent: false, style: 'center' },
+      { type: 'paragraph', content: '（{{年份}}）{{律所简称}}律催字第{{函件编号}}号', indent: false, style: 'center' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '致：{{债务人姓名/公司名称}}', indent: false },
+      { type: 'paragraph', content: '地址：{{债务人地址}}', indent: false },
+      { type: 'paragraph', content: '法定代表人：{{法定代表人}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{债务人电话}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{债务人邮箱}}', indent: false },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '{{律师事务所名称}}接受{{债权人姓名/公司名称}}的委托，就贵方拖欠款项一事，特致函如下：'
+        content: '{{律师事务所名称}}接受{{债权人姓名/公司名称}}（以下简称"债权人"）的委托，指派本所{{律师姓名}}律师（执业证号：{{律师执业证号}}），就贵方拖欠款项一事，特致函如下：'
       },
       { type: 'empty' },
       { type: 'heading', content: '一、欠款事实' },
-      { type: 'paragraph', content: '根据{{合同/协议名称}}，贵方应于{{应付款日期}}前向{{债权人姓名/公司名称}}支付款项人民币{{欠款金额}}元。' },
-      { type: 'paragraph', content: '截至本函出具之日，贵方尚欠款项人民币{{欠款金额}}元未支付。' },
+      { type: 'paragraph', content: '根据{{合同/协议名称}}（合同编号：{{合同编号}}），贵方应于{{应付款日期}}前向债权人支付款项人民币{{欠款金额}}元。' },
+      { type: 'paragraph', content: '截至本函出具之日，贵方尚欠款项人民币{{欠款金额}}元未支付，逾期已达{{逾期天数}}天。' },
       { type: 'paragraph', content: '{{欠款详情说明}}' },
+      { type: 'paragraph', content: '上述事实有{{合同名称}}、{{发票名称}}、{{对账单名称}}等证据材料予以证实（详见附件清单）。' },
       { type: 'empty' },
       { type: 'heading', content: '二、法律依据' },
       {
         type: 'paragraph',
-        content: '根据《中华人民共和国合同法》第{{条款}}条的规定："当事人应当按照约定全面履行自己的义务。"'
+        content: '根据《中华人民共和国民法典》第五百零九条第一款的规定："当事人应当按照约定全面履行自己的义务。"'
       },
-      { type: 'paragraph', content: '贵方未按约定支付款项的行为已构成违约。' },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国民法典》第五百七十七条的规定："当事人一方不履行合同义务或者履行合同义务不符合约定的，应当承担继续履行、采取补救措施或者赔偿损失等违约责任。"'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国民法典》第六百七十六条的规定："借款人未按照约定的期限返还借款的，应当按照约定或者国家有关规定支付逾期利息。"'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国民法典》第五百八十五条的规定："当事人可以约定一方违约时应当根据违约情况向对方支付一定数额的违约金，也可以约定因违约产生的损失赔偿额的计算方法。"'
+      },
+      { type: 'paragraph', content: '贵方未按约定支付款项的行为已构成违约，依法应当承担相应的违约责任，包括但不限于继续履行、支付逾期利息、支付违约金、赔偿损失等。' },
       { type: 'empty' },
-      { type: 'heading', content: '三、律师要求' },
-      { type: 'paragraph', content: '请贵方在收到本函后{{付款期限}}日内，将所欠款项人民币{{欠款金额}}元支付至以下账户：' },
+      { type: 'heading', content: '三、违约责任计算' },
+      { type: 'paragraph', content: '根据合同约定及相关法律规定，贵方应承担的违约责任计算如下：' },
+      { type: 'paragraph', content: '1. 欠款本金：人民币{{欠款金额}}元；' },
+      { type: 'paragraph', content: '2. 逾期利息：按合同约定利率{{合同利率}}%（年利率）计算，自{{逾期起始日期}}起至实际清偿之日止，暂计至{{计算截止日期}}为人民币{{逾期利息金额}}元；' },
+      { type: 'paragraph', content: '3. 违约金：按合同约定计算为人民币{{违约金金额}}元；' },
+      { type: 'paragraph', content: '4. 实现债权的费用：包括但不限于律师费、诉讼费、保全费、差旅费、公告费等，暂计人民币{{费用金额}}元；' },
+      { type: 'paragraph', content: '5. 以上各项合计：人民币{{总金额}}元（大写：{{总金额大写}}）。' },
+      { type: 'paragraph', content: '注：上述计算截止至{{计算截止日期}}，如贵方逾期未履行，逾期利息、违约金等将按实际天数继续计算。' },
+      { type: 'empty' },
+      { type: 'heading', content: '四、律师要求' },
+      { type: 'paragraph', content: '请贵方在收到本函后{{付款期限}}日内（即{{具体截止日期}}前），将所欠款项人民币{{欠款金额}}元及逾期利息人民币{{逾期利息金额}}元，共计人民币{{总金额}}元支付至以下账户：' },
       { type: 'paragraph', content: '账户名称：{{账户名称}}' },
       { type: 'paragraph', content: '开户银行：{{开户银行}}' },
       { type: 'paragraph', content: '银行账号：{{银行账号}}' },
+      { type: 'paragraph', content: '付款后请将付款凭证发送至邮箱：{{收款邮箱}}，联系人：{{收款联系人}}，联系电话：{{收款联系电话}}。' },
       { type: 'empty' },
       { type: 'paragraph', content: '如贵方逾期未支付，我方将依法采取以下法律措施：' },
       { type: 'paragraph', content: '1. 向人民法院提起诉讼，要求贵方支付欠款及违约金；' },
-      { type: 'paragraph', content: '2. 申请财产保全，冻结贵方银行账户；' },
-      { type: 'paragraph', content: '3. 申请将贵方列入失信被执行人名单。' },
+      { type: 'paragraph', content: '2. 申请财产保全，冻结贵方银行账户、查封相应财产；' },
+      { type: 'paragraph', content: '3. 申请将贵方及法定代表人列入失信被执行人名单；' },
+      { type: 'paragraph', content: '4. 通过媒体、征信机构等渠道披露贵方违约信息；' },
+      { type: 'paragraph', content: '5. 申请法院对贵方的法定代表人采取限制高消费措施。' },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '由此产生的一切法律后果及费用（包括但不限于诉讼费、律师费、保全费等）均由贵方承担。'
+        content: '同时，我方将对贵方的财产线索进行调查取证，并保留追究贵方其他法律责任的权利。'
       },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '由此产生的一切法律后果及费用（包括但不限于诉讼费、律师费、保全费、差旅费、公告费、执行费等）均由贵方承担。'
+      },
+      { type: 'empty' },
+      { type: 'paragraph', content: '本函以{{送达方式}}方式送达，送达之日即为收到之日。' },
+      { type: 'paragraph', content: '如贵方对本函内容有异议，可在收到本函后{{异议期限}}日内向本所提出书面异议并提供相应证据。' },
       { type: 'empty' },
       { type: 'paragraph', content: '特此函告！', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{律师事务所名称}}', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}（盖章）', indent: false },
       { type: 'paragraph', content: '律师：{{律师姓名}}', indent: false },
       { type: 'paragraph', content: '执业证号：{{执业证号}}', indent: false },
       { type: 'paragraph', content: '联系电话：{{联系电话}}', indent: false },
+      { type: 'paragraph', content: '传真：{{传真号码}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{律师邮箱}}', indent: false },
       { type: 'paragraph', content: '地址：{{律所地址}}', indent: false },
+      { type: 'paragraph', content: '邮政编码：{{邮政编码}}', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{日期}}', indent: false }
+      { type: 'paragraph', content: '{{日期}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '附件：{{附件清单}}', indent: false },
+      { type: 'paragraph', content: '1. {{合同名称}}复印件（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '2. {{发票名称}}复印件（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '3. {{对账单名称}}复印件（{{页数}}页）', indent: false }
     ]
   },
 
@@ -112,54 +198,106 @@ export const 律师函模板 = {
     description: '用于警告侵权行为的律师函',
     scene: '知识产权侵权',
     sections: [
-      { type: 'paragraph', content: '{{侵权人姓名/公司名称}}：', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}侵权警告律师函', indent: false, style: 'center' },
+      { type: 'paragraph', content: '（{{年份}}）{{律所简称}}律权字第{{函件编号}}号', indent: false, style: 'center' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '致：{{侵权人姓名/公司名称}}', indent: false },
+      { type: 'paragraph', content: '地址：{{侵权人地址}}', indent: false },
+      { type: 'paragraph', content: '法定代表人：{{法定代表人}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{侵权人电话}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{侵权人邮箱}}', indent: false },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '{{律师事务所名称}}接受{{权利人姓名/公司名称}}的委托，就贵方侵犯{{知识产权类型}}一事，特致函如下：'
+        content: '{{律师事务所名称}}接受{{权利人姓名/公司名称}}（以下简称"权利人"）的委托，指派本所{{律师姓名}}律师（执业证号：{{律师执业证号}}），就贵方侵犯{{知识产权类型}}一事，特致函如下：'
       },
       { type: 'empty' },
       { type: 'heading', content: '一、权利事实' },
       { type: 'paragraph', content: '{{权利人姓名/公司名称}}是{{知识产权类型}}"{{权利标的}}"的合法权利人。' },
       { type: 'paragraph', content: '{{权利证明说明}}' },
+      { type: 'paragraph', content: '上述权利有{{权利证书1}}、{{权利证书2}}等证书予以证明（详见附件清单）。' },
+      { type: 'paragraph', content: '权利人对该{{知识产权类型}}享有完整的、排他的权利，任何未经许可的使用均构成侵权。' },
       { type: 'empty' },
       { type: 'heading', content: '二、侵权事实' },
       { type: 'paragraph', content: '贵方未经许可，{{侵权行为描述}}。' },
       { type: 'paragraph', content: '{{侵权证据说明}}' },
-      { type: 'paragraph', content: '贵方的行为已构成对{{权利人姓名/公司名称}}{{知识产权类型}}的侵犯。' },
+      { type: 'paragraph', content: '贵方的行为已构成对权利人{{知识产权类型}}的侵犯，依法应当承担相应的法律责任。' },
       { type: 'empty' },
       { type: 'heading', content: '三、法律依据' },
       {
         type: 'paragraph',
-        content: '根据《{{相关法律名称}}》第{{条款}}条的规定："{{法律条文内容}}"'
+        content: '根据《中华人民共和国{{知识产权法律名称}}》第{{条款}}条的规定："{{法律条文内容}}"。'
       },
-      { type: 'paragraph', content: '贵方的行为已违反上述法律规定，应当承担相应的法律责任。' },
+      {
+        type: 'paragraph',
+        content: '根据《{{相关法律名称}}》第{{条款2}}条的规定："{{法律条文内容2}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《最高人民法院关于审理{{相关案件类型}}案件适用法律若干问题的解释》第{{司法解释条款}}条的规定："{{司法解释内容}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国反不正当竞争法》第{{条款}}条的规定："{{法律条文内容}}"。'
+      },
+      { type: 'paragraph', content: '贵方的行为已违反上述法律规定，构成对权利人{{知识产权类型}}的侵犯，依法应当承担停止侵权、消除影响、赔礼道歉、赔偿损失等法律责任。' },
+      { type: 'paragraph', content: '根据相关法律规定，侵权赔偿数额可以按照权利人的实际损失、侵权人的违法所得、许可使用费的倍数或者法定赔偿等方式确定。' },
       { type: 'empty' },
-      { type: 'heading', content: '四、律师要求' },
-      { type: 'paragraph', content: '请贵方在收到本函后{{停止期限}}日内：' },
-      { type: 'paragraph', content: '1. 立即停止一切侵权行为；' },
+      { type: 'heading', content: '四、侵权损失计算' },
+      { type: 'paragraph', content: '根据《中华人民共和国{{知识产权法律名称}}》及相关司法解释的规定，侵权赔偿数额的计算方式如下：' },
+      { type: 'paragraph', content: '1. 权利人的实际损失：根据权利人因侵权所受到的损失计算，暂计人民币{{实际损失金额}}元；' },
+      { type: 'paragraph', content: '2. 侵权人的侵权获利：根据侵权人因侵权所获得的利益计算，暂计人民币{{侵权获利金额}}元；' },
+      { type: 'paragraph', content: '3. {{知识产权类型}}许可使用费的倍数：参照该{{知识产权类型}}的许可使用费，按照{{倍数}}倍计算，暂计人民币{{许可费倍数金额}}元；' },
+      { type: 'paragraph', content: '4. 法定赔偿：如无法确定实际损失或侵权获利，根据侵权行为的性质、情节、持续时间、影响范围等因素，在法定赔偿限额内确定，暂计人民币{{法定赔偿金额}}元；' },
+      { type: 'paragraph', content: '5. 合理开支：包括但不限于律师费、调查取证费、公证费、差旅费等，暂计人民币{{合理开支金额}}元。' },
+      { type: 'paragraph', content: '以上各项合计：人民币{{总金额}}元（大写：{{总金额大写}}）。' },
+      { type: 'paragraph', content: '注：上述计算仅为初步估算，最终赔偿数额以人民法院的判决为准。' },
+      { type: 'empty' },
+      { type: 'heading', content: '五、律师要求' },
+      { type: 'paragraph', content: '请贵方在收到本函后{{停止期限}}日内（即{{具体截止日期}}前）：' },
+      { type: 'paragraph', content: '1. 立即停止一切侵权行为，销毁侵权产品及相关宣传材料；' },
       { type: 'paragraph', content: '2. {{其他具体要求}}；' },
-      { type: 'paragraph', content: '3. 赔偿我方当事人因此遭受的经济损失人民币{{赔偿金额}}元。' },
+      { type: 'paragraph', content: '3. 赔偿权利人因此遭受的经济损失人民币{{赔偿金额}}元；' },
+      { type: 'paragraph', content: '4. 在{{媒体名称}}上公开赔礼道歉，消除影响；' },
+      { type: 'paragraph', content: '5. 提供侵权产品的生产、销售数量及获利情况。' },
       { type: 'empty' },
       { type: 'paragraph', content: '如贵方逾期未履行上述要求，我方将依法采取以下法律措施：' },
-      { type: 'paragraph', content: '1. 向人民法院提起诉讼；' },
-      { type: 'paragraph', content: '2. 申请诉前禁令；' },
-      { type: 'paragraph', content: '3. 要求承担全部诉讼费用及律师费用。' },
+      { type: 'paragraph', content: '1. 向人民法院提起诉讼，要求贵方承担侵权责任；' },
+      { type: 'paragraph', content: '2. 申请诉前禁令，立即停止侵权行为；' },
+      { type: 'paragraph', content: '3. 申请证据保全，对贵方的侵权产品、财务账册等进行查封扣押；' },
+      { type: 'paragraph', content: '4. 要求承担全部诉讼费用、律师费用及权利人的其他损失；' },
+      { type: 'paragraph', content: '5. 向有关行政主管部门举报，请求行政处罚。' },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '同时，我方将对贵方的侵权行为进行公证取证，并保留向有关行政主管部门举报的权利。'
+      },
       { type: 'empty' },
       {
         type: 'paragraph',
         content: '望贵方慎重考虑，妥善处理，以免造成不必要的法律纠纷和经济损失。'
       },
       { type: 'empty' },
+      { type: 'paragraph', content: '本函以{{送达方式}}方式送达，送达之日即为收到之日。' },
+      { type: 'paragraph', content: '如贵方对本函内容有异议，可在收到本函后{{异议期限}}日内向本所提出书面异议并提供相应证据。' },
+      { type: 'empty' },
       { type: 'paragraph', content: '特此函告！', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{律师事务所名称}}', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}（盖章）', indent: false },
       { type: 'paragraph', content: '律师：{{律师姓名}}', indent: false },
       { type: 'paragraph', content: '执业证号：{{执业证号}}', indent: false },
       { type: 'paragraph', content: '联系电话：{{联系电话}}', indent: false },
+      { type: 'paragraph', content: '传真：{{传真号码}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{律师邮箱}}', indent: false },
       { type: 'paragraph', content: '地址：{{律所地址}}', indent: false },
+      { type: 'paragraph', content: '邮政编码：{{邮政编码}}', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{日期}}', indent: false }
+      { type: 'paragraph', content: '{{日期}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '附件：{{附件清单}}', indent: false },
+      { type: 'paragraph', content: '1. {{权利证书1}}复印件（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '2. {{权利证书2}}复印件（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '3. {{侵权证据1}}（{{页数}}页）', indent: false }
     ]
   },
 
@@ -169,50 +307,109 @@ export const 律师函模板 = {
     description: '用于处理劳动争议的律师函',
     scene: '劳动纠纷',
     sections: [
-      { type: 'paragraph', content: '{{公司名称}}：', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}劳动争议律师函', indent: false, style: 'center' },
+      { type: 'paragraph', content: '（{{年份}}）{{律所简称}}律劳字第{{函件编号}}号', indent: false, style: 'center' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '致：{{公司名称}}', indent: false },
+      { type: 'paragraph', content: '地址：{{公司地址}}', indent: false },
+      { type: 'paragraph', content: '法定代表人：{{法定代表人}}', indent: false },
+      { type: 'paragraph', content: '人力资源部负责人：{{人力资源部负责人}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{公司电话}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{公司邮箱}}', indent: false },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '{{律师事务所名称}}接受{{员工姓名}}的委托，就贵公司与{{员工姓名}}之间的劳动争议一事，特致函如下：'
+        content: '{{律师事务所名称}}接受{{员工姓名}}（以下简称"委托人"）的委托，指派本所{{律师姓名}}律师（执业证号：{{律师执业证号}}），就贵公司与委托人之间的劳动争议一事，特致函如下：'
       },
       { type: 'empty' },
       { type: 'heading', content: '一、基本事实' },
-      { type: 'paragraph', content: '{{员工姓名}}于{{入职日期}}入职贵公司，担任{{岗位名称}}职务。' },
+      { type: 'paragraph', content: '委托人于{{入职日期}}入职贵公司，担任{{岗位名称}}职务，月工资人民币{{工资金额}}元。' },
+      { type: 'paragraph', content: '双方签订了{{劳动合同类型}}，劳动合同期限自{{合同开始日期}}至{{合同结束日期}}。' },
       { type: 'paragraph', content: '{{劳动关系详情}}' },
       { type: 'paragraph', content: '{{争议事实描述}}' },
+      { type: 'paragraph', content: '上述事实有{{劳动合同}}、{{工资条}}、{{工作记录}}等证据材料予以证实（详见附件清单）。' },
       { type: 'empty' },
       { type: 'heading', content: '二、法律分析' },
       {
         type: 'paragraph',
-        content: '根据《中华人民共和国劳动合同法》第{{条款}}条的规定："{{法律条文内容}}"'
+        content: '根据《中华人民共和国劳动合同法》第{{条款}}条的规定："{{法律条文内容}}"。'
       },
-      { type: 'paragraph', content: '贵公司的行为{{违法性分析}}。' },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国劳动合同法》第{{条款2}}条的规定："{{法律条文内容2}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国劳动合同法实施条例》第{{实施条例条款}}条的规定："{{实施条例内容}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《最高人民法院关于审理劳动争议案件适用法律若干问题的解释（一）》第{{司法解释条款}}条的规定："{{司法解释内容}}"。'
+      },
+      {
+        type: 'paragraph',
+        content: '根据《中华人民共和国劳动法》第{{条款}}条的规定："{{法律条文内容}}"。'
+      },
+      { type: 'paragraph', content: '贵公司的行为{{违法性分析}}，违反了上述法律规定，依法应当承担相应的法律责任，包括但不限于支付工资、经济补偿金、赔偿金、补缴社会保险等。' },
+      { type: 'paragraph', content: '根据相关法律规定，用人单位违法解除或终止劳动合同的，应当向劳动者支付赔偿金，标准为经济补偿金的两倍。' },
       { type: 'empty' },
-      { type: 'heading', content: '三、律师要求' },
-      { type: 'paragraph', content: '请贵公司在收到本函后{{处理期限}}日内：' },
+      { type: 'heading', content: '三、赔偿计算' },
+      { type: 'paragraph', content: '根据相关法律规定，贵公司应向委托人支付以下款项：' },
+      { type: 'paragraph', content: '1. 拖欠工资：人民币{{拖欠工资金额}}元（自{{拖欠起始日期}}至{{拖欠结束日期}}）；' },
+      { type: 'paragraph', content: '2. 未签订劳动合同的双倍工资差额：人民币{{双倍工资差额金额}}元（自{{应签订日期}}至{{实际签订日期}}，共{{月数}}个月）；' },
+      { type: 'paragraph', content: '3. 未休年休假工资：人民币{{年休假工资金额}}元；' },
+      { type: 'paragraph', content: '4. 加班费：人民币{{加班费金额}}元；' },
+      { type: 'paragraph', content: '5. 经济补偿金：按委托人在贵公司工作年限计算，工作{{工作年限}}年，应支付{{月数}}个月工资，计人民币{{经济补偿金金额}}元；' },
+      { type: 'paragraph', content: '6. 赔偿金：因贵公司违法解除劳动合同，应支付赔偿金人民币{{赔偿金金额}}元（经济补偿金的二倍）；' },
+      { type: 'paragraph', content: '7. 未缴纳社会保险的损失：人民币{{社保损失金额}}元；' },
+      { type: 'paragraph', content: '8. 以上各项合计：人民币{{总金额}}元（大写：{{总金额大写}}）。' },
+      { type: 'paragraph', content: '注：上述计算依据为委托人提供的证据材料，最终数额以劳动争议仲裁委员会或人民法院的裁决/判决为准。' },
+      { type: 'empty' },
+      { type: 'heading', content: '四、律师要求' },
+      { type: 'paragraph', content: '请贵公司在收到本函后{{处理期限}}日内（即{{具体截止日期}}前）：' },
       { type: 'paragraph', content: '1. {{具体要求1}}；' },
       { type: 'paragraph', content: '2. {{具体要求2}}；' },
-      { type: 'paragraph', content: '3. 支付{{赔偿项目}}人民币{{金额}}元。' },
+      { type: 'paragraph', content: '3. 支付{{赔偿项目}}人民币{{金额}}元；' },
+      { type: 'paragraph', content: '4. 为委托人办理{{其他手续}}；' },
+      { type: 'paragraph', content: '5. 向委托人出具解除或终止劳动合同证明。' },
       { type: 'empty' },
       { type: 'paragraph', content: '如贵公司逾期未履行上述要求，我方将依法采取以下法律措施：' },
       { type: 'paragraph', content: '1. 向劳动争议仲裁委员会申请仲裁；' },
       { type: 'paragraph', content: '2. 向人民法院提起诉讼；' },
-      { type: 'paragraph', content: '3. 申请媒体曝光，维护当事人合法权益。' },
+      { type: 'paragraph', content: '3. 申请劳动监察部门介入调查；' },
+      { type: 'paragraph', content: '4. 通过媒体曝光，维护委托人合法权益；' },
+      { type: 'paragraph', content: '5. 申请将贵公司列入劳动保障守法诚信等级评价黑名单。' },
       { type: 'empty' },
       {
         type: 'paragraph',
-        content: '望贵公司本着合法、公平的原则，妥善处理此事，以免造成不必要的法律风险。'
+        content: '同时，我方将对贵公司的违法行为进行证据保全，并保留追究贵公司其他法律责任的权利。'
       },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '望贵公司本着合法、公平的原则，妥善处理此事，以免造成不必要的法律风险和经济损失。'
+      },
+      { type: 'empty' },
+      { type: 'paragraph', content: '本函以{{送达方式}}方式送达，送达之日即为收到之日。' },
+      { type: 'paragraph', content: '如贵公司对本函内容有异议，可在收到本函后{{异议期限}}日内向本所提出书面异议并提供相应证据。' },
       { type: 'empty' },
       { type: 'paragraph', content: '特此函告！', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{律师事务所名称}}', indent: false },
+      { type: 'paragraph', content: '{{律师事务所名称}}（盖章）', indent: false },
       { type: 'paragraph', content: '律师：{{律师姓名}}', indent: false },
       { type: 'paragraph', content: '执业证号：{{执业证号}}', indent: false },
       { type: 'paragraph', content: '联系电话：{{联系电话}}', indent: false },
+      { type: 'paragraph', content: '传真：{{传真号码}}', indent: false },
+      { type: 'paragraph', content: '电子邮箱：{{律师邮箱}}', indent: false },
       { type: 'paragraph', content: '地址：{{律所地址}}', indent: false },
+      { type: 'paragraph', content: '邮政编码：{{邮政编码}}', indent: false },
       { type: 'empty' },
-      { type: 'paragraph', content: '{{日期}}', indent: false }
+      { type: 'paragraph', content: '{{日期}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '附件：{{附件清单}}', indent: false },
+      { type: 'paragraph', content: '1. {{劳动合同}}复印件（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '2. {{工资条}}复印件（{{页数}}页）', indent: false },
+      { type: 'paragraph', content: '3. {{工作记录}}复印件（{{页数}}页）', indent: false }
     ]
   }
 }
