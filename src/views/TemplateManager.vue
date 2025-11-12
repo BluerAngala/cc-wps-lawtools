@@ -70,71 +70,72 @@
                 hoverable
                 class="min-w-0"
               >
-                <!-- 标题行（包含按钮） -->
-                <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-                  <div class="flex items-center gap-2 flex-1 min-w-0">
-                    <span 
-                      class="font-semibold text-base truncate"
-                      :title="template.name"
-                    >
-                      {{ template.name }}
-                    </span>
-                    <n-tag v-if="template.isBuiltIn" type="success" size="small">
-                      内置
-                    </n-tag>
-                  </div>
-                  <!-- 按钮组（放在右侧） -->
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                    <n-button
-                      size="small"
-                      type="primary"
-                      @click="applyTemplate(template, 'current')"
-                    >
-                      插入本文档
-                    </n-button>
-                    <n-button
-                      size="small"
-                      @click="applyTemplate(template, 'new')"
-                    >
-                      新建文档
-                    </n-button>
-                    <n-button
-                      v-if="!template.isBuiltIn"
-                      size="small"
-                      type="info"
-                      quaternary
-                      @click="editTemplate(template)"
-                    >
-                      编辑
-                    </n-button>
-                    <n-popconfirm
-                      v-if="!template.isBuiltIn"
-                      @positive-click="deleteTemplate(template)"
-                    >
-                      <template #trigger>
-                        <n-button
-                          size="small"
-                          type="error"
-                          quaternary
-                        >
-                          删除
-                        </n-button>
-                      </template>
-                      确定删除此模板吗？
-                    </n-popconfirm>
-                  </div>
+                <!-- 标题行 -->
+                <div class="flex items-center gap-2 mb-2">
+                  <span 
+                    class="font-semibold text-base flex-1"
+                    :title="template.name"
+                  >
+                    {{ template.name }}
+                  </span>
+                  <n-tag v-if="template.isBuiltIn" type="success" size="small">
+                    内置
+                  </n-tag>
                 </div>
+                
                 <!-- 描述 -->
                 <div 
-                  class="text-sm text-gray-600 mb-1 line-clamp-2 overflow-hidden"
+                  class="text-sm text-gray-600 mb-2 line-clamp-2 overflow-hidden"
                   :title="template.description"
                 >
                   {{ template.description }}
                 </div>
+                
                 <!-- 使用场景 -->
-                <div v-if="template.scene" class="text-xs text-gray-500">
+                <div v-if="template.scene" class="text-xs text-gray-500 mb-3">
                   <span class="font-medium">使用场景：</span>
                   {{ template.scene }}
+                </div>
+                
+                <!-- 按钮组 -->
+                <div class="grid gap-2" :class="template.isBuiltIn ? 'grid-cols-2' : 'grid-cols-4'">
+                  <n-button
+                    size="small"
+                    type="primary"
+                    @click="applyTemplate(template, 'current')"
+                  >
+                    插入本文
+                  </n-button>
+                  <n-button
+                    size="small"
+                    type="info"
+                    @click="applyTemplate(template, 'new')"
+                  >
+                    新建文档
+                  </n-button>
+                  <n-button
+                    v-if="!template.isBuiltIn"
+                    size="small"
+                    type="info"
+                    @click="editTemplate(template)"
+                  >
+                    编辑
+                  </n-button>
+                  <n-popconfirm
+                    v-if="!template.isBuiltIn"
+                    @positive-click="deleteTemplate(template)"
+                  >
+                    <template #trigger>
+                      <n-button
+                        size="small"
+                        type="error"
+                        class="w-full"
+                      >
+                        删除
+                      </n-button>
+                    </template>
+                    确定删除此模板吗？
+                  </n-popconfirm>
                 </div>
               </n-card>
             </n-space>
@@ -166,44 +167,40 @@
         :title="selectedTemplateId ? '更新模板' : '保存为模板'"
         style="width: 800px"
       >
-        <n-space vertical>
-          <n-form-item label="选择现有模板（可选）">
+        <n-space vertical :size="12">
+          <n-form-item label="选择现有模板（可选）" :show-feedback="false">
             <n-select 
               v-model:value="selectedTemplateId" 
               :options="customTemplateOptions"
               placeholder="选择要更新的模板，或留空创建新模板"
               clearable
+              size="small"
               @update:value="handleTemplateSelect"
             />
           </n-form-item>
           
-          <n-alert v-if="selectedTemplateId" type="info" :closable="false" show-icon>
+          <n-alert v-if="selectedTemplateId" type="info" :closable="false" show-icon size="small">
             将使用当前文档内容更新选中的模板
           </n-alert>
-          
-          <!-- 显示选中模板的内容预览 -->
-          <n-card v-if="selectedTemplateId && previewContent" size="small" title="原模板内容预览">
-            <n-scrollbar style="max-height: 200px">
-              <pre class="text-xs whitespace-pre-wrap">{{ previewContent }}</pre>
-            </n-scrollbar>
-          </n-card>
 
-          <n-form-item label="模板名称" required>
-            <n-input v-model:value="newTemplate.name" placeholder="请输入模板名称" />
+          <n-form-item label="模板名称" required :show-feedback="false">
+            <n-input v-model:value="newTemplate.name" placeholder="请输入模板名称" size="small" />
           </n-form-item>
-          <n-form-item label="模板分类">
+          <n-form-item label="模板分类" :show-feedback="false">
             <n-select 
               v-model:value="newTemplate.category" 
               :options="categoryOptions"
               placeholder="请选择分类"
+              size="small"
             />
           </n-form-item>
-          <n-form-item label="模板描述">
+          <n-form-item label="模板描述" :show-feedback="false">
             <n-input 
               v-model:value="newTemplate.description" 
               type="textarea" 
               placeholder="请输入模板描述（可选）"
-              :rows="3"
+              :rows="2"
+              size="small"
             />
           </n-form-item>
         </n-space>
@@ -236,9 +233,9 @@ import {
   NSelect,
   NCard,
   NEmpty,
-  NPopconfirm,
-  NScrollbar
+  NPopconfirm
 } from 'naive-ui'
+import { templateManager } from '../utils/templateManager.js'
 
 console.log('文档模板管理页面已加载')
 
@@ -310,54 +307,16 @@ const customTemplateOptions = computed(() => {
   return options
 })
 
-// 从配置文件加载模板配置
-const loadTemplateConfig = async () => {
-  try {
-    const response = await fetch('/templates/templates.json')
-    if (!response.ok) {
-      throw new Error('模板配置文件加载失败')
-    }
-    const data = await response.json()
-    return data.templates || []
-  } catch (error) {
-    console.error('加载模板配置失败:', error)
-    window.$message?.error('加载模板配置失败')
-    return []
-  }
-}
-
 // 获取模板文件的完整路径
 const getTemplateFilePath = (template) => {
-  // 如果模板有完整路径（自定义模板），使用完整路径
+  // 如果模板有完整路径，直接使用
   if (template.filePath) {
     return template.filePath
   }
-  // 内置模板使用相对路径
+  // 否则使用相对路径（兼容旧版本）
   const fileName = template.fileName || `${template.name}.docx`
   const baseUrl = window.location.origin
   return `${baseUrl}/templates/${fileName}`
-}
-
-// 加载所有内置模板（只加载配置，不加载内容）
-const loadBuiltInTemplates = async () => {
-  const configs = await loadTemplateConfig()
-  const templates = []
-  
-  for (const config of configs) {
-    templates.push({
-      id: config.id,
-      name: config.name,
-      category: config.category,
-      description: config.description,
-      scene: config.scene,
-      fileName: config.fileName,
-      isBuiltIn: config.isBuiltIn,
-      content: '' // 内容按需加载
-    })
-  }
-  
-  console.log(`成功加载 ${templates.length} 个内置模板配置`)
-  return templates
 }
 
 
@@ -513,20 +472,25 @@ const saveTemplate = async () => {
     const fs = window.Application.FileSystem
     
     // 获取配置目录（使用与 appConfig 相同的目录）
-    const homeDir = fs.homedir()
-    const configDir = fs.joinPath(homeDir, 'wps_addon_config')
-    const templatesDir = fs.joinPath(configDir, 'templates')
+    const homeDir = window.Application.Env.GetHomePath()
+    if (!homeDir) {
+      window.$message?.error('无法获取用户主目录')
+      return
+    }
+    
+    const configDir = homeDir.replace(/\\/g, '/').replace(/\/+$/, '') + '/wps_addon_config'
+    const templatesDir = configDir + '/templates'
     
     // 确保目录存在
     if (!fs.Exists(configDir)) {
-      fs.mkdir(configDir)
+      fs.Mkdir(configDir)
     }
     if (!fs.Exists(templatesDir)) {
-      fs.mkdir(templatesDir)
+      fs.Mkdir(templatesDir)
     }
     
     // 保存文档到配置目录
-    const templatePath = fs.joinPath(templatesDir, fileName)
+    const templatePath = templatesDir + '/' + fileName
     
     try {
       // 使用 SaveAs2 保存文档
@@ -543,7 +507,8 @@ const saveTemplate = async () => {
         filePath: templatePath, // 保存完整路径
         scene: newTemplate.value.scene || '',
         isBuiltIn: false, // 用户保存的模板标记为自定义
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
 
       if (selectedTemplateId.value) {
@@ -561,11 +526,15 @@ const saveTemplate = async () => {
         templates.value.push(template)
       }
 
-      // 保存到 WPS PluginStorage
-      saveTemplatesToStorage()
+      // 保存配置到文件系统
+      const saveResult = templateManager.saveTemplates(templates.value)
       
-      window.$message?.success(`模板"${templateName}"已保存到：${templatePath}`)
-      saveDialogVisible.value = false
+      if (saveResult) {
+        window.$message?.success(`模板"${templateName}"已保存`)
+        saveDialogVisible.value = false
+      } else {
+        window.$message?.error('保存模板配置失败')
+      }
     } catch (saveError) {
       console.error('保存文件失败:', saveError)
       window.$message?.error('保存文件失败: ' + saveError.message)
@@ -687,17 +656,17 @@ const deleteTemplate = (template) => {
   }
 }
 
-// 保存模板到 WPS 持久化存储
+// 保存模板配置
 const saveTemplatesToStorage = () => {
   try {
-    const allTemplates = templates.value
-    const dataToSave = JSON.stringify(allTemplates)
-    
-    window.Application.PluginStorage.setItem('law_templates', dataToSave)
-    console.log('模板已保存到 WPS PluginStorage')
+    const saveResult = templateManager.saveTemplates(templates.value)
+    if (saveResult) {
+      console.log('模板配置已保存')
+    } else {
+      console.error('保存模板配置失败')
+    }
   } catch (error) {
     console.error('保存模板失败:', error)
-    window.$message?.error('保存模板失败: ' + error.message)
   }
 }
 
@@ -729,23 +698,12 @@ const loadCategoriesFromStorage = () => {
   }
 }
 
-// 从 WPS 持久化存储加载模板
+// 从配置目录加载所有模板
 const loadTemplatesFromStorage = async () => {
   try {
-    // 先加载内置模板
-    const builtInTemplates = await loadBuiltInTemplates()
-    
-    const stored = window.Application.PluginStorage.getItem('law_templates')
-    
-    if (stored) {
-      const savedTemplates = JSON.parse(stored)
-      // 合并内置模板和保存的模板，去重
-      const builtInIds = builtInTemplates.map(t => t.id)
-      const customTemplates = savedTemplates.filter(t => !builtInIds.includes(t.id))
-      templates.value = [...builtInTemplates, ...customTemplates]
-    } else {
-      templates.value = [...builtInTemplates]
-    }
+    // 使用 templateManager 加载模板
+    const allTemplates = await templateManager.loadTemplates()
+    templates.value = allTemplates
     
     console.log('已加载模板:', templates.value.length, '个')
   } catch (error) {

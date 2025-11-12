@@ -16,6 +16,8 @@ import { NConfigProvider, NMessageProvider, NDialogProvider, useMessage, useDial
 import DocumentWatcher from './services/wps/DocumentWatcher.js'
 // 引入缓存管理器
 import { CacheManager } from './services/ai/CacheManager.js'
+// 引入模板管理器
+import { templateManager } from './utils/templateManager.js'
 
 // 引入页面组件
 import HomePage from './views/HomePage.vue'
@@ -98,14 +100,22 @@ onMounted(() => {
     if (window.Application) {
       documentWatcher.startWatching()
       console.log('文档监听器已启动，每次打开新文档将自动清除缓存')
+      
+      // 初始化模板（首次加载时复制内置模板到配置目录）
+      templateManager.initializeTemplates().then(() => {
+        console.log('模板初始化完成')
+      }).catch(error => {
+        console.error('模板初始化失败:', error)
+      })
     } else {
       console.warn('WPS Application对象未找到，文档监听器未启动')
     }
   }, 2000)
 
-  // 将缓存管理器和文档监听器暴露到全局，供其他组件使用
+  // 将缓存管理器、文档监听器和模板管理器暴露到全局，供其他组件使用
   window.cacheManager = cacheManager
   window.documentWatcher = documentWatcher
+  window.templateManager = templateManager
 })
 
 onUnmounted(() => {
