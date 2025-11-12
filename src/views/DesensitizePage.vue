@@ -135,7 +135,6 @@
 import { ref, computed } from 'vue'
 import {
   NConfigProvider,
-  NCard,
   NButton,
   NSpace,
   NTag,
@@ -283,22 +282,47 @@ const applyAllDesensitization = async () => {
     const selectedItems = sensitiveInfoList.value.filter(item => item.selected)
     console.log('开始应用脱敏，选中项:', selectedItems.length)
 
-    // 获取文档内容
-    let content = doc.Range().Text
-
-    // 逐个替换（从后往前替换，避免位置偏移）
+    // 使用 WPS 的查找替换功能，保留格式
     let replacedCount = 0
+    const selection = doc.Application.Selection
+    
     selectedItems.forEach(item => {
-      const regex = new RegExp(item.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
-      const beforeLength = content.length
-      content = content.replace(regex, item.desensitized)
-      if (content.length !== beforeLength) {
+      // 重置查找范围到文档开头
+      selection.HomeKey(6) // wdStory = 6，移动到文档开头
+      
+      const findObj = selection.Find
+      findObj.ClearFormatting()
+      findObj.Text = item.original
+      findObj.Replacement.ClearFormatting()
+      findObj.Replacement.Text = item.desensitized
+      findObj.Forward = true
+      findObj.Wrap = 1 // wdFindContinue = 1
+      findObj.Format = false
+      findObj.MatchCase = false
+      findObj.MatchWholeWord = false
+      findObj.MatchWildcards = false
+      findObj.MatchSoundsLike = false
+      findObj.MatchAllWordForms = false
+      
+      // 执行全部替换
+      const result = findObj.Execute(
+        undefined, // FindText (已设置)
+        undefined, // MatchCase (已设置)
+        undefined, // MatchWholeWord (已设置)
+        undefined, // MatchWildcards (已设置)
+        undefined, // MatchSoundsLike (已设置)
+        undefined, // MatchAllWordForms (已设置)
+        undefined, // Forward (已设置)
+        undefined, // Wrap (已设置)
+        undefined, // Format (已设置)
+        undefined, // ReplaceWith (已设置)
+        2 // Replace = 2 (wdReplaceAll，替换全部)
+      )
+      
+      if (result) {
         replacedCount++
       }
     })
-
-    // 更新文档内容
-    doc.Range().Text = content
 
     resultType.value = 'success'
     resultMessage.value = `成功脱敏 ${replacedCount} 个敏感信息`

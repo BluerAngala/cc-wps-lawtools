@@ -2,16 +2,16 @@
 
 // 核心敏感信息类型配置
 const SENSITIVE_PATTERNS = [
-  // 身份证号
+  // 身份证号（优先级最高，先匹配，18位）
   {
     type: '身份证号',
-    regex: /[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]/g,
+    regex: /(?<!\d)[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx](?!\d)/g,
     mask: (match) => match.replace(/(\d{6})\d{8}(\d{3}[0-9Xx])/, '$1********$2')
   },
-  // 手机号
+  // 手机号（11位，前后不能有数字）
   {
     type: '手机号',
-    regex: /1[3-9]\d{9}/g,
+    regex: /(?<!\d)1[3-9]\d{9}(?!\d)/g,
     mask: (match) => match.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
   },
   // 邮箱
@@ -23,11 +23,17 @@ const SENSITIVE_PATTERNS = [
       return name.charAt(0) + '***@' + domain
     }
   },
-  // 银行卡号
+  // 银行卡号（16-19位，前后不能有数字，排除身份证号）
   {
     type: '银行卡号',
-    regex: /[1-9]\d{15,18}/g,
-    mask: (match) => match.replace(/(\d{4})\d+(\d{4})/, '$1****$2')
+    regex: /(?<!\d)[1-9]\d{15,18}(?!\d)/g,
+    mask: (match) => {
+      // 排除身份证号（18位且符合身份证格式）
+      if (match.length === 18 && /^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/.test(match)) {
+        return match // 不处理，留给身份证号规则
+      }
+      return match.replace(/(\d{4})\d+(\d{4})/, '$1****$2')
+    }
   },
   // 姓名（简化版）
   {
@@ -57,7 +63,7 @@ export function desensitizeText(text) {
   }
 
   const sensitiveInfoList = []
-  let desensitizedText = text
+  const matchedTexts = new Set() // 记录已匹配的文本，避免重复
 
   // 处理预定义的敏感信息类型
   SENSITIVE_PATTERNS.forEach((pattern) => {
@@ -66,8 +72,18 @@ export function desensitizeText(text) {
 
     if (matches) {
       matches.forEach((match) => {
+        // 跳过已经匹配过的文本
+        if (matchedTexts.has(match)) {
+          return
+        }
+
         // 生成脱敏后的文本
         const desensitized = pattern.mask(match)
+
+        // 如果脱敏后的文本和原文本一样，说明这个匹配被跳过了（如银行卡号规则中的身份证号）
+        if (desensitized === match) {
+          return
+        }
 
         // 添加到敏感信息列表
         sensitiveInfoList.push({
@@ -76,10 +92,18 @@ export function desensitizeText(text) {
           type: pattern.type
         })
 
-        // 替换文本中的敏感信息
-        desensitizedText = desensitizedText.replace(match, desensitized)
+        // 记录已匹配的文本
+        matchedTexts.add(match)
       })
     }
+  })
+
+  // 生成脱敏后的文本
+  let desensitizedText = text
+  sensitiveInfoList.forEach((item) => {
+    // 使用全局替换
+    const regex = new RegExp(item.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+    desensitizedText = desensitizedText.replace(regex, item.desensitized)
   })
 
   return { desensitizedText, sensitiveInfoList }
