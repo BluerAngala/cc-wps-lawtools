@@ -10,7 +10,8 @@
 		"wps:build": "npx wpsjs build",
 		"preview": "vite preview",
 		"lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
-		"format": "prettier --write src/"
+		"format": "prettier --write src/",
+		"create-templates": "node scripts/create-template-docs.js"
 	},
 	"dependencies": {
 		"@vicons/ionicons5": "^0.13.0",
@@ -24,6 +25,7 @@
 		"@rushstack/eslint-patch": "^1.8.0",
 		"@vitejs/plugin-vue": "^5.0.5",
 		"@vue/eslint-config-prettier": "^9.0.0",
+		"docx": "^9.5.1",
 		"eslint": "^8.57.0",
 		"eslint-plugin-vue": "^9.23.0",
 		"prettier": "^3.6.2",

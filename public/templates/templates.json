@@ -1,0 +1,50 @@
+{
+  "templates": [
+    {
+      "id": "template_001",
+      "name": "民事起诉状",
+      "category": "诉讼文书",
+      "description": "适用于一般民事案件的起诉状模板",
+      "scene": "民事纠纷、合同纠纷、侵权纠纷等民事案件",
+      "fileName": "民事起诉状.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "template_002",
+      "name": "民事答辩状",
+      "category": "诉讼文书",
+      "description": "适用于民事案件的答辩状模板",
+      "scene": "作为被告方对原告起诉进行答辩",
+      "fileName": "民事答辩状.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "template_003",
+      "name": "代理词",
+      "category": "诉讼文书",
+      "description": "适用于民事案件的代理词模板",
+      "scene": "律师作为诉讼代理人在庭审中发表代理意见",
+      "fileName": "代理词.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "template_004",
+      "name": "劳动合同",
+      "category": "合同模板",
+      "description": "标准劳动合同模板",
+      "scene": "企业与员工签订劳动合同",
+      "fileName": "劳动合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "template_005",
+      "name": "律师函",
+      "category": "律师函",
+      "description": "通用律师函模板",
+      "scene": "律师代表委托人向对方发出法律警告或催告",
+      "fileName": "律师函.docx",
+      "isBuiltIn": true
+    }
+  ]
+}
+
