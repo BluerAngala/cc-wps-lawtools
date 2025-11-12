@@ -14,7 +14,10 @@ const getAIConfig = () => {
   return {
     apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
     baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
-    timeout: config.timeout || 120000 // 默认120秒
+    model: config.model || 'Qwen/Qwen2.5-7B-Instruct', // 改用更快的 Qwen2.5-7B 模型
+    timeout: config.timeout || 300000, // 增加到300秒（5分钟）
+    maxTokens: config.maxTokens || 8000, // 默认8000 tokens
+    temperature: config.temperature !== undefined ? config.temperature : 0.1 // 默认0.1
   }
 }
 
@@ -76,6 +79,10 @@ apiClient.interceptors.response.use(
         case 401:
           throw new Error('API 密钥无效或已过期，请在设置页面检查配置')
         case 403:
+          // 检查是否是余额不足
+          if (data?.code === 30011 || data?.message?.includes('insufficient') || data?.message?.includes('balance')) {
+            throw new Error(`余额不足或模型需要付费。当前模型: ${data?.message?.match(/model[:\s]+([^\s,]+)/)?.[1] || '未知'}\n建议：1) 充值后继续使用 2) 在设置中更换免费模型`)
+          }
           throw new Error('没有权限访问此 API，请检查 API 密钥权限')
         case 429:
           throw new Error('请求频率过高，请稍后重试')
@@ -98,17 +105,223 @@ apiClient.interceptors.response.use(
 )
 
 /**
- * 调用 SiliconFlow AI 处理文档内容
+ * 流式调用 SiliconFlow AI（SSE）
+ * @param {Object} params - 参数对象
+ * @param {Array} params.messages - 消息数组
+ * @param {string} params.model - 使用的模型名称
+ * @param {Function} params.onChunk - 接收数据块的回调函数 (chunk: string) => void
+ * @param {Function} params.onProgress - 接收进度信息的回调 ({stage: string, content: string}) => void
+ * @param {Object} params.options - 其他选项（temperature, max_tokens, response_format等）
+ * @returns {Promise<string>} 完整的响应内容
+ */
+async function streamChatCompletions({ messages, model, onChunk, onProgress, options = {} }) {
+  const config = getAIConfig()
+  const currentModel = model || options.model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
+  
+  const requestBody = {
+    model: currentModel,
+    messages,
+    stream: true,
+    temperature: options.temperature !== undefined ? options.temperature : config.temperature,
+    max_tokens: options.maxTokens || config.maxTokens
+  }
+
+  // 注意：JSON模式不支持流式输出，需要使用非流式
+  if (options.response_format) {
+    console.warn('检测到response_format，将使用非流式请求（JSON模式不支持流式）')
+    return await nonStreamChatCompletions({ messages, model: currentModel, options })
+  }
+
+  console.log('=== 流式请求详情 ===')
+  console.log('模型:', currentModel)
+  console.log('API地址:', config.baseUrl)
+  console.log('API Key:', config.apiKey ? `${config.apiKey.substring(0, 10)}...` : '未配置')
+  console.log('Temperature:', requestBody.temperature)
+  console.log('Max Tokens:', requestBody.max_tokens)
+  console.log('Messages 数量:', messages.length)
+  messages.forEach((msg, idx) => {
+    console.log(`  Message ${idx + 1} [${msg.role}]:`, msg.content.substring(0, 100) + '...')
+  })
+  console.log('Messages 总长度:', messages.reduce((sum, m) => sum + (m.content?.length || 0), 0))
+  console.log('==================')
+  
+  // 检查 API Key
+  if (!config.apiKey || config.apiKey.trim() === '') {
+    throw new Error('API Key 未配置，请在设置页面配置 AI API Key')
+  }
+
+  try {
+    if (onProgress) {
+      onProgress({ stage: '正在连接AI服务...', content: '' })
+    }
+
+    console.log('[流式] 开始发送请求...')
+
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log('[流式] 收到响应:', response.status, response.statusText)
+
+    if (!response.ok) {
+      console.error('[流式] 请求失败:', response.status, response.statusText)
+      const errorData = await response.json().catch(() => ({}))
+      const errorMsg = errorData.message || errorData.error || '请求失败'
+      console.error('[流式] 错误详情:', errorData)
+      
+      // 统一错误处理
+      if (response.status === 401) {
+        throw new Error('API 密钥无效或已过期，请在设置页面检查配置')
+      } else if (response.status === 429) {
+        throw new Error('请求频率过高，请稍后重试')
+      }
+      throw new Error(`HTTP ${response.status}: ${errorMsg}`)
+    }
+
+    console.log('[流式] 开始读取响应流...')
+    
+    if (onProgress) {
+      onProgress({ stage: '正在接收AI响应...', content: '' })
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let fullContent = ''
+    let buffer = ''
+    let chunkCount = 0
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        console.log('[流式] 读取完成，共接收', chunkCount, '个数据块')
+        break
+      }
+
+      chunkCount++
+      if (chunkCount === 1) {
+        console.log('[流式] 收到第一个数据块')
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (line.trim() === '') continue
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6)
+          if (data === '[DONE]') {
+            console.log('[流式] 收到结束标记 [DONE]')
+            continue
+          }
+
+          try {
+            const json = JSON.parse(data)
+            const delta = json.choices?.[0]?.delta?.content
+            if (delta) {
+              fullContent += delta
+              if (onChunk) {
+                onChunk(delta)
+              }
+              if (onProgress) {
+                onProgress({ stage: '正在接收AI响应...', content: fullContent })
+              }
+            }
+          } catch (e) {
+            console.warn('[流式] 解析SSE数据失败:', e, '原始数据:', data.substring(0, 100))
+          }
+        }
+      }
+    }
+
+    // 处理剩余的buffer
+    if (buffer.trim()) {
+      if (buffer.startsWith('data: ')) {
+        const data = buffer.slice(6)
+        if (data !== '[DONE]') {
+          try {
+            const json = JSON.parse(data)
+            const delta = json.choices?.[0]?.delta?.content
+            if (delta) {
+              fullContent += delta
+              if (onChunk) {
+                onChunk(delta)
+              }
+            }
+          } catch (e) {
+            console.warn('解析SSE数据失败:', e)
+          }
+        }
+      }
+    }
+
+    console.log('[流式] 响应接收完成，总长度:', fullContent.length, '字符')
+
+    if (onProgress) {
+      onProgress({ stage: '响应接收完成', content: fullContent })
+    }
+
+    return fullContent
+  } catch (error) {
+    console.error('[流式] 调用失败:', error)
+    console.error('[流式] 错误堆栈:', error.stack)
+    throw error
+  }
+}
+
+/**
+ * 非流式调用 SiliconFlow AI（用于JSON模式等场景）
+ * @param {Object} params - 参数对象
+ * @param {Array} params.messages - 消息数组
+ * @param {string} params.model - 使用的模型名称
+ * @param {Object} params.options - 其他选项（temperature, max_tokens, response_format等）
+ * @returns {Promise<string>} 完整的响应内容
+ */
+async function nonStreamChatCompletions({ messages, model, options = {} }) {
+  const config = getAIConfig()
+  const currentModel = model || options.model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
+  
+  const requestBody = {
+    model: currentModel,
+    messages,
+    stream: false,
+    temperature: options.temperature !== undefined ? options.temperature : config.temperature,
+    max_tokens: options.maxTokens || config.maxTokens
+  }
+
+  if (options.response_format) {
+    requestBody.response_format = options.response_format
+  }
+
+  try {
+    const response = await apiClient.post('/chat/completions', requestBody)
+    return response.data.choices[0].message.content
+  } catch (error) {
+    console.error('调用 SiliconFlow AI 时出错:', error)
+    throw error
+  }
+}
+
+/**
+ * 调用 SiliconFlow AI 处理文档内容（非流式，保持向后兼容）
  * @param {Object} params - 参数对象
  * @param {string} params.content - 要处理的文档内容
- * @param {string} params.model - 使用的模型名称，默认为 'moonshotai/Kimi-K2-Instruct-0905'
- * @returns {Promise<string>} AI 处理后的结果
+ * @param {string} params.model - 使用的模型名称，默认从配置读取
  * @returns {Promise<string>} AI 处理后的结果
  */
-async function processDocumentContent({ content, model = 'moonshotai/Kimi-K2-Instruct-0905' }) {
+async function processDocumentContent({ content, model }) {
+  const config = getAIConfig()
+  const currentModel = model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
+  
   try {
     const response = await apiClient.post('/chat/completions', {
-      model: model,
+      model: currentModel,
       messages: [
         {
           role: 'user',
@@ -129,14 +342,17 @@ async function processDocumentContent({ content, model = 'moonshotai/Kimi-K2-Ins
  * @param {Object} params - 参数对象
  * @param {string} params.content - 要处理的文档内容
  * @param {Array<string>} params.extractTags - 要提取的标签数组（可选）
- * @param {string} params.model - 使用的模型名称
+ * @param {string} params.model - 使用的模型名称，默认从配置读取
  * @returns {Promise<string>} AI 处理后的结果
  */
 async function processContractElements({
   content,
   extractTags,
-  model = 'moonshotai/Kimi-K2-Instruct-0905'
+  model
 }) {
+  const config = getAIConfig()
+  const currentModel = model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
+  
   try {
     let promptContent
 
@@ -162,7 +378,7 @@ async function processContractElements({
     }
 
     const response = await apiClient.post('/chat/completions', {
-      model: model,
+      model: currentModel,
       messages: [
         {
           role: 'system',
@@ -295,11 +511,56 @@ async function processContractReview({
  */
 async function getAvailableModels() {
   try {
-    const response = await apiClient.get('/models')
-    return response.data.data || []
+    const config = getAIConfig()
+    const response = await axios.get(`${config.baseUrl}/models`, {
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`
+      },
+      timeout: 10000
+    })
+    
+    // 过滤并排序模型列表
+    const models = response.data.data || []
+    
+    // 推荐的模型顺序（速度快、适合法律文档）
+    const recommendedModels = [
+      'Qwen/Qwen2.5-7B-Instruct',
+      'Qwen/Qwen2.5-14B-Instruct',
+      'Qwen/Qwen2.5-32B-Instruct',
+      'Qwen/Qwen2.5-72B-Instruct',
+      'deepseek-ai/DeepSeek-V3',
+      'deepseek-ai/DeepSeek-R1',
+      'Pro/THUDM/glm-4-9b-chat',
+      'THUDM/glm-4-9b-chat',
+      'meta-llama/Llama-3.3-70B-Instruct',
+      'meta-llama/Meta-Llama-3.1-8B-Instruct',
+      'meta-llama/Meta-Llama-3.1-70B-Instruct',
+      'meta-llama/Meta-Llama-3.1-405B-Instruct'
+    ]
+    
+    // 按推荐顺序排序
+    const sortedModels = models.sort((a, b) => {
+      const indexA = recommendedModels.indexOf(a.id)
+      const indexB = recommendedModels.indexOf(b.id)
+      
+      if (indexA === -1 && indexB === -1) return 0
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
+    
+    console.log('获取到模型列表:', sortedModels.length, '个模型')
+    return sortedModels
   } catch (error) {
     console.error('获取模型列表时出错:', error)
-    throw error
+    // 返回默认推荐模型列表
+    return [
+      { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5-7B-Instruct (推荐-快速)', owned_by: 'Qwen' },
+      { id: 'Qwen/Qwen2.5-14B-Instruct', name: 'Qwen2.5-14B-Instruct (推荐-平衡)', owned_by: 'Qwen' },
+      { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen2.5-72B-Instruct (推荐-强大)', owned_by: 'Qwen' },
+      { id: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek-V3 (高性能)', owned_by: 'DeepSeek' },
+      { id: 'Pro/THUDM/glm-4-9b-chat', name: 'GLM-4-9B (快速)', owned_by: 'THUDM' }
+    ]
   }
 }
 
@@ -313,6 +574,8 @@ async function test() {
 }
 
 export {
+  streamChatCompletions,
+  nonStreamChatCompletions,
   processDocumentContent,
   processContractElements,
   processContractReview,

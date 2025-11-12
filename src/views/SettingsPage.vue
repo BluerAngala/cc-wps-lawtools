@@ -32,20 +32,141 @@
                 <n-text>配置 AI 服务参数，修改后自动保存</n-text>
                 <n-button size="small" @click="resetTab('ai')">恢复默认</n-button>
               </div>
-              <n-form label-placement="left" label-width="120">
-                <n-form-item label="API Key">
-                  <n-input v-model:value="config.ai.apiKey" @update:value="autoSave" type="password" show-password-on="click" placeholder="请输入 API Key"/>
-                </n-form-item>
-                <n-form-item label="API 地址">
-                  <n-input v-model:value="config.ai.baseUrl" @update:value="autoSave" placeholder="https://api.siliconflow.cn/v1"/>
-                </n-form-item>
-                <n-form-item label="模型">
-                  <n-input v-model:value="config.ai.model" @update:value="autoSave" placeholder="moonshotai/Kimi-K2-Instruct-0905"/>
-                </n-form-item>
-                <n-form-item label="超时时间(ms)">
-                  <n-input-number v-model:value="config.ai.timeout" @update:value="autoSave" :min="5000" :max="120000" :step="1000" class="w-full"/>
-                </n-form-item>
-              </n-form>
+              
+              <n-space vertical size="large">
+                <!-- 基础配置 -->
+                <n-card title="基础配置" size="small" :bordered="false" class="bg-gray-50">
+                  <n-form label-placement="left" label-width="120">
+                    <n-form-item label="API Key">
+                      <n-input v-model:value="config.ai.apiKey" @update:value="autoSave" type="password" show-password-on="click" placeholder="请输入 API Key"/>
+                    </n-form-item>
+                    <n-form-item label="API 地址">
+                      <n-input v-model:value="config.ai.baseUrl" @update:value="autoSave" placeholder="https://api.siliconflow.cn/v1"/>
+                    </n-form-item>
+                    <n-form-item label="模型">
+                      <n-space vertical class="w-full">
+                        <n-select 
+                          v-model:value="config.ai.model" 
+                          @update:value="autoSave"
+                          :options="modelOptions"
+                          placeholder="选择模型"
+                          filterable
+                          :loading="loadingModels"
+                        >
+                          <template #empty>
+                            <n-empty description="未找到模型" size="small">
+                              <template #extra>
+                                <n-button size="small" @click="refreshModelList">
+                                  刷新列表
+                                </n-button>
+                              </template>
+                            </n-empty>
+                          </template>
+                        </n-select>
+                        <n-space size="small">
+                          <n-button size="tiny" @click="refreshModelList" :loading="loadingModels">
+                            <template #icon>
+                              <n-icon>
+                                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 20q-3.35 0-5.675-2.325T4 12q0-3.35 2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V4h2v7h-7V9h4.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12q0 2.5 1.75 4.25T12 18q1.925 0 3.475-1.1T17.65 14h2.1q-.7 2.65-2.85 4.325T12 20Z"/></svg>
+                              </n-icon>
+                            </template>
+                            刷新模型列表
+                          </n-button>
+                          <n-text depth="3" style="font-size: 12px;">
+                            {{ modelOptions.length }} 个可用模型
+                          </n-text>
+                        </n-space>
+                      </n-space>
+                      <template #feedback>
+                        <n-alert type="info" size="small" :show-icon="false" style="margin-top: 8px;">
+                          <n-text depth="3" style="font-size: 12px;">
+                            💡 <strong>推荐</strong>：Qwen2.5-7B/14B（速度快）｜<strong>高级</strong>：DeepSeek-V3/Qwen2.5-72B（功能强）
+                          </n-text>
+                        </n-alert>
+                      </template>
+                    </n-form-item>
+                  </n-form>
+                </n-card>
+
+                <!-- 高级配置 -->
+                <n-card title="高级配置" size="small" :bordered="false" class="bg-gray-50">
+                  <n-form label-placement="left" label-width="150">
+                    <n-form-item label="最大输出 Tokens">
+                      <n-input-number 
+                        v-model:value="config.ai.maxTokens" 
+                        @update:value="autoSave" 
+                        :min="1000" 
+                        :max="16000" 
+                        :step="1000" 
+                        class="w-full"
+                      >
+                        <template #suffix>
+                          <n-text depth="3" style="font-size: 12px;">tokens</n-text>
+                        </template>
+                      </n-input-number>
+                      <template #feedback>
+                        <n-text depth="3" style="font-size: 12px;">
+                          控制AI响应的最大长度。合同审查建议 8000+ tokens
+                        </n-text>
+                      </template>
+                    </n-form-item>
+
+                    <n-form-item label="Temperature">
+                      <n-slider 
+                        v-model:value="config.ai.temperature" 
+                        @update:value="autoSave" 
+                        :min="0" 
+                        :max="1" 
+                        :step="0.1"
+                        :marks="{ 0: '精确', 0.5: '平衡', 1: '创造' }"
+                      />
+                      <template #feedback>
+                        <n-text depth="3" style="font-size: 12px;">
+                          控制AI响应的随机性。法律文档建议 0.1-0.3
+                        </n-text>
+                      </template>
+                    </n-form-item>
+
+                    <n-form-item label="请求超时(秒)">
+                      <n-input-number 
+                        v-model:value="timeoutSeconds" 
+                        @update:value="updateTimeout" 
+                        :min="5" 
+                        :max="300" 
+                        :step="5" 
+                        class="w-full"
+                      >
+                        <template #suffix>
+                          <n-text depth="3" style="font-size: 12px;">秒</n-text>
+                        </template>
+                      </n-input-number>
+                      <template #feedback>
+                        <n-text depth="3" style="font-size: 12px;">
+                          长文档审查建议 60 秒以上
+                        </n-text>
+                      </template>
+                    </n-form-item>
+                  </n-form>
+                </n-card>
+
+                <!-- 当前配置预览 -->
+                <n-alert type="info" title="当前配置">
+                  <n-space vertical size="small">
+                    <n-text depth="3" style="font-size: 12px;">
+                      模型: {{ config.ai.model || '未配置' }}
+                    </n-text>
+                    <n-text depth="3" style="font-size: 12px;">
+                      最大输出: {{ config.ai.maxTokens || 8000 }} tokens
+                    </n-text>
+                    <n-text depth="3" style="font-size: 12px;">
+                      Temperature: {{ config.ai.temperature !== undefined ? config.ai.temperature : 0.1 }}
+                    </n-text>
+                    <n-text depth="3" style="font-size: 12px;">
+                      超时时间: {{ timeoutSeconds }} 秒
+                    </n-text>
+                  </n-space>
+                </n-alert>
+              </n-space>
             </n-tab-pane>
 
             <!-- 金山文档 -->
@@ -125,34 +246,114 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import {
   NConfigProvider, NMessageProvider, NCard, NTabs, NTabPane, NForm, NFormItem,
   NInput, NInputNumber, NSwitch, NButton, NIcon, NText,
-  NSpace, NUpload, NAlert
+  NSpace, NUpload, NAlert, NSlider, NSelect, NEmpty
 } from 'naive-ui'
 import { appConfig } from '../utils/appConfig.js'
-import { reinitializeAIClient } from '../services/ai/siliconflow.js'
+import { reinitializeAIClient, getAvailableModels } from '../services/ai/siliconflow.js'
 
 const activeTab = ref('ai')
 const config = ref({
-  ai: { apiKey: '', baseUrl: '', model: '', timeout: 120000 },
+  ai: { 
+    apiKey: '', 
+    baseUrl: '', 
+    model: '', 
+    timeout: 300000, // 增加到300秒（5分钟）
+    maxTokens: 8000,
+    temperature: 0.1 
+  },
   kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
   system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
 })
 const configPath = ref('')
+const modelOptions = ref([])
+const loadingModels = ref(false)
+
+// 超时时间（秒）的计算属性
+const timeoutSeconds = computed({
+  get: () => Math.round(config.value.ai.timeout / 1000),
+  set: (value) => {
+    config.value.ai.timeout = value * 1000
+    autoSave()
+  }
+})
 
 onMounted(() => {
   loadConfig()
+  loadModelList()
 })
+
+// 加载模型列表
+const loadModelList = async () => {
+  loadingModels.value = true
+  try {
+    const models = await getAvailableModels()
+    modelOptions.value = models.map(model => ({
+      label: model.name || model.id,
+      value: model.id,
+      tag: getModelTag(model.id)
+    }))
+    console.log('模型列表加载成功:', modelOptions.value.length, '个模型')
+  } catch (error) {
+    console.error('加载模型列表失败:', error)
+    // 使用默认模型列表
+    modelOptions.value = [
+      { label: 'Qwen2.5-7B-Instruct (推荐-快速)', value: 'Qwen/Qwen2.5-7B-Instruct', tag: '推荐' },
+      { label: 'Qwen2.5-14B-Instruct (推荐-平衡)', value: 'Qwen/Qwen2.5-14B-Instruct', tag: '推荐' },
+      { label: 'Qwen2.5-72B-Instruct (强大)', value: 'Qwen/Qwen2.5-72B-Instruct', tag: '高级' },
+      { label: 'DeepSeek-V3 (高性能)', value: 'deepseek-ai/DeepSeek-V3', tag: '高级' },
+      { label: 'GLM-4-9B (快速)', value: 'Pro/THUDM/glm-4-9b-chat', tag: '推荐' }
+    ]
+  } finally {
+    loadingModels.value = false
+  }
+}
+
+// 获取模型标签
+const getModelTag = (modelId) => {
+  if (modelId.includes('Qwen2.5-7B') || modelId.includes('Qwen2.5-14B') || modelId.includes('glm-4')) {
+    return '推荐'
+  }
+  if (modelId.includes('DeepSeek') || modelId.includes('Qwen2.5-72B')) {
+    return '高级'
+  }
+  return ''
+}
+
+// 刷新模型列表
+const refreshModelList = () => {
+  window.$message?.info('正在刷新模型列表...')
+  loadModelList()
+}
 
 // 加载配置
 const loadConfig = () => {
   try {
-    config.value = appConfig.getConfig()
+    const loadedConfig = appConfig.getConfig()
+    // 确保 AI 配置有默认值
+    config.value = {
+      ...loadedConfig,
+      ai: {
+        apiKey: loadedConfig.ai?.apiKey || '',
+        baseUrl: loadedConfig.ai?.baseUrl || '',
+        model: loadedConfig.ai?.model || '',
+        timeout: loadedConfig.ai?.timeout || 180000, // 增加到180秒（3分钟）
+        maxTokens: loadedConfig.ai?.maxTokens || 8000,
+        temperature: loadedConfig.ai?.temperature !== undefined ? loadedConfig.ai.temperature : 0.1
+      }
+    }
   } catch (error) {
     console.error('加载配置失败:', error)
   }
+}
+
+// 更新超时时间（从秒转换为毫秒）
+const updateTimeout = (value) => {
+  config.value.ai.timeout = value * 1000
+  autoSave()
 }
 
 // 自动保存配置
@@ -172,7 +373,14 @@ const autoSave = () => {
 // 重置当前标签页
 const resetTab = (tab) => {
   const defaults = {
-    ai: { apiKey: '', baseUrl: 'https://api.siliconflow.cn/v1', model: 'moonshotai/Kimi-K2-Instruct-0905', timeout: 120000 },
+    ai: { 
+      apiKey: '', 
+      baseUrl: 'https://api.siliconflow.cn/v1', 
+      model: 'Qwen/Qwen2.5-7B-Instruct', // 改用更快的模型
+      timeout: 300000, // 增加到300秒（5分钟）
+      maxTokens: 8000,
+      temperature: 0.1
+    },
     kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
     system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
   }

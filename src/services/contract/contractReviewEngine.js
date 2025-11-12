@@ -56,7 +56,7 @@ export class ContractReviewEngine {
   }
 
   /**
-   * 分段审查（推荐策略）
+   * 分段审查（优化策略：分层审查 + 并行处理）
    */
   async reviewBySegments(segments, fullText, contractType, options) {
     // 生成审查清单（统一使用同一份以确保ID稳定）
@@ -75,47 +75,122 @@ export class ContractReviewEngine {
 
     const reviewedItems = new Set() // 去重
 
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i]
-      console.log(`[审查引擎] 审查第 ${i + 1}/${segments.length} 段: ${segment.section.title}`)
-
+    // 阶段1：全局分析（识别高风险区域）
+    let riskAreas = []
+    if (options.enableGlobalAnalysis !== false) {
       try {
-        // 审查当前段（带完整上下文）
-        const segmentResult = await this.reviewSegment(
-          segment,
-          fullText, // 传递全文，用于上下文理解
-          contractType,
-          reviewedItems,
-          options,
-          checklist
+        console.log(`[审查引擎] 开始全局分析...`)
+        if (options.onProgress) {
+          // 兼容旧格式和新格式
+          if (typeof options.onProgress === 'function') {
+            const progressArg = { stage: '全局分析中...', current: 0, total: segments.length }
+            // 尝试新格式（对象）
+            try {
+              options.onProgress(progressArg)
+            } catch {
+              // 降级到旧格式（current, total, segment, result）
+              options.onProgress(0, segments.length)
+            }
+          }
+        }
+        
+        const globalAnalysis = await this.aiService.analyzeGlobal(fullText)
+        riskAreas = globalAnalysis.riskAreas || []
+        console.log(`[审查引擎] 全局分析完成，识别到 ${riskAreas.length} 个风险区域`)
+        
+        // 更新合同类型（如果全局分析返回了更准确的信息）
+        if (globalAnalysis.type && globalAnalysis.type !== '未知') {
+          contractType.type = globalAnalysis.type
+          contractType.subtype = globalAnalysis.subtype || contractType.subtype
+        }
+      } catch (error) {
+        console.warn(`[审查引擎] 全局分析失败，继续使用分段审查:`, error)
+      }
+    }
+
+    // 阶段2：根据风险区域优先级进行审查
+    // 将段按照风险等级分组
+    const segmentGroups = this.groupSegmentsByRisk(segments, riskAreas)
+
+    // 先审查高风险区域（批量并行，每批3个）
+    if (segmentGroups.high.length > 0) {
+      console.log(`[审查引擎] 开始审查高风险区域（${segmentGroups.high.length} 段），批量并行处理...`)
+      if (options.onProgress) {
+        try {
+          options.onProgress({ stage: '审查高风险区域...', current: 0, total: segments.length })
+        } catch {
+          options.onProgress(0, segments.length)
+        }
+      }
+
+      const batchSize = 3
+      for (let i = 0; i < segmentGroups.high.length; i += batchSize) {
+        const batch = segmentGroups.high.slice(i, i + batchSize)
+        console.log(`[审查引擎] 处理高风险批次 ${Math.floor(i/batchSize) + 1}/${Math.ceil(segmentGroups.high.length/batchSize)}，${batch.length} 段并行`)
+        
+        const batchResults = await Promise.allSettled(
+          batch.map((segment, batchIndex) =>
+            this.reviewSegmentWithProgress(segment, fullText, contractType, reviewedItems, options, checklist, i + batchIndex, segmentGroups.high.length)
+          )
         )
 
-        // 合并结果
-        this.mergeResults(results, segmentResult)
-
-        // 立即应用批注（如果启用）
-        if (options.autoApply && segmentResult.issues.length > 0) {
-          const appliedCount = await this.applyComments(segment, segmentResult.issues)
-          console.log(`[审查引擎] 已应用批注: ${appliedCount}/${segmentResult.issues.length} 个`)
-        }
-
-        // 记录段结果（不记录segment标题，避免暴露内部分段信息）
-        results.segments.push({
-          issues: segmentResult.issues.length,
-          risks: segmentResult.risks.length,
-          applied: options.autoApply ? segmentResult.issues.length : 0,
-          checklistStats: segmentResult.checklistStats || {}
+        // 处理高风险区域结果
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            this.mergeResults(results, result.value.segmentResult)
+            results.segments.push(result.value.segmentInfo)
+          } else {
+            console.error(`[审查引擎] 高风险区域审查失败:`, result.reason)
+            results.segments.push({ error: result.reason?.message || '未知错误' })
+          }
         })
 
         // 进度回调
         if (options.onProgress) {
-          options.onProgress(i + 1, segments.length, segment, segmentResult)
+          const current = Math.min(i + batchSize, segmentGroups.high.length)
+          options.onProgress({ 
+            stage: '审查高风险区域...', 
+            current, 
+            total: segments.length 
+          })
         }
-      } catch (error) {
-        console.error(`[审查引擎] 审查第 ${i + 1} 段失败:`, error)
-        results.segments.push({
-          error: error.message
+      }
+    }
+
+    // 再审查中低风险区域（串行或小批量并行）
+    const remainingSegments = [...segmentGroups.medium, ...segmentGroups.low]
+    if (remainingSegments.length > 0) {
+      console.log(`[审查引擎] 开始审查中低风险区域（${remainingSegments.length} 段）...`)
+      
+      // 小批量并行（每批3个）
+      const batchSize = 3
+      for (let i = 0; i < remainingSegments.length; i += batchSize) {
+        const batch = remainingSegments.slice(i, i + batchSize)
+        const batchResults = await Promise.allSettled(
+          batch.map((segment, batchIndex) =>
+            this.reviewSegmentWithProgress(segment, fullText, contractType, reviewedItems, options, checklist, i + batchIndex, remainingSegments.length)
+          )
+        )
+
+        batchResults.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            this.mergeResults(results, result.value.segmentResult)
+            results.segments.push(result.value.segmentInfo)
+          } else {
+            console.error(`[审查引擎] 中低风险区域审查失败:`, result.reason)
+            results.segments.push({ error: result.reason?.message || '未知错误' })
+          }
         })
+
+        // 进度回调
+        if (options.onProgress) {
+          const current = Math.min(i + batchSize, remainingSegments.length)
+          options.onProgress({ 
+            stage: '审查中低风险区域...', 
+            current: segmentGroups.high.length + current, 
+            total: segments.length 
+          })
+        }
       }
     }
 
@@ -129,6 +204,71 @@ export class ContractReviewEngine {
     results.checklistSummary = this.buildChecklistStats(results.issues)
 
     return results
+  }
+
+  /**
+   * 根据风险区域将段分组
+   */
+  groupSegmentsByRisk(segments, riskAreas) {
+    const groups = { high: [], medium: [], low: [] }
+
+    // 构建风险区域映射
+    const riskMap = new Map()
+    riskAreas.forEach(area => {
+      riskMap.set(area.section, area.riskLevel)
+    })
+
+    segments.forEach(segment => {
+      const sectionTitle = segment.section.title
+      const riskLevel = riskMap.get(sectionTitle) || 'low'
+      
+      if (riskLevel === 'high') {
+        groups.high.push(segment)
+      } else if (riskLevel === 'medium') {
+        groups.medium.push(segment)
+      } else {
+        groups.low.push(segment)
+      }
+    })
+
+    return groups
+  }
+
+  /**
+   * 审查段（带进度信息）
+   */
+  async reviewSegmentWithProgress(segment, fullText, contractType, reviewedItems, options, checklist, currentIndex, total) {
+    console.log(`[审查引擎] 审查段 ${currentIndex + 1}/${total}: ${segment.section.title}`)
+
+    try {
+      const segmentResult = await this.reviewSegment(
+        segment,
+        fullText,
+        contractType,
+        reviewedItems,
+        options,
+        checklist
+      )
+
+      // 立即应用批注（如果启用）
+      if (options.autoApply && segmentResult.issues.length > 0) {
+        const appliedCount = await this.applyComments(segment, segmentResult.issues)
+        console.log(`[审查引擎] 已应用批注: ${appliedCount}/${segmentResult.issues.length} 个`)
+      }
+
+      return {
+        segmentResult,
+        segmentInfo: {
+          issues: segmentResult.issues.length,
+          risks: segmentResult.risks.length,
+          applied: options.autoApply ? segmentResult.issues.length : 0,
+          checklistStats: segmentResult.checklistStats || {}
+        }
+      }
+    } catch (error) {
+      console.error(`[审查引擎] 审查段失败:`, error)
+      throw error
+    }
   }
 
   /**

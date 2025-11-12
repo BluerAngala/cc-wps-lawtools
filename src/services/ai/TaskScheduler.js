@@ -320,11 +320,33 @@ export class TaskScheduler {
 
   /**
    * 调用AI服务
+   * @param {string|Array} promptOrMessages - 提示词字符串或消息数组
+   * @param {Object} options - 选项
+   * @param {string} options.model - 模型名称
+   * @param {number} options.maxTokens - 最大token数
+   * @param {number} options.temperature - 温度参数
+   * @param {number} options.timeout - 超时时间
+   * @param {Object} options.response_format - 响应格式，如 {type: "json_object"}
+   * @param {Array} options.messages - 消息数组（如果提供，会覆盖 promptOrMessages）
    */
-  async callAI(prompt, options = {}) {
+  async callAI(promptOrMessages, options = {}) {
     const model = options.model || this.aiConfig.defaultModel
 
-    console.log(`准备调用AI - 模型: ${model}, Prompt长度: ${prompt.length}字符`)
+    // 构建 messages 数组
+    let messages = []
+    if (options.messages && Array.isArray(options.messages)) {
+      messages = options.messages
+    } else if (typeof promptOrMessages === 'string') {
+      // 兼容旧方式：字符串 prompt
+      messages = [{ role: 'user', content: promptOrMessages }]
+    } else if (Array.isArray(promptOrMessages)) {
+      messages = promptOrMessages
+    } else {
+      throw new Error('promptOrMessages 必须是字符串或消息数组')
+    }
+
+    const promptLength = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0)
+    console.log(`准备调用AI - 模型: ${model}, Messages数量: ${messages.length}, 总长度: ${promptLength}字符`)
 
     for (let attempt = 0; attempt < this.aiConfig.maxRetries; attempt++) {
       try {
@@ -344,12 +366,20 @@ export class TaskScheduler {
           }
         })
         
-        const response = await tempClient.post('/chat/completions', {
+        // 构建请求体
+        const requestBody = {
           model,
-          messages: [{ role: 'user', content: prompt }],
+          messages,
           max_tokens: options.maxTokens || this.aiConfig.maxTokensPerChunk,
           temperature: options.temperature !== undefined ? options.temperature : 0.1
-        })
+        }
+
+        // 如果指定了 response_format，添加到请求中
+        if (options.response_format) {
+          requestBody.response_format = options.response_format
+        }
+        
+        const response = await tempClient.post('/chat/completions', requestBody)
 
         console.log('AI调用成功，响应长度:', response.data.choices[0].message.content.length)
         return response.data.choices[0].message.content

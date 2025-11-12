@@ -1,6 +1,6 @@
 <template>
   <n-config-provider>
-    <div class="p-2.5 h-screen overflow-y-auto scrollbar-none">
+    <div class="p-1.5 h-screen overflow-y-auto scrollbar-none">
       <!-- 标题卡片 -->
       <div class="wps-card wps-section">
         <div class="flex items-center justify-between mb-4">
@@ -27,7 +27,7 @@
       </div>
 
       <!-- 扫描选项 -->
-      <div class="wps-card wps-section mt-4">
+      <div class="wps-card wps-section mt-2">
         <n-space vertical>
           <div class="text-sm font-semibold mb-2">扫描选项</div>
           <n-radio-group v-model:value="scanStrategy">
@@ -47,7 +47,7 @@
       </div>
 
       <!-- 扫描进度 -->
-      <div v-if="isScanning" class="wps-card wps-section mt-4">
+      <div v-if="isScanning" class="wps-card wps-section mt-2">
         <n-space vertical>
           <div class="flex items-center gap-2">
             <n-spin size="small" />
@@ -62,11 +62,17 @@
           <div v-if="scanProgress.current > 0" class="text-xs text-gray-500">
             进度: {{ scanProgress.current }} / {{ scanProgress.total }}
           </div>
+          
+          <!-- 实时AI响应预览 -->
+          <div v-if="realtimeResponse" class="mt-3 p-3 bg-gray-50 rounded text-xs max-h-40 overflow-y-auto scrollbar-thin">
+            <div class="text-gray-600 mb-1">AI 实时响应:</div>
+            <div class="whitespace-pre-wrap text-gray-800">{{ realtimeResponse }}</div>
+          </div>
         </n-space>
       </div>
 
       <!-- 合同类型识别结果 -->
-      <div v-if="contractType" class="wps-card wps-section mt-4">
+      <div v-if="contractType" class="wps-card wps-section mt-2">
         <n-space align="center">
           <span class="text-sm font-semibold">识别的合同类型:</span>
           <n-tag type="primary">{{ contractType }}</n-tag>
@@ -74,7 +80,7 @@
       </div>
 
       <!-- 扫描结果 -->
-      <div v-if="scanResult" class="mt-4">
+      <div v-if="scanResult" class="mt-2">
         <!-- 风险统计 -->
         <div class="wps-card wps-section">
           <div class="text-base font-semibold mb-4">📊 风险统计</div>
@@ -92,7 +98,7 @@
         </div>
 
         <!-- 审查清单 -->
-        <div v-if="scanResult.checklist && scanResult.checklist.length > 0" class="wps-card wps-section mt-4">
+        <div v-if="scanResult.checklist && scanResult.checklist.length > 0" class="wps-card wps-section mt-2">
           <div class="text-base font-semibold mb-4">📋 审查清单</div>
           <n-list bordered>
             <n-list-item v-for="(item, index) in scanResult.checklist" :key="index">
@@ -118,7 +124,7 @@
         </div>
 
         <!-- 检测到的问题 -->
-        <div v-if="scanResult.issues && scanResult.issues.length > 0" class="wps-card wps-section mt-4">
+        <div v-if="scanResult.issues && scanResult.issues.length > 0" class="wps-card wps-section mt-2">
           <div class="text-base font-semibold mb-4">⚠️ 检测到的问题 ({{ scanResult.issues.length }})</div>
           <n-collapse>
             <n-collapse-item v-for="(issue, index) in scanResult.issues" :key="index">
@@ -146,7 +152,7 @@
         </div>
 
         <!-- 风险提示 -->
-        <div v-if="scanResult.risks && scanResult.risks.length > 0" class="wps-card wps-section mt-4">
+        <div v-if="scanResult.risks && scanResult.risks.length > 0" class="wps-card wps-section mt-2">
           <div class="text-base font-semibold mb-4">🚨 风险提示 ({{ scanResult.risks.length }})</div>
           <n-space vertical>
             <n-alert 
@@ -179,7 +185,7 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="!isScanning && scanned" class="wps-card wps-section mt-4">
+      <div v-else-if="!isScanning && scanned" class="wps-card wps-section mt-2">
         <n-empty description="未检测到风险" class="py-8">
           <template #icon>
             <span class="text-4xl">✅</span>
@@ -224,6 +230,7 @@ const scanProgress = ref({ current: 0, total: 0, stage: '' })
 const contractType = ref('') // 显示用的文本
 const contractTypeObj = ref(null) // 传递给审查引擎的完整对象
 const scanResult = ref(null)
+const realtimeResponse = ref('') // 实时AI响应内容
 
 // 创建审查引擎实例
 const reviewEngine = new ContractReviewEngine()
@@ -288,6 +295,7 @@ const startScan = async () => {
   scanned.value = false
   scanResult.value = null
   contractType.value = ''
+  realtimeResponse.value = ''
   scanProgress.value = { current: 0, total: 0, stage: '正在读取文档...' }
 
   try {
@@ -301,10 +309,30 @@ const startScan = async () => {
     }
 
     console.log('开始扫描，文档长度:', fullText.length)
+    
+    // 计算预计时间（基于字数和模式）
+    const wordCount = fullText.length
+    const estimatedTime = scanStrategy.value === 'full' 
+      ? Math.ceil(wordCount / 500) * 10  // 全文：每500字约10秒
+      : Math.ceil(wordCount / 1000) * 8  // 分段：每1000字约8秒
+    
+    window.$message?.info(
+      `文档字数: ${wordCount} 字 | 预计用时: ${estimatedTime} 秒 | 模式: ${scanStrategy.value === 'full' ? '全文' : '分段'}`,
+      { duration: 5000 }
+    )
 
       // 1. 识别合同类型
       scanProgress.value.stage = '正在识别合同类型...'
-      const identifiedType = await reviewAIService.identifyContractType(fullText)
+      realtimeResponse.value = ''
+      
+      const identifiedType = await reviewAIService.identifyContractType(fullText, (progressInfo) => {
+        if (progressInfo.stage) {
+          scanProgress.value.stage = progressInfo.stage
+        }
+        if (progressInfo.content) {
+          realtimeResponse.value = progressInfo.content.substring(0, 500) // 限制显示长度
+        }
+      })
       
       // 保存完整对象供审查引擎使用
       contractTypeObj.value = identifiedType
@@ -317,15 +345,27 @@ const startScan = async () => {
 
       // 2. 执行审查
       scanProgress.value.stage = '正在分析合同内容...'
+      realtimeResponse.value = ''
       
       const options = {
         autoApply: false, // 不自动应用批注
         useCustomRules: false, // 不使用自定义规则
+        // 注意：合同审查需要 JSON 格式输出，使用非流式请求
+        // stream: false 是默认值，可以不设置
         onProgress: (progress) => {
           scanProgress.value = {
             current: progress.current || 0,
             total: progress.total || 0,
             stage: progress.stage || '正在审查...'
+          }
+          // 显示处理阶段
+          if (progress.stage) {
+            realtimeResponse.value = `[${progress.stage}]`
+          }
+          // 显示响应内容预览（如果有）
+          if (progress.content && progress.content.length > 0) {
+            const preview = progress.content.substring(0, 500)
+            realtimeResponse.value = `[${progress.stage}]\n\n${preview}${progress.content.length > 500 ? '...' : ''}`
           }
         }
       }
@@ -335,8 +375,13 @@ const startScan = async () => {
         // 全文审查，传递完整的类型对象
         result = await reviewEngine.reviewByFullText(fullText, contractTypeObj.value, options)
       } else {
-        // 分段审查，传递完整的类型对象
-        result = await reviewEngine.reviewBySegments(fullText, contractTypeObj.value, options)
+        // 分段审查需要先分段
+        console.log('开始分段处理...')
+        const segments = await reviewEngine.segmenter.segmentDocument(fullText)
+        console.log(`文档分段完成：${segments.length} 段`)
+        
+        // 分段审查，参数顺序：segments, fullText, contractType, options
+        result = await reviewEngine.reviewBySegments(segments, fullText, contractTypeObj.value, options)
       }
 
     scanResult.value = result
@@ -353,11 +398,22 @@ const startScan = async () => {
     }
   } catch (error) {
     console.error('扫描失败:', error)
-    window.$message?.error('扫描失败: ' + error.message)
+    // 显示详细错误，支持换行
+    const errorMsg = error.message || '未知错误'
+    window.$message?.error(errorMsg, { 
+      duration: 8000,
+      closable: true
+    })
     scanned.value = true
   } finally {
     isScanning.value = false
     scanProgress.value = { current: 0, total: 0, stage: '' }
+    // 扫描完成后保留最后一次响应3秒，然后清空
+    setTimeout(() => {
+      if (!isScanning.value) {
+        realtimeResponse.value = ''
+      }
+    }, 3000)
   }
 }
 
