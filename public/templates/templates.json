@@ -1,50 +1,167 @@
 {
   "templates": [
     {
-      "id": "template_001",
+      "id": "民事起诉状",
       "name": "民事起诉状",
       "category": "诉讼文书",
-      "description": "适用于一般民事案件的起诉状模板",
-      "scene": "民事纠纷、合同纠纷、侵权纠纷等民事案件",
+      "description": "用于向人民法院提起民事诉讼的标准格式",
+      "scene": "民事诉讼立案阶段",
       "fileName": "民事起诉状.docx",
       "isBuiltIn": true
     },
     {
-      "id": "template_002",
+      "id": "民事答辩状",
       "name": "民事答辩状",
       "category": "诉讼文书",
-      "description": "适用于民事案件的答辩状模板",
-      "scene": "作为被告方对原告起诉进行答辩",
+      "description": "用于被告对原告起诉进行答辩的标准格式",
+      "scene": "民事诉讼答辩阶段",
       "fileName": "民事答辩状.docx",
       "isBuiltIn": true
     },
     {
-      "id": "template_003",
-      "name": "代理词",
+      "id": "上诉状",
+      "name": "上诉状",
       "category": "诉讼文书",
-      "description": "适用于民事案件的代理词模板",
-      "scene": "律师作为诉讼代理人在庭审中发表代理意见",
-      "fileName": "代理词.docx",
+      "description": "用于对一审判决不服提起上诉的标准格式",
+      "scene": "民事诉讼上诉阶段",
+      "fileName": "上诉状.docx",
       "isBuiltIn": true
     },
     {
-      "id": "template_004",
+      "id": "再审申请书",
+      "name": "再审申请书",
+      "category": "诉讼文书",
+      "description": "用于对已生效判决申请再审的标准格式",
+      "scene": "民事诉讼再审申请阶段",
+      "fileName": "再审申请书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "财产保全申请书",
+      "name": "财产保全申请书",
+      "category": "诉讼文书",
+      "description": "用于申请财产保全的标准格式",
+      "scene": "诉讼前或诉讼中财产保全",
+      "fileName": "财产保全申请书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "劳动合同",
       "name": "劳动合同",
       "category": "合同模板",
-      "description": "标准劳动合同模板",
-      "scene": "企业与员工签订劳动合同",
+      "description": "用人单位与劳动者签订的劳动合同标准格式",
+      "scene": "劳动关系建立",
       "fileName": "劳动合同.docx",
       "isBuiltIn": true
     },
     {
-      "id": "template_005",
+      "id": "房屋租赁合同",
+      "name": "房屋租赁合同",
+      "category": "合同模板",
+      "description": "房屋出租方与承租方签订的租赁合同标准格式",
+      "scene": "房屋租赁关系建立",
+      "fileName": "房屋租赁合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "买卖合同",
+      "name": "买卖合同",
+      "category": "合同模板",
+      "description": "买卖双方签订的商品买卖合同标准格式",
+      "scene": "商品交易",
+      "fileName": "买卖合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "借款合同",
+      "name": "借款合同",
+      "category": "合同模板",
+      "description": "出借人与借款人签订的借款合同标准格式",
+      "scene": "民间借贷",
+      "fileName": "借款合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "律师函",
       "name": "律师函",
       "category": "律师函",
-      "description": "通用律师函模板",
-      "scene": "律师代表委托人向对方发出法律警告或催告",
+      "description": "律师事务所出具的正式法律函件",
+      "scene": "法律事务交涉",
       "fileName": "律师函.docx",
       "isBuiltIn": true
+    },
+    {
+      "id": "催款律师函",
+      "name": "催款律师函",
+      "category": "律师函",
+      "description": "用于催收欠款的律师函",
+      "scene": "债务催收",
+      "fileName": "催款律师函.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "侵权警告律师函",
+      "name": "侵权警告律师函",
+      "category": "律师函",
+      "description": "用于警告侵权行为的律师函",
+      "scene": "知识产权侵权",
+      "fileName": "侵权警告律师函.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "劳动争议律师函",
+      "name": "劳动争议律师函",
+      "category": "律师函",
+      "description": "用于处理劳动争议的律师函",
+      "scene": "劳动纠纷",
+      "fileName": "劳动争议律师函.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "授权委托书",
+      "name": "授权委托书",
+      "category": "其他文书",
+      "description": "委托他人代理法律事务的授权书",
+      "scene": "法律事务代理",
+      "fileName": "授权委托书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "遗嘱",
+      "name": "遗嘱",
+      "category": "其他文书",
+      "description": "个人处分财产的遗嘱文书",
+      "scene": "财产继承安排",
+      "fileName": "遗嘱.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "离婚协议书",
+      "name": "离婚协议书",
+      "category": "其他文书",
+      "description": "夫妻双方自愿离婚的协议书",
+      "scene": "协议离婚",
+      "fileName": "离婚协议书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "和解协议书",
+      "name": "和解协议书",
+      "category": "其他文书",
+      "description": "纠纷双方达成和解的协议书",
+      "scene": "纠纷和解",
+      "fileName": "和解协议书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "保密协议",
+      "name": "保密协议",
+      "category": "其他文书",
+      "description": "约定保密义务的协议书",
+      "scene": "商业合作保密",
+      "fileName": "保密协议.docx",
+      "isBuiltIn": true
     }
-  ]
+  ],
+  "lastUpdated": "2025-11-12T07:13:33.780Z"
 }
-

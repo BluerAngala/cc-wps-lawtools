@@ -1,0 +1,247 @@
+// 其他常用法律文书模板定义
+export const 其他文书模板 = {
+  '授权委托书.docx': {
+    title: '授权委托书',
+    category: '其他文书',
+    description: '委托他人代理法律事务的授权书',
+    scene: '法律事务代理',
+    sections: [
+      { type: 'paragraph', content: '委托人：{{委托人姓名}}', indent: false },
+      { type: 'paragraph', content: '身份证号：{{委托人身份证号}}', indent: false },
+      { type: 'paragraph', content: '住址：{{委托人住址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{委托人电话}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '受托人：{{受托人姓名}}', indent: false },
+      { type: 'paragraph', content: '身份证号：{{受托人身份证号}}', indent: false },
+      { type: 'paragraph', content: '住址：{{受托人住址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{受托人电话}}', indent: false },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '现委托人{{委托人姓名}}因{{委托事由}}一事，特委托{{受托人姓名}}作为代理人，代理权限如下：'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '代理权限：' },
+      { type: 'paragraph', content: '1. {{代理权限1}}；' },
+      { type: 'paragraph', content: '2. {{代理权限2}}；' },
+      { type: 'paragraph', content: '3. {{代理权限3}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '代理期限：' },
+      { type: 'paragraph', content: '自{{开始日期}}起至{{结束日期}}止。' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '受托人在上述权限范围内所签署的有关文件，委托人均予以承认。' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '委托人：{{委托人姓名}}', indent: false },
+      { type: 'paragraph', content: '受托人：{{受托人姓名}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '日期：{{日期}}', indent: false }
+    ]
+  },
+
+  '遗嘱.docx': {
+    title: '遗嘱',
+    category: '其他文书',
+    description: '个人处分财产的遗嘱文书',
+    scene: '财产继承安排',
+    sections: [
+      { type: 'paragraph', content: '立遗嘱人：{{立遗嘱人姓名}}', indent: false },
+      { type: 'paragraph', content: '身份证号：{{身份证号}}', indent: false },
+      { type: 'paragraph', content: '住址：{{住址}}', indent: false },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '我，{{立遗嘱人姓名}}，在头脑清醒、具有完全民事行为能力的情况下，自愿订立本遗嘱，对我的财产作出如下处分：'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '一、财产情况' },
+      { type: 'paragraph', content: '1. 房产：{{房产情况}}' },
+      { type: 'paragraph', content: '2. 存款：{{存款情况}}' },
+      { type: 'paragraph', content: '3. 其他财产：{{其他财产情况}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '二、财产处分' },
+      { type: 'paragraph', content: '1. 将{{财产1}}遗赠给{{继承人1}}；' },
+      { type: 'paragraph', content: '2. 将{{财产2}}遗赠给{{继承人2}}；' },
+      { type: 'paragraph', content: '3. {{其他财产处分}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '三、遗嘱执行人' },
+      { type: 'paragraph', content: '指定{{执行人姓名}}为本遗嘱的执行人，负责本遗嘱的执行事宜。' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '本遗嘱一式{{份数}}份，具有同等法律效力。' },
+      { type: 'empty' },
+      { type: 'paragraph', content: '立遗嘱人：{{立遗嘱人姓名}}', indent: false },
+      { type: 'paragraph', content: '见证人：{{见证人1姓名}}', indent: false },
+      { type: 'paragraph', content: '见证人：{{见证人2姓名}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '日期：{{日期}}', indent: false }
+    ]
+  },
+
+  '离婚协议书.docx': {
+    title: '离婚协议书',
+    category: '其他文书',
+    description: '夫妻双方自愿离婚的协议书',
+    scene: '协议离婚',
+    sections: [
+      { type: 'paragraph', content: '男方：{{男方姓名}}', indent: false },
+      { type: 'paragraph', content: '身份证号：{{男方身份证号}}', indent: false },
+      { type: 'paragraph', content: '住址：{{男方住址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{男方电话}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '女方：{{女方姓名}}', indent: false },
+      { type: 'paragraph', content: '身份证号：{{女方身份证号}}', indent: false },
+      { type: 'paragraph', content: '住址：{{女方住址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{女方电话}}', indent: false },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '男方{{男方姓名}}与女方{{女方姓名}}于{{结婚日期}}登记结婚，现因{{离婚原因}}，双方自愿离婚，经协商达成如下协议：'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '一、自愿离婚' },
+      { type: 'paragraph', content: '双方一致同意自愿离婚。' },
+      { type: 'empty' },
+      { type: 'heading', content: '二、子女抚养' },
+      { type: 'paragraph', content: '1. 婚生子/女{{子女姓名}}由{{抚养方}}抚养；' },
+      { type: 'paragraph', content: '2. 另一方每月支付抚养费人民币{{抚养费金额}}元，直至子女年满18周岁；' },
+      { type: 'paragraph', content: '3. {{其他子女抚养安排}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '三、财产分割' },
+      { type: 'paragraph', content: '1. 房产：{{房产分割方案}}；' },
+      { type: 'paragraph', content: '2. 存款：{{存款分割方案}}；' },
+      { type: 'paragraph', content: '3. 其他财产：{{其他财产分割方案}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '四、债务处理' },
+      { type: 'paragraph', content: '{{债务处理方案}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '五、其他约定' },
+      { type: 'paragraph', content: '{{其他约定事项}}' },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '本协议一式三份，双方各执一份，婚姻登记机关存档一份，具有同等法律效力。'
+      },
+      { type: 'empty' },
+      { type: 'paragraph', content: '男方（签字）：{{男方姓名}}', indent: false },
+      { type: 'paragraph', content: '女方（签字）：{{女方姓名}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '日期：{{日期}}', indent: false }
+    ]
+  },
+
+  '和解协议书.docx': {
+    title: '和解协议书',
+    category: '其他文书',
+    description: '纠纷双方达成和解的协议书',
+    scene: '纠纷和解',
+    sections: [
+      { type: 'paragraph', content: '甲方：{{甲方姓名/名称}}', indent: false },
+      { type: 'paragraph', content: '身份证号/统一社会信用代码：{{甲方证件号}}', indent: false },
+      { type: 'paragraph', content: '住址/地址：{{甲方地址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{甲方电话}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '乙方：{{乙方姓名/名称}}', indent: false },
+      { type: 'paragraph', content: '身份证号/统一社会信用代码：{{乙方证件号}}', indent: false },
+      { type: 'paragraph', content: '住址/地址：{{乙方地址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{乙方电话}}', indent: false },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '甲乙双方因{{纠纷事由}}发生纠纷，现经友好协商，自愿达成如下和解协议：'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '一、纠纷事实' },
+      { type: 'paragraph', content: '{{纠纷事实描述}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '二、和解方案' },
+      { type: 'paragraph', content: '1. {{和解方案1}}；' },
+      { type: 'paragraph', content: '2. {{和解方案2}}；' },
+      { type: 'paragraph', content: '3. {{和解方案3}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '三、履行方式' },
+      { type: 'paragraph', content: '{{履行方式和期限}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '四、违约责任' },
+      { type: 'paragraph', content: '{{违约责任条款}}' },
+      { type: 'empty' },
+      { type: 'heading', content: '五、争议解决' },
+      {
+        type: 'paragraph',
+        content: '本协议履行过程中发生争议的，由双方协商解决；协商不成的，依法向{{管辖法院}}人民法院起诉。'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '六、其他约定' },
+      { type: 'paragraph', content: '{{其他约定事项}}' },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '本协议一式两份，甲乙双方各执一份，具有同等法律效力。自双方签字之日起生效。'
+      },
+      { type: 'empty' },
+      { type: 'paragraph', content: '甲方（签字/盖章）：{{甲方姓名/名称}}', indent: false },
+      { type: 'paragraph', content: '乙方（签字/盖章）：{{乙方姓名/名称}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '日期：{{日期}}', indent: false }
+    ]
+  },
+
+  '保密协议.docx': {
+    title: '保密协议',
+    category: '其他文书',
+    description: '约定保密义务的协议书',
+    scene: '商业合作保密',
+    sections: [
+      { type: 'paragraph', content: '甲方：{{甲方名称}}', indent: false },
+      { type: 'paragraph', content: '地址：{{甲方地址}}', indent: false },
+      { type: 'paragraph', content: '法定代表人：{{甲方法定代表人}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{甲方电话}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '乙方：{{乙方姓名/名称}}', indent: false },
+      { type: 'paragraph', content: '身份证号/统一社会信用代码：{{乙方证件号}}', indent: false },
+      { type: 'paragraph', content: '住址/地址：{{乙方地址}}', indent: false },
+      { type: 'paragraph', content: '联系电话：{{乙方电话}}', indent: false },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '甲乙双方就{{合作事项}}进行合作，为保护甲方的商业秘密，经协商一致，签订本保密协议：'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '一、保密信息的范围' },
+      { type: 'paragraph', content: '1. 技术信息：{{技术信息范围}}；' },
+      { type: 'paragraph', content: '2. 经营信息：{{经营信息范围}}；' },
+      { type: 'paragraph', content: '3. 其他信息：{{其他保密信息}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '二、保密义务' },
+      { type: 'paragraph', content: '1. 乙方不得向任何第三方披露保密信息；' },
+      { type: 'paragraph', content: '2. 乙方仅可为{{合作目的}}使用保密信息；' },
+      { type: 'paragraph', content: '3. {{其他保密义务}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '三、保密期限' },
+      { type: 'paragraph', content: '本协议有效期为{{协议期限}}年，自{{开始日期}}起至{{结束日期}}止。' },
+      { type: 'empty' },
+      { type: 'heading', content: '四、违约责任' },
+      { type: 'paragraph', content: '乙方违反本协议约定的，应承担以下违约责任：' },
+      { type: 'paragraph', content: '1. 停止违约行为；' },
+      { type: 'paragraph', content: '2. 赔偿甲方因此遭受的全部损失；' },
+      { type: 'paragraph', content: '3. {{其他违约责任}}。' },
+      { type: 'empty' },
+      { type: 'heading', content: '五、争议解决' },
+      {
+        type: 'paragraph',
+        content: '本协议履行过程中发生争议的，由双方协商解决；协商不成的，依法向{{管辖法院}}人民法院起诉。'
+      },
+      { type: 'empty' },
+      { type: 'heading', content: '六、其他约定' },
+      { type: 'paragraph', content: '{{其他约定事项}}' },
+      { type: 'empty' },
+      {
+        type: 'paragraph',
+        content: '本协议一式两份，甲乙双方各执一份，具有同等法律效力。自双方签字（盖章）之日起生效。'
+      },
+      { type: 'empty' },
+      { type: 'paragraph', content: '甲方（盖章）：{{甲方名称}}', indent: false },
+      { type: 'paragraph', content: '乙方（签字/盖章）：{{乙方姓名/名称}}', indent: false },
+      { type: 'empty' },
+      { type: 'paragraph', content: '日期：{{日期}}', indent: false }
+    ]
+  }
+}
