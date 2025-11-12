@@ -82,6 +82,24 @@
       "isBuiltIn": true
     },
     {
+      "id": "股权转让协议",
+      "name": "股权转让协议",
+      "category": "合同模板",
+      "description": "股东之间或股东与第三方之间转让股权的协议",
+      "scene": "股权转让",
+      "fileName": "股权转让协议.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "服务合同",
+      "name": "服务合同",
+      "category": "合同模板",
+      "description": "服务提供方与服务接受方签订的服务合同",
+      "scene": "服务提供",
+      "fileName": "服务合同.docx",
+      "isBuiltIn": true
+    },
+    {
       "id": "律师函",
       "name": "律师函",
       "category": "律师函",
@@ -161,7 +179,79 @@
       "scene": "商业合作保密",
       "fileName": "保密协议.docx",
       "isBuiltIn": true
+    },
+    {
+      "id": "法律意见书",
+      "name": "法律意见书",
+      "category": "法律意见书",
+      "description": "律师事务所就特定法律问题出具的专业法律意见",
+      "scene": "法律咨询与论证",
+      "fileName": "法律意见书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "尽职调查报告",
+      "name": "尽职调查报告",
+      "category": "法律意见书",
+      "description": "对目标公司或项目进行法律尽职调查后出具的专业报告",
+      "scene": "投资并购、项目评估",
+      "fileName": "尽职调查报告.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "公司章程",
+      "name": "公司章程",
+      "category": "公司治理文书",
+      "description": "有限责任公司或股份有限公司的章程文件",
+      "scene": "公司设立、章程修改",
+      "fileName": "公司章程.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "股东协议",
+      "name": "股东协议",
+      "category": "公司治理文书",
+      "description": "公司股东之间就公司治理、股权转让等事项达成的协议",
+      "scene": "公司设立、股权调整",
+      "fileName": "股东协议.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "商标使用许可合同",
+      "name": "商标使用许可合同",
+      "category": "知识产权文书",
+      "description": "商标权人许可他人使用其注册商标的合同",
+      "scene": "商标许可使用",
+      "fileName": "商标使用许可合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "专利实施许可合同",
+      "name": "专利实施许可合同",
+      "category": "知识产权文书",
+      "description": "专利权人许可他人实施其专利的合同",
+      "scene": "专利许可使用",
+      "fileName": "专利实施许可合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "竞业限制协议",
+      "name": "竞业限制协议",
+      "category": "劳动人事文书",
+      "description": "用人单位与劳动者签订的竞业限制协议",
+      "scene": "员工离职、商业秘密保护",
+      "fileName": "竞业限制协议.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "培训服务协议",
+      "name": "培训服务协议",
+      "category": "劳动人事文书",
+      "description": "用人单位与劳动者签订的培训服务期协议",
+      "scene": "员工培训、服务期约定",
+      "fileName": "培训服务协议.docx",
+      "isBuiltIn": true
     }
   ],
-  "lastUpdated": "2025-11-12T08:14:10.969Z"
+  "lastUpdated": "2025-11-12T08:23:12.824Z"
 }
