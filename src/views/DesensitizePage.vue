@@ -50,8 +50,8 @@
             <n-thing>
               <template #header>
                 <n-space align="center">
-                  <n-tag :type="getTypeColor(info.type)" size="small">{{ info.type }}</n-tag>
                   <span class="text-sm text-gray-500">#{{ index + 1 }}</span>
+                  <n-tag :type="getTypeColor(info.type)" size="small">{{ info.type }}</n-tag>
                 </n-space>
               </template>
               <template #description>
@@ -69,14 +69,6 @@
             </n-thing>
           </n-list-item>
         </n-list>
-
-        <!-- 操作按钮 -->
-        <div class="flex justify-end gap-2 mt-4">
-          <n-button @click="clearResults">取消</n-button>
-          <n-button type="success" @click="applyAllDesensitization" :disabled="!hasSelectedItems">
-            应用脱敏 ({{ selectedCount }})
-          </n-button>
-        </div>
       </div>
 
       <!-- 空状态 -->
@@ -92,18 +84,12 @@
       <n-collapse class="mt-4">
         <n-collapse-item title="⚙️ 高级配置" name="config">
           <n-space vertical>
-            <n-alert type="warning" :closable="false" show-icon class="mb-4">
-              <template #header>提示</template>
-              <template #default>白名单和自定义敏感词功能暂未实现，敬请期待。</template>
-            </n-alert>
-
             <n-form-item label="白名单 (每行一个)">
               <n-input
                 v-model:value="whitelist"
                 type="textarea"
                 placeholder="请输入白名单项，每行一个&#10;例如：张三&#10;例如：13800138000"
                 :rows="3"
-                disabled
               />
             </n-form-item>
 
@@ -113,7 +99,6 @@
                 type="textarea"
                 placeholder="请输入自定义敏感词，格式: 敏感词|替换词，每行一个&#10;例如：机密信息|***"
                 :rows="3"
-                disabled
               />
             </n-form-item>
           </n-space>
@@ -178,7 +163,8 @@ const getTypeColor = (type) => {
     '手机号': 'warning',
     '邮箱': 'info',
     '银行卡号': 'error',
-    '姓名': 'warning'
+    '姓名': 'warning',
+    '自定义敏感词': 'success'
   }
   return colorMap[type] || 'default'
 }
@@ -212,8 +198,35 @@ const scanDocument = async () => {
 
     console.log('开始扫描文档，文本长度:', fullText.length)
 
+    // 解析白名单
+    const whitelistArray = whitelist.value
+      .split('\n')
+      .map(item => item.trim())
+      .filter(item => item.length > 0)
+
+    // 解析自定义敏感词
+    const customSensitiveWordsArray = customSensitiveWords.value
+      .split('\n')
+      .map(line => {
+        const parts = line.split('|')
+        if (parts.length === 2) {
+          return {
+            word: parts[0].trim(),
+            replacement: parts[1].trim()
+          }
+        }
+        return null
+      })
+      .filter(item => item !== null)
+
+    console.log('白名单:', whitelistArray)
+    console.log('自定义敏感词:', customSensitiveWordsArray)
+
     // 调用脱敏检测
-    const { sensitiveInfoList: detectedList } = desensitizeText(fullText)
+    const { sensitiveInfoList: detectedList } = desensitizeText(fullText, {
+      whitelist: whitelistArray,
+      customSensitiveWords: customSensitiveWordsArray
+    })
 
     // 为每个检测项添加选中状态
     sensitiveInfoList.value = detectedList.map(item => ({

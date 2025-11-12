@@ -55,15 +55,52 @@ const SENSITIVE_PATTERNS = [
 /**
  * 简化的脱敏处理函数
  * @param {string} text - 需要脱敏的文本
+ * @param {Object} options - 配置选项
+ * @param {Array<string>} options.whitelist - 白名单数组
+ * @param {Array<{word: string, replacement: string}>} options.customSensitiveWords - 自定义敏感词数组
  * @returns {Object} - 包含脱敏后文本和敏感信息列表的对象
  */
-export function desensitizeText(text) {
+export function desensitizeText(text, options = {}) {
   if (!text) {
     return { desensitizedText: '', sensitiveInfoList: [] }
   }
 
+  const { whitelist = [], customSensitiveWords = [] } = options
+  const whitelistSet = new Set(whitelist)
   const sensitiveInfoList = []
   const matchedTexts = new Set() // 记录已匹配的文本，避免重复
+
+  // 处理自定义敏感词
+  customSensitiveWords.forEach(({ word, replacement }) => {
+    if (!word || !replacement) return
+    
+    const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+    const matches = text.match(regex)
+
+    if (matches) {
+      matches.forEach((match) => {
+        // 检查是否在白名单中
+        if (whitelistSet.has(match)) {
+          return
+        }
+
+        // 跳过已经匹配过的文本
+        if (matchedTexts.has(match)) {
+          return
+        }
+
+        // 添加到敏感信息列表
+        sensitiveInfoList.push({
+          original: match,
+          desensitized: replacement,
+          type: '自定义敏感词'
+        })
+
+        // 记录已匹配的文本
+        matchedTexts.add(match)
+      })
+    }
+  })
 
   // 处理预定义的敏感信息类型
   SENSITIVE_PATTERNS.forEach((pattern) => {
@@ -72,6 +109,11 @@ export function desensitizeText(text) {
 
     if (matches) {
       matches.forEach((match) => {
+        // 检查是否在白名单中
+        if (whitelistSet.has(match)) {
+          return
+        }
+
         // 跳过已经匹配过的文本
         if (matchedTexts.has(match)) {
           return

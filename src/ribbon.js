@@ -147,19 +147,21 @@ function GetImage(control) {
 
   switch (buttonId) {
     case 'btnTemplateManager':
-      return './images/3.svg'
+      return './images/合同模板.svg'
     case 'btnContractReview':
-      return './images/3.svg'
+      return './images/合同审查.svg'
     case 'btnRiskScan':
-      return './images/3.svg'
+      return './images/扫描.svg'
     case 'btnDesensitize':
-      return './images/3.svg'
+      return './images/脱敏.svg'
     case 'btnShowAI':
       return './images/logo_card.png'
     case 'btnCommonNav':
-      return './images/3.svg'
+      return './images/导航.svg'
+    case 'btnSettings':
+      return './images/设置.svg'
     case 'btnAboutME':
-      return './images/2.png'
+      return './images/关于我.svg'
     default:
       return './images/1.svg'
   }
