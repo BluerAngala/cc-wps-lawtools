@@ -209,7 +209,7 @@ ${data.content}
  */
 export const PromptBuilder = {
   // 构建合同审查消息
-  forContractReview(context, contractType, checklist) {
+  forContractReview(context, contractType, checklistText) {
     return PromptConfig.buildMessages(
       'contractReview',
       'contractReviewer',
@@ -219,7 +219,7 @@ export const PromptBuilder = {
         section: context.segmentPosition?.section,
         content: context.currentSegment,
         summary: context.summary,
-        checklist
+        checklist: checklistText || context.checklistText
       }
     )
   },
