@@ -356,14 +356,22 @@ export class ContractReviewEngine {
    * 全文审查（结合审查清单）
    */
   async reviewByFullText(fullText, contractType, options) {
+    console.log('[审查引擎] ========== 全文审查开始 ==========')
+    console.log('[审查引擎] 📄 文档长度:', fullText?.length || 0, '字符')
+    console.log('[审查引擎] 📋 合同类型:', contractType?.type, contractType?.subtype ? `(${contractType.subtype})` : '')
+    console.log('[审查引擎] ⚙️ 选项:', JSON.stringify(options, null, 2))
+    
     // 1. 生成审查清单
     const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType)
+    console.log('[审查引擎] 📋 基础审查清单:', baseChecklist.length, '项')
     
     // 2. 获取用户自定义规则（仅在useCustomRules为true时）
     const userRules = options.useCustomRules ? this.getUserReviewRules() : []
+    console.log('[审查引擎] 📋 用户自定义规则:', userRules.length, '条')
     
     // 3. 合并清单
     const checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
+    console.log('[审查引擎] 📋 最终审查清单:', checklist.length, '项')
     
     const context = {
       currentSegment: fullText,
@@ -375,17 +383,31 @@ export class ContractReviewEngine {
       checklist: checklist // 传递审查清单
     }
 
+    console.log('[审查引擎] 🚀 开始调用 AI 审查服务...')
+    const aiStartTime = Date.now()
+    
     const aiResult = await this.aiService.reviewClause(
       context,
       contractType,
       options
     )
+    
+    const aiDuration = Date.now() - aiStartTime
+    console.log('[审查引擎] ✅ AI 审查完成，耗时:', aiDuration, 'ms (', (aiDuration / 1000).toFixed(2), '秒)')
+    console.log('[审查引擎] 📊 AI 返回结果:')
+    console.log('[审查引擎]   - Issues:', aiResult.issues?.length || 0, '个')
+    console.log('[审查引擎]   - Risks:', aiResult.risks?.length || 0, '个')
 
     const matchedIssues = this.matchIssuesToChecklist(aiResult.issues || [], checklist)
     const checklistStats = this.buildChecklistStats(matchedIssues)
     const risks = aiResult.risks || []
 
-    return {
+    console.log('[审查引擎] 🔍 匹配审查清单完成')
+    console.log('[审查引擎]   - 匹配后 Issues:', matchedIssues.length, '个')
+    console.log('[审查引擎]   - Risks:', risks.length, '个')
+    console.log('[审查引擎]   - 清单统计:', Object.keys(checklistStats).length, '项匹配')
+
+    const result = {
       issues: matchedIssues,
       risks,
       contractType: contractType,
@@ -406,6 +428,15 @@ export class ContractReviewEngine {
         segmentCount: 1
       }
     }
+
+    console.log('[审查引擎] ========== 全文审查完成 ==========')
+    console.log('[审查引擎] 📊 最终结果:')
+    console.log('[审查引擎]   - 总问题数:', result.summary.totalIssues)
+    console.log('[审查引擎]   - 总风险数:', result.summary.totalRisks)
+    console.log('[审查引擎]   - 审查清单项数:', result.summary.checklistCount)
+    console.log('[审查引擎] =======================================')
+
+    return result
   }
 
   /**

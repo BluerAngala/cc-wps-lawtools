@@ -117,14 +117,22 @@ ${documentText.substring(0, 5000)}${documentText.length > 5000 ? '\n\n[内容已
         }
 
         console.log('[AI审查] 使用非流式模式（JSON格式）')
-        console.log('[AI审查] ===== 请求详情 =====')
-        console.log('[AI审查] 模型:', config.model)
-        console.log('[AI审查] Temperature:', config.temperature)
-        console.log('[AI审查] MaxTokens:', config.maxTokens)
-        console.log('[AI审查] System Message (前200字):', messages[0]?.content?.substring(0, 200) + '...')
-        console.log('[AI审查] User Message (前500字):', messages[1]?.content?.substring(0, 500) + '...')
-        console.log('[AI审查] ====================')
+        console.log('[AI审查] ========== 审查请求详情 ==========')
+        console.log('[AI审查] 🤖 模型:', config.model)
+        console.log('[AI审查] 🌡️ Temperature:', config.temperature)
+        console.log('[AI审查] 📏 MaxTokens:', config.maxTokens)
+        console.log('[AI审查] 📍 审查位置:', context.segmentPosition?.section || '未知')
+        console.log('[AI审查] 📝 当前段落长度:', context.currentSegment?.length || 0, '字符')
+        console.log('[AI审查] 📚 完整文档长度:', context.fullDocument?.length || 0, '字符')
+        console.log('[AI审查] 📋 审查清单项数:', context.checklist?.length || 0)
+        console.log('[AI审查] 💬 System Message 长度:', messages[0]?.content?.length || 0, '字符')
+        console.log('[AI审查] 💬 System Message (前300字):', messages[0]?.content?.substring(0, 300) + '...')
+        console.log('[AI审查] 💬 User Message 长度:', messages[1]?.content?.length || 0, '字符')
+        console.log('[AI审查] 💬 User Message (前500字):', messages[1]?.content?.substring(0, 500) + '...')
+        console.log('[AI审查] 📊 Messages 总长度:', messages.reduce((sum, m) => sum + (m.content?.length || 0), 0), '字符')
+        console.log('[AI审查] =======================================')
         
+        const requestStartTime = Date.now()
         response = await nonStreamChatCompletions({
           messages,
           model: config.model,
@@ -134,11 +142,14 @@ ${documentText.substring(0, 5000)}${documentText.length > 5000 ? '\n\n[内容已
             response_format: { type: 'json_object' }
           }
         })
+        const requestDuration = Date.now() - requestStartTime
 
-        console.log('[AI审查] ===== 响应详情 =====')
-        console.log(`[AI审查] 响应长度: ${response.length}字符`)
-        console.log(`[AI审查] 完整响应内容:`, response)
-        console.log('[AI审查] ====================')
+        console.log('[AI审查] ========== 审查响应详情 ==========')
+        console.log('[AI审查] ⏱️ 请求耗时:', requestDuration, 'ms (', (requestDuration / 1000).toFixed(2), '秒)')
+        console.log('[AI审查] 📝 响应长度:', response?.length || 0, '字符')
+        console.log('[AI审查] 📝 完整响应内容:')
+        console.log(response)
+        console.log('[AI审查] =======================================')
 
         if (options.onProgress) {
           options.onProgress({ stage: '审查完成', content: response })
@@ -156,10 +167,10 @@ ${documentText.substring(0, 5000)}${documentText.length > 5000 ? '\n\n[内容已
       return result
     } catch (error) {
       console.error(`[AI审查] 审查失败:`, error)
-      return {
-        issues: [],
-        risks: []
-      }
+      console.error(`[AI审查] 错误详情 - 类型: ${error.name}, 消息: ${error.message}`)
+      
+      // 不要吞掉错误，应该向上抛出让调用者处理
+      throw error
     }
   }
 

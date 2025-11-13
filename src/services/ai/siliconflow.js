@@ -27,9 +27,10 @@ if (!aiConfig.apiKey || !aiConfig.baseUrl) {
   console.warn('AI API 未配置，请在设置页面配置')
 }
 
-// 创建 axios 实例
+// 创建 axios 实例（每次调用时动态获取配置）
 const createApiClient = () => {
   const config = getAIConfig()
+  console.log('[API Client] 创建实例，Timeout:', config.timeout, 'ms')
   return axios.create({
     baseURL: config.baseUrl,
     timeout: config.timeout,
@@ -40,69 +41,75 @@ const createApiClient = () => {
   })
 }
 
-let apiClient = createApiClient()
+// 不再使用全局实例，改为每次请求时创建
+// let apiClient = createApiClient()
 
 // 提供重新初始化方法（配置更新后调用）
 export const reinitializeAIClient = () => {
-  apiClient = createApiClient()
-  console.log('AI 客户端已重新初始化')
+  // apiClient = createApiClient()
+  console.log('AI 客户端配置已更新（将在下次请求时生效）')
 }
 
-// 请求拦截器
-apiClient.interceptors.request.use(
-  (config) => {
-    console.log('发送请求:', config.method?.toUpperCase(), config.url)
-    return config
-  },
-  (error) => {
-    console.error('请求拦截器错误:', error)
-    return Promise.reject(error)
-  }
-)
-
-// 响应拦截器
-apiClient.interceptors.response.use(
-  (response) => {
-    console.log('收到响应:', response.status, response.config.url)
-    return response
-  },
-  (error) => {
-    console.error('响应拦截器错误:', error)
-
-    // 统一错误处理
-    if (error.response) {
-      // 服务器返回错误状态码
-      const { status, data } = error.response
-      console.error(`HTTP ${status}:`, data)
-
-      switch (status) {
-        case 401:
-          throw new Error('API 密钥无效或已过期，请在设置页面检查配置')
-        case 403:
-          // 检查是否是余额不足
-          if (data?.code === 30011 || data?.message?.includes('insufficient') || data?.message?.includes('balance')) {
-            throw new Error(`余额不足或模型需要付费。当前模型: ${data?.message?.match(/model[:\s]+([^\s,]+)/)?.[1] || '未知'}\n建议：1) 充值后继续使用 2) 在设置中更换免费模型`)
-          }
-          throw new Error('没有权限访问此 API，请检查 API 密钥权限')
-        case 429:
-          throw new Error('请求频率过高，请稍后重试')
-        case 500:
-          throw new Error('AI 服务器内部错误，请稍后重试')
-        default:
-          throw new Error(`请求失败 (${status}): ${data?.message || data?.error || '未知错误'}`)
-      }
-    } else if (error.request) {
-      // 请求已发送但没有收到响应
-      if (error.code === 'ECONNABORTED') {
-        throw new Error('请求超时，文档内容可能过长或网络较慢。建议：1) 检查网络连接 2) 减少提取标签数量 3) 在设置中增加超时时间')
-      }
-      throw new Error('网络连接失败，请检查：1) 网络是否连接 2) API地址是否正确 3) 是否需要代理')
-    } else {
-      // 请求配置错误
-      throw new Error(`请求配置错误: ${error.message}`)
+// 配置拦截器的辅助函数
+const setupInterceptors = (client) => {
+  // 请求拦截器
+  client.interceptors.request.use(
+    (config) => {
+      console.log('发送请求:', config.method?.toUpperCase(), config.url)
+      return config
+    },
+    (error) => {
+      console.error('请求拦截器错误:', error)
+      return Promise.reject(error)
     }
-  }
-)
+  )
+
+  // 响应拦截器
+  client.interceptors.response.use(
+    (response) => {
+      console.log('收到响应:', response.status, response.config.url)
+      return response
+    },
+    (error) => {
+      console.error('响应拦截器错误:', error)
+
+      // 统一错误处理
+      if (error.response) {
+        // 服务器返回错误状态码
+        const { status, data } = error.response
+        console.error(`HTTP ${status}:`, data)
+
+        switch (status) {
+          case 401:
+            throw new Error('API 密钥无效或已过期，请在设置页面检查配置')
+          case 403:
+            // 检查是否是余额不足
+            if (data?.code === 30011 || data?.message?.includes('insufficient') || data?.message?.includes('balance')) {
+              throw new Error(`余额不足或模型需要付费。当前模型: ${data?.message?.match(/model[:\s]+([^\s,]+)/)?.[1] || '未知'}\n建议：1) 充值后继续使用 2) 在设置中更换免费模型`)
+            }
+            throw new Error('没有权限访问此 API，请检查 API 密钥权限')
+          case 429:
+            throw new Error('请求频率过高，请稍后重试')
+          case 500:
+            throw new Error('AI 服务器内部错误，请稍后重试')
+          default:
+            throw new Error(`请求失败 (${status}): ${data?.message || data?.error || '未知错误'}`)
+        }
+      } else if (error.request) {
+        // 请求已发送但没有收到响应
+        if (error.code === 'ECONNABORTED') {
+          throw new Error('请求超时，文档内容可能过长或网络较慢。建议：1) 检查网络连接 2) 减少提取标签数量 3) 在设置中增加超时时间')
+        }
+        throw new Error('网络连接失败，请检查：1) 网络是否连接 2) API地址是否正确 3) 是否需要代理')
+      } else {
+        // 请求配置错误
+        throw new Error(`请求配置错误: ${error.message}`)
+      }
+    }
+  )
+  
+  return client
+}
 
 /**
  * 流式调用 SiliconFlow AI（SSE）
@@ -299,11 +306,70 @@ async function nonStreamChatCompletions({ messages, model, options = {} }) {
     requestBody.response_format = options.response_format
   }
 
+  console.log('========== 非流式请求详情 ==========')
+  console.log('🌐 API地址:', config.baseUrl)
+  console.log('🔑 API Key:', config.apiKey ? `${config.apiKey.substring(0, 10)}...` : '未配置')
+  console.log('🤖 模型:', currentModel)
+  console.log('🌡️ Temperature:', requestBody.temperature)
+  console.log('📏 Max Tokens:', requestBody.max_tokens)
+  console.log('⏱️ Timeout:', config.timeout, 'ms')
+  console.log('📨 Messages 数量:', messages.length)
+  messages.forEach((msg, idx) => {
+    console.log(`  📝 Message ${idx + 1} [${msg.role}]:`)
+    console.log(`     长度: ${msg.content?.length || 0} 字符`)
+    console.log(`     前200字符: ${(msg.content || '').substring(0, 200)}...`)
+  })
+  console.log('📊 Messages 总长度:', messages.reduce((sum, m) => sum + (m.content?.length || 0), 0), '字符')
+  console.log('🎯 Response Format:', options.response_format ? JSON.stringify(options.response_format) : '无')
+  console.log('📦 完整请求体:', JSON.stringify(requestBody, null, 2).substring(0, 1000) + '...')
+  console.log('=====================================')
+
+  const startTime = Date.now()
   try {
+    console.log('⏳ 开始发送请求...', new Date().toLocaleTimeString())
+    
+    // 每次请求时创建新的客户端实例（使用最新配置）
+    const apiClient = setupInterceptors(createApiClient())
     const response = await apiClient.post('/chat/completions', requestBody)
+    
+    const endTime = Date.now()
+    const duration = endTime - startTime
+    
+    console.log('========== 非流式响应详情 ==========')
+    console.log('✅ 请求成功!')
+    console.log('⏱️ 耗时:', duration, 'ms (', (duration / 1000).toFixed(2), '秒)')
+    console.log('📊 响应状态:', response.status, response.statusText)
+    console.log('📦 完整响应数据:', JSON.stringify(response.data, null, 2).substring(0, 2000) + '...')
+    console.log('📝 响应内容长度:', response.data.choices?.[0]?.message?.content?.length || 0, '字符')
+    console.log('📝 响应内容 (前500字符):', (response.data.choices?.[0]?.message?.content || '').substring(0, 500))
+    console.log('💰 Token使用情况:', response.data.usage || '无')
+    console.log('=====================================')
+    
     return response.data.choices[0].message.content
   } catch (error) {
-    console.error('调用 SiliconFlow AI 时出错:', error)
+    const endTime = Date.now()
+    const duration = endTime - startTime
+    
+    console.error('========== 非流式请求失败 ==========')
+    console.error('❌ 错误类型:', error.name)
+    console.error('❌ 错误代码:', error.code)
+    console.error('❌ 错误消息:', error.message)
+    console.error('⏱️ 失败前耗时:', duration, 'ms (', (duration / 1000).toFixed(2), '秒)')
+    
+    if (error.response) {
+      console.error('📊 响应状态:', error.response.status, error.response.statusText)
+      console.error('📦 响应数据:', JSON.stringify(error.response.data, null, 2))
+      console.error('📋 响应头:', JSON.stringify(error.response.headers, null, 2))
+    } else if (error.request) {
+      console.error('📨 请求已发送但无响应')
+      console.error('📦 请求详情:', error.request)
+    } else {
+      console.error('⚙️ 请求配置错误:', error.config)
+    }
+    
+    console.error('📚 完整错误堆栈:', error.stack)
+    console.error('=====================================')
+    
     throw error
   }
 }
@@ -320,6 +386,7 @@ async function processDocumentContent({ content, model }) {
   const currentModel = model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
   
   try {
+    const apiClient = setupInterceptors(createApiClient())
     const response = await apiClient.post('/chat/completions', {
       model: currentModel,
       messages: [
@@ -377,6 +444,7 @@ async function processContractElements({
       promptContent = contractElementsPrompt.replace('{{input}}', content)
     }
 
+    const apiClient = setupInterceptors(createApiClient())
     const response = await apiClient.post('/chat/completions', {
       model: currentModel,
       messages: [
@@ -425,6 +493,7 @@ async function processDocumentStructure({ content, model = 'moonshotai/Kimi-K2-I
 文档内容：
 ${content}`
 
+    const apiClient = setupInterceptors(createApiClient())
     const response = await apiClient.post('/chat/completions', {
       model: model,
       messages: [
@@ -488,6 +557,7 @@ async function processContractReview({
 
     console.log('合同预审提示词:', promptContent)
 
+    const apiClient = setupInterceptors(createApiClient())
     const response = await apiClient.post('/chat/completions', {
       model: model,
       messages: [
@@ -581,6 +651,5 @@ export {
   processContractReview,
   processDocumentStructure,
   getAvailableModels,
-  apiClient,
   test
 }

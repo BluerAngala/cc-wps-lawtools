@@ -1,6 +1,6 @@
 <template>
   <n-config-provider>
-    <div class="p-1.5 h-screen overflow-y-auto scrollbar-none">
+    <div class=" h-screen overflow-y-auto scrollbar-none">
       <!-- 标题卡片 -->
       <div class="wps-card wps-section">
         <div class="flex items-center justify-between mb-4">
@@ -8,17 +8,12 @@
             <span class="text-lg font-semibold">⚠️ 合同风险扫描</span>
             <n-tag v-if="isScanning" type="warning" size="small">扫描中</n-tag>
           </div>
-          <n-button 
-            type="primary" 
-            @click="startScan" 
-            :loading="isScanning" 
-            :disabled="isScanning"
-          >
+          <n-button type="primary" @click="startScan" :loading="isScanning" :disabled="isScanning">
             {{ isScanning ? '扫描中...' : '开始扫描' }}
           </n-button>
         </div>
 
-        <n-alert type="info" :closable="false" show-icon class="mb-4">
+        <n-alert type="info" :closable="false" show-icon>
           <template #header>功能说明</template>
           <template #default>
             使用 AI 智能分析合同内容，识别潜在风险点和问题条款。本功能仅进行预审分析，不会修改文档内容。
@@ -27,9 +22,9 @@
       </div>
 
       <!-- 扫描选项 -->
-      <div class="wps-card wps-section mt-2">
+      <div class="wps-card wps-section">
         <n-space vertical>
-          <div class="text-sm font-semibold mb-2">扫描选项</div>
+          <div class="text-sm font-semibold ">扫描选项</div>
           <n-radio-group v-model:value="scanStrategy">
             <n-space vertical>
               <n-radio value="full">
@@ -45,32 +40,6 @@
           </n-radio-group>
         </n-space>
       </div>
-
-      <!-- 扫描进度 -->
-      <div v-if="isScanning" class="wps-card wps-section mt-2">
-        <n-space vertical>
-          <div class="flex items-center gap-2">
-            <n-spin size="small" />
-            <span class="text-sm font-semibold">{{ scanProgress.stage || '正在扫描...' }}</span>
-          </div>
-          <n-progress 
-            v-if="scanProgress.current > 0"
-            :percentage="Math.round((scanProgress.current / scanProgress.total) * 100)"
-            type="line"
-            status="info"
-          />
-          <div v-if="scanProgress.current > 0" class="text-xs text-gray-500">
-            进度: {{ scanProgress.current }} / {{ scanProgress.total }}
-          </div>
-          
-          <!-- 实时AI响应预览 -->
-          <div v-if="realtimeResponse" class="mt-3 p-3 bg-gray-50 rounded text-xs max-h-40 overflow-y-auto scrollbar-thin">
-            <div class="text-gray-600 mb-1">AI 实时响应:</div>
-            <div class="whitespace-pre-wrap text-gray-800">{{ realtimeResponse }}</div>
-          </div>
-        </n-space>
-      </div>
-
       <!-- 合同类型识别结果 -->
       <div v-if="contractType" class="wps-card wps-section mt-2">
         <n-space align="center">
@@ -79,12 +48,28 @@
         </n-space>
       </div>
 
+      <!-- 扫描进度 -->
+      <div v-if="isScanning" class="wps-card wps-section mt-2">
+        <n-space vertical>
+          <div class="flex items-center gap-2">
+            <n-spin size="small" />
+            <span class="text-sm font-semibold">{{ scanProgress.stage || '正在扫描...' }}</span>
+          </div>
+          <n-progress v-if="scanProgress.current > 0"
+            :percentage="Math.round((scanProgress.current / scanProgress.total) * 100)" type="line" status="info" />
+          <div v-if="scanProgress.current > 0" class="text-xs text-gray-500">
+            进度: {{ scanProgress.current }} / {{ scanProgress.total }}
+          </div>
+        </n-space>
+      </div>
+
+
       <!-- 扫描结果 -->
       <div v-if="scanResult" class="mt-2">
         <!-- 风险统计 -->
         <div class="wps-card wps-section">
           <div class="text-base font-semibold mb-4">📊 风险统计</div>
-          <n-space>
+          <div class="grid grid-cols-3 gap-4">
             <n-statistic label="检测问题" :value="scanResult.summary?.totalIssues || 0">
               <template #suffix>个</template>
             </n-statistic>
@@ -94,83 +79,105 @@
             <n-statistic label="审查清单" :value="scanResult.summary?.checklistCount || 0">
               <template #suffix>项</template>
             </n-statistic>
-          </n-space>
+          </div>
         </div>
 
         <!-- 审查清单 -->
         <div v-if="scanResult.checklist && scanResult.checklist.length > 0" class="wps-card wps-section mt-2">
-          <div class="text-base font-semibold mb-4">📋 审查清单</div>
-          <n-list bordered>
-            <n-list-item v-for="(item, index) in scanResult.checklist" :key="index">
-              <n-thing>
-                <template #header>
-                  <n-space align="center">
-                    <n-tag :type="isChecklistItemMatched(item.id) ? 'success' : 'default'" size="small">
-                      {{ isChecklistItemMatched(item.id) ? '✓' : '○' }}
-                    </n-tag>
-                    <span>{{ item.name }}</span>
-                    <n-tag v-if="item.required" type="error" size="tiny">必需</n-tag>
-                  </n-space>
-                </template>
-                <template #description>
-                  <div class="text-sm text-gray-600 mt-1">{{ item.reviewRequirements }}</div>
-                  <div v-if="isChecklistItemMatched(item.id)" class="text-xs text-green-600 mt-1">
-                    ✓ 已检测到相关内容 ({{ getChecklistMatchCount(item.id) }} 个问题)
-                  </div>
-                </template>
-              </n-thing>
-            </n-list-item>
-          </n-list>
+          <n-collapse accordion>
+            <n-collapse-item>
+              <template #header>
+                <n-space align="center">
+                  <span class="text-base font-semibold">📋 审查清单</span>
+                  <n-tag size="small" type="info">{{ scanResult.checklist.length }} 项</n-tag>
+                </n-space>
+              </template>
+              <n-list bordered>
+                <n-list-item v-for="(item, index) in scanResult.checklist" :key="index">
+                  <n-thing>
+                    <template #header>
+                      <n-space align="center">
+                        <n-tag :type="isChecklistItemMatched(item.id) ? 'success' : 'default'" size="small">
+                          {{ isChecklistItemMatched(item.id) ? '✓' : '○' }}
+                        </n-tag>
+                        <span>{{ item.name }}</span>
+                        <n-tag v-if="item.required" type="error" size="tiny">必需</n-tag>
+                      </n-space>
+                    </template>
+                    <template #description>
+                      <div class="text-sm text-gray-600 mt-1">{{ item.reviewRequirements }}</div>
+                      <div v-if="isChecklistItemMatched(item.id)" class="text-xs text-green-600 mt-1">
+                        ✓ 已检测到相关内容 ({{ getChecklistMatchCount(item.id) }} 个问题)
+                      </div>
+                    </template>
+                  </n-thing>
+                </n-list-item>
+              </n-list>
+            </n-collapse-item>
+          </n-collapse>
         </div>
 
         <!-- 检测到的问题 -->
         <div v-if="scanResult.issues && scanResult.issues.length > 0" class="wps-card wps-section mt-2">
-          <div class="text-base font-semibold mb-4">⚠️ 检测到的问题 ({{ scanResult.issues.length }})</div>
-          <n-collapse>
-            <n-collapse-item v-for="(issue, index) in scanResult.issues" :key="index">
+          <n-collapse accordion>
+            <n-collapse-item>
               <template #header>
                 <n-space align="center">
-                  <span class="text-gray-500 text-sm">{{ index + 1 }}.</span>
-                  <n-tag :type="getRiskLevelColor(issue.severity)" size="small">
-                    {{ getRiskLevelText(issue.severity) }}
-                  </n-tag>
-                  <span class="text-sm">{{ issue.position || '未知位置' }}</span>
+                  <span class="text-base font-semibold">⚠️ 检测到的问题</span>
+                  <n-tag size="small" type="warning">{{ scanResult.issues.length }} 个</n-tag>
                 </n-space>
               </template>
-              <n-space vertical class="text-sm">
-                <div v-if="issue.keyword" class="bg-gray-50 p-2 rounded">
-                  <div class="text-xs text-gray-500 mb-1">相关条款:</div>
-                  <div class="text-gray-700">{{ issue.keyword }}</div>
-                </div>
-                <div>
-                  <div class="text-xs text-gray-500 mb-1">问题描述:</div>
-                  <div class="text-gray-700">{{ issue.comment }}</div>
-                </div>
-              </n-space>
+              <n-collapse accordion>
+                <n-collapse-item v-for="(issue, index) in scanResult.issues" :key="index">
+                  <template #header>
+                    <n-space align="center">
+                      <span class="text-gray-500 text-sm">{{ index + 1 }}.</span>
+                      <n-tag :type="getRiskLevelColor(issue.severity)" size="small">
+                        {{ getRiskLevelText(issue.severity) }}
+                      </n-tag>
+                      <span class="text-sm">{{ issue.position || '未知位置' }}</span>
+                    </n-space>
+                  </template>
+                  <n-space vertical class="text-sm">
+                    <div v-if="issue.keyword" class="bg-gray-50 p-2 rounded">
+                      <div class="text-xs text-gray-500 mb-1">相关条款:</div>
+                      <div class="text-gray-700">{{ issue.keyword }}</div>
+                    </div>
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">问题描述:</div>
+                      <div class="text-gray-700">{{ issue.comment }}</div>
+                    </div>
+                  </n-space>
+                </n-collapse-item>
+              </n-collapse>
             </n-collapse-item>
           </n-collapse>
         </div>
 
         <!-- 风险提示 -->
         <div v-if="scanResult.risks && scanResult.risks.length > 0" class="wps-card wps-section mt-2">
-          <div class="text-base font-semibold mb-4">🚨 风险提示 ({{ scanResult.risks.length }})</div>
-          <n-space vertical>
-            <n-alert 
-              v-for="(risk, index) in scanResult.risks" 
-              :key="index"
-              :type="getRiskAlertType(risk.severity)"
-              :closable="false"
-              show-icon
-            >
-              <template #header>{{ index + 1 }}. 风险提示</template>
-              <template #default>
-                <div class="space-y-2">
-                  <div><strong>风险描述:</strong> {{ risk.description }}</div>
-                  <div v-if="risk.suggestion"><strong>建议:</strong> {{ risk.suggestion }}</div>
-                </div>
+          <n-collapse accordion>
+            <n-collapse-item>
+              <template #header>
+                <n-space align="center">
+                  <span class="text-base font-semibold">🚨 风险提示</span>
+                  <n-tag size="small" type="error">{{ scanResult.risks.length }} 个</n-tag>
+                </n-space>
               </template>
-            </n-alert>
-          </n-space>
+              <n-space vertical>
+                <n-alert v-for="(risk, index) in scanResult.risks" :key="index" :type="getRiskAlertType(risk.severity)"
+                  :closable="false" show-icon>
+                  <template #header>{{ index + 1 }}. 风险提示</template>
+                  <template #default>
+                    <div class="space-y-2">
+                      <div><strong>风险描述:</strong> {{ risk.description }}</div>
+                      <div v-if="risk.suggestion"><strong>建议:</strong> {{ risk.suggestion }}</div>
+                    </div>
+                  </template>
+                </n-alert>
+              </n-space>
+            </n-collapse-item>
+          </n-collapse>
         </div>
 
         <!-- 操作按钮 -->
@@ -309,80 +316,80 @@ const startScan = async () => {
     }
 
     console.log('开始扫描，文档长度:', fullText.length)
-    
+
     // 计算预计时间（基于字数和模式）
     const wordCount = fullText.length
-    const estimatedTime = scanStrategy.value === 'full' 
+    const estimatedTime = scanStrategy.value === 'full'
       ? Math.ceil(wordCount / 500) * 10  // 全文：每500字约10秒
       : Math.ceil(wordCount / 1000) * 8  // 分段：每1000字约8秒
-    
+
     window.$message?.info(
       `文档字数: ${wordCount} 字 | 预计用时: ${estimatedTime} 秒 | 模式: ${scanStrategy.value === 'full' ? '全文' : '分段'}`,
       { duration: 5000 }
     )
 
-      // 1. 识别合同类型
-      scanProgress.value.stage = '正在识别合同类型...'
-      realtimeResponse.value = ''
-      
-      const identifiedType = await reviewAIService.identifyContractType(fullText, (progressInfo) => {
-        if (progressInfo.stage) {
-          scanProgress.value.stage = progressInfo.stage
-        }
-        if (progressInfo.content) {
-          realtimeResponse.value = progressInfo.content.substring(0, 500) // 限制显示长度
-        }
-      })
-      
-      // 保存完整对象供审查引擎使用
-      contractTypeObj.value = identifiedType
-      
-      // 提取类型文本用于显示，优先显示子类型
-      const typeText = identifiedType.subtype || identifiedType.type || '未知'
-      contractType.value = typeText
-      
-      console.log('识别的合同类型:', identifiedType, '显示文本:', typeText)
+    // 1. 识别合同类型
+    scanProgress.value.stage = '正在识别合同类型...'
+    realtimeResponse.value = ''
 
-      // 2. 执行审查
-      scanProgress.value.stage = '正在分析合同内容...'
-      realtimeResponse.value = ''
-      
-      const options = {
-        autoApply: false, // 不自动应用批注
-        useCustomRules: false, // 不使用自定义规则
-        // 注意：合同审查需要 JSON 格式输出，使用非流式请求
-        // stream: false 是默认值，可以不设置
-        onProgress: (progress) => {
-          scanProgress.value = {
-            current: progress.current || 0,
-            total: progress.total || 0,
-            stage: progress.stage || '正在审查...'
-          }
-          // 显示处理阶段
-          if (progress.stage) {
-            realtimeResponse.value = `[${progress.stage}]`
-          }
-          // 显示响应内容预览（如果有）
-          if (progress.content && progress.content.length > 0) {
-            const preview = progress.content.substring(0, 500)
-            realtimeResponse.value = `[${progress.stage}]\n\n${preview}${progress.content.length > 500 ? '...' : ''}`
-          }
+    const identifiedType = await reviewAIService.identifyContractType(fullText, (progressInfo) => {
+      if (progressInfo.stage) {
+        scanProgress.value.stage = progressInfo.stage
+      }
+      if (progressInfo.content) {
+        realtimeResponse.value = progressInfo.content.substring(0, 500) // 限制显示长度
+      }
+    })
+
+    // 保存完整对象供审查引擎使用
+    contractTypeObj.value = identifiedType
+
+    // 提取类型文本用于显示，优先显示子类型
+    const typeText = identifiedType.subtype || identifiedType.type || '未知'
+    contractType.value = typeText
+
+    console.log('识别的合同类型:', identifiedType, '显示文本:', typeText)
+
+    // 2. 执行审查
+    scanProgress.value.stage = '正在分析合同内容...'
+    realtimeResponse.value = ''
+
+    const options = {
+      autoApply: false, // 不自动应用批注
+      useCustomRules: false, // 不使用自定义规则
+      // 注意：合同审查需要 JSON 格式输出，使用非流式请求
+      // stream: false 是默认值，可以不设置
+      onProgress: (progress) => {
+        scanProgress.value = {
+          current: progress.current || 0,
+          total: progress.total || 0,
+          stage: progress.stage || '正在审查...'
+        }
+        // 显示处理阶段
+        if (progress.stage) {
+          realtimeResponse.value = `[${progress.stage}]`
+        }
+        // 显示响应内容预览（如果有）
+        if (progress.content && progress.content.length > 0) {
+          const preview = progress.content.substring(0, 500)
+          realtimeResponse.value = `[${progress.stage}]\n\n${preview}${progress.content.length > 500 ? '...' : ''}`
         }
       }
+    }
 
-      let result
-      if (scanStrategy.value === 'full') {
-        // 全文审查，传递完整的类型对象
-        result = await reviewEngine.reviewByFullText(fullText, contractTypeObj.value, options)
-      } else {
-        // 分段审查需要先分段
-        console.log('开始分段处理...')
-        const segments = await reviewEngine.segmenter.segmentDocument(fullText)
-        console.log(`文档分段完成：${segments.length} 段`)
-        
-        // 分段审查，参数顺序：segments, fullText, contractType, options
-        result = await reviewEngine.reviewBySegments(segments, fullText, contractTypeObj.value, options)
-      }
+    let result
+    if (scanStrategy.value === 'full') {
+      // 全文审查，传递完整的类型对象
+      result = await reviewEngine.reviewByFullText(fullText, contractTypeObj.value, options)
+    } else {
+      // 分段审查需要先分段
+      console.log('开始分段处理...')
+      const segments = await reviewEngine.segmenter.segmentDocument(fullText)
+      console.log(`文档分段完成：${segments.length} 段`)
+
+      // 分段审查，参数顺序：segments, fullText, contractType, options
+      result = await reviewEngine.reviewBySegments(segments, fullText, contractTypeObj.value, options)
+    }
 
     scanResult.value = result
     scanned.value = true
@@ -400,7 +407,7 @@ const startScan = async () => {
     console.error('扫描失败:', error)
     // 显示详细错误，支持换行
     const errorMsg = error.message || '未知错误'
-    window.$message?.error(errorMsg, { 
+    window.$message?.error(errorMsg, {
       duration: 8000,
       closable: true
     })
@@ -478,7 +485,7 @@ const exportReport = () => {
     // 创建新文档并写入报告
     const newDoc = window.Application.Documents.Add()
     newDoc.Range().Text = reportText
-    
+
     window.$message?.success('报告已生成到新文档')
   } catch (error) {
     console.error('导出报告失败:', error)
@@ -486,4 +493,3 @@ const exportReport = () => {
   }
 }
 </script>
-
