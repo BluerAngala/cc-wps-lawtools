@@ -317,15 +317,39 @@ const startScan = async () => {
 
     console.log('开始扫描，文档长度:', fullText.length)
 
-    // 计算预计时间（基于字数和模式）
+    // 计算预计时间区间（基于字数和模式，预留充足时间）
     const wordCount = fullText.length
-    const estimatedTime = scanStrategy.value === 'full'
-      ? Math.ceil(wordCount / 500) * 10  // 全文：每500字约10秒
-      : Math.ceil(wordCount / 1000) * 8  // 分段：每1000字约8秒
+    let timeRange = ''
+    
+    if (scanStrategy.value === 'full') {
+      // 全文模式：根据字数估算时间区间
+      const minTime = Math.ceil(wordCount / 600) * 10  // 最快情况
+      const maxTime = Math.ceil(wordCount / 400) * 15  // 预留充足时间
+      
+      if (maxTime <= 60) {
+        timeRange = `${minTime}-${maxTime} 秒`
+      } else {
+        const minMinutes = Math.ceil(minTime / 60)
+        const maxMinutes = Math.ceil(maxTime / 60)
+        timeRange = `${minMinutes}-${maxMinutes} 分钟`
+      }
+    } else {
+      // 分段模式：通常更快
+      const minTime = Math.ceil(wordCount / 1200) * 8
+      const maxTime = Math.ceil(wordCount / 800) * 12
+      
+      if (maxTime <= 60) {
+        timeRange = `${minTime}-${maxTime} 秒`
+      } else {
+        const minMinutes = Math.ceil(minTime / 60)
+        const maxMinutes = Math.ceil(maxTime / 60)
+        timeRange = `${minMinutes}-${maxMinutes} 分钟`
+      }
+    }
 
     window.$message?.info(
-      `文档字数: ${wordCount} 字 | 预计用时: ${estimatedTime} 秒 | 模式: ${scanStrategy.value === 'full' ? '全文' : '分段'}`,
-      { duration: 5000 }
+      `文档字数: ${wordCount} 字 | 预计用时: ${timeRange} | 模式: ${scanStrategy.value === 'full' ? '全文' : '分段'}`,
+      { duration: 6000 }
     )
 
     // 1. 识别合同类型

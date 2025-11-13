@@ -5,6 +5,7 @@
 
 import { streamChatCompletions, nonStreamChatCompletions } from '../ai/siliconflow.js'
 import { appConfig } from '../../utils/appConfig.js'
+import { PromptBuilder } from '../../config/prompts.js'
 
 export class ReviewAIService {
   constructor() {
@@ -14,7 +15,7 @@ export class ReviewAIService {
       return {
         model: config.model || 'Qwen/Qwen2.5-7B-Instruct', // 改用更快的 Qwen2.5-7B 模型
         temperature: config.temperature !== undefined ? config.temperature : 0.1,
-        maxTokens: config.maxTokens || 8000
+        maxTokens: config.maxTokens || 16000 // 增加到 16000，确保有足够的输出空间
       }
     }
   }
@@ -24,54 +25,76 @@ export class ReviewAIService {
    */
   async identifyContractType(documentText, onProgress) {
     const config = this.getAIConfig()
-    
-    const systemMessage = {
-      role: 'system',
-      content: '你是一个专业的合同审查专家，擅长快速准确地识别合同类型。请以JSON格式返回结果，包含字段：type（合同类型），subtype（子类型），confidence（置信度：high/medium/low）。'
+    const maxAttempts = 2
+    let attempt = 0
+    let lastError = null
+    let lastResult = {
+      type: '未知',
+      subtype: '',
+      confidence: 'low'
     }
+    let lastResponse = ''
 
-    const userMessage = {
-      role: 'user',
-      content: `请识别以下合同的类型。
-
-合同内容：
-${documentText.substring(0, 5000)}${documentText.length > 5000 ? '\n\n[内容已截断]' : ''}`
-    }
-
-    try {
-      if (onProgress) {
-        onProgress({ stage: '正在识别合同类型...', content: '' })
+    while (attempt < maxAttempts) {
+      attempt += 1
+      let messages = PromptBuilder.forContractClassification(documentText)
+      if (attempt > 1) {
+        messages = [
+          ...messages,
+          {
+            role: 'user',
+            content: '如果无法完全确定，请选择最接近的合同类型并给出理由，不要返回未知类型。'
+          }
+        ]
       }
 
-      const response = await nonStreamChatCompletions({
-        messages: [systemMessage, userMessage],
-        model: config.model,
-        options: {
-          temperature: config.temperature,
-          maxTokens: 1000, // 类型识别不需要太长
-          response_format: { type: 'json_object' }
+      try {
+        if (onProgress) {
+          onProgress({
+            stage: attempt === 1 ? '正在识别合同类型...' : '合同类型未知，正在重新识别...',
+            content: ''
+          })
         }
-      })
 
-      const result = this.parseJSONResponse(response)
-      
-      if (onProgress) {
-        onProgress({ stage: '合同类型识别完成', content: response })
-      }
+        const response = await nonStreamChatCompletions({
+          messages,
+          model: config.model,
+          options: {
+            temperature: attempt === 1 ? config.temperature : Math.min(config.temperature + 0.2, 0.6),
+            maxTokens: 1000, // 类型识别不需要太长
+            response_format: { type: 'json_object' }
+          }
+        })
 
-      return {
-        type: result.type || '未知',
-        subtype: result.subtype || '',
-        confidence: result.confidence || 'medium'
-      }
-    } catch (error) {
-      console.error('识别合同类型失败:', error)
-      return {
-        type: '未知',
-        subtype: '',
-        confidence: 'low'
+        const result = this.parseJSONResponse(response)
+        lastResponse = response
+        lastResult = {
+          type: result.type || '未知',
+          subtype: result.subtype || '',
+          confidence: result.confidence || 'medium'
+        }
+
+        if (lastResult.type && lastResult.type !== '未知') {
+          if (onProgress) {
+            onProgress({ stage: '合同类型识别完成', content: response })
+          }
+          return lastResult
+        }
+      } catch (error) {
+        lastError = error
+        console.error('识别合同类型失败:', error)
       }
     }
+
+    if (onProgress && lastResponse) {
+      onProgress({ stage: '合同类型识别完成', content: lastResponse })
+    }
+
+    if (lastError && (!lastResult || lastResult.type === '未知')) {
+      console.warn('多次识别仍未得到明确合同类型，返回默认结果')
+    }
+
+    return lastResult
   }
 
   /**
@@ -95,6 +118,17 @@ ${documentText.substring(0, 5000)}${documentText.length > 5000 ? '\n\n[内容已
 
       let response
       
+      if (options.onProgress && Array.isArray(context.checklist) && context.checklist.length > 0) {
+        try {
+          options.onProgress({
+            stage: '审查清单已准备',
+            content: context.checklist
+          })
+        } catch (error) {
+          console.warn('[AI审查] 进度回调（审查清单）失败:', error)
+        }
+      }
+
       if (useStream) {
         // 流式请求（仅用于展示，不解析为 JSON）
         console.log('[AI审查] 使用流式模式（展示用）')
@@ -125,21 +159,21 @@ ${documentText.substring(0, 5000)}${documentText.length > 5000 ? '\n\n[内容已
         console.log('[AI审查] 📝 当前段落长度:', context.currentSegment?.length || 0, '字符')
         console.log('[AI审查] 📚 完整文档长度:', context.fullDocument?.length || 0, '字符')
         console.log('[AI审查] 📋 审查清单项数:', context.checklist?.length || 0)
-        console.log('[AI审查] 💬 System Message 长度:', messages[0]?.content?.length || 0, '字符')
-        console.log('[AI审查] 💬 System Message (前300字):', messages[0]?.content?.substring(0, 300) + '...')
-        console.log('[AI审查] 💬 User Message 长度:', messages[1]?.content?.length || 0, '字符')
-        console.log('[AI审查] 💬 User Message (前500字):', messages[1]?.content?.substring(0, 500) + '...')
+        console.log('[AI审查] 💬 System Message:', messages[0]?.content)
+        console.log('[AI审查] 💬 User Message:', messages[1]?.content)
         console.log('[AI审查] 📊 Messages 总长度:', messages.reduce((sum, m) => sum + (m.content?.length || 0), 0), '字符')
         console.log('[AI审查] =======================================')
         
         const requestStartTime = Date.now()
+        // 注意：某些模型对 response_format 支持不佳，尝试不使用该参数
         response = await nonStreamChatCompletions({
           messages,
           model: config.model,
           options: {
             temperature: config.temperature,
-            maxTokens: config.maxTokens,
-            response_format: { type: 'json_object' }
+            maxTokens: config.maxTokens
+            // 暂时移除 response_format，因为 Qwen2.5-7B 可能不支持或支持不好
+            // response_format: { type: 'json_object' }
           }
         })
         const requestDuration = Date.now() - requestStartTime
@@ -175,88 +209,29 @@ ${documentText.substring(0, 5000)}${documentText.length > 5000 ? '\n\n[内容已
   }
 
   /**
-   * 构建审查消息（使用 system message + 优化后的提示词）
+   * 构建审查消息（三层提示词结构：系统级 + 角色级 + 任务级）
+   * 使用统一的提示词配置管理
    */
   buildReviewMessages(context, contractType) {
-    // 构建审查清单部分
+    // 生成文档摘要（用于上下文）
+    const summary = context.fullDocument && context.fullDocument.length > 0
+      ? this.generateDocumentSummary(context.fullDocument, context.currentSegment)
+      : null
+
+    // 格式化审查清单
     const checklistText = context.checklist && context.checklist.length > 0
       ? this.formatChecklist(context.checklist)
-      : ''
+      : null
 
-    // System Message：定义角色和核心规则
-    const systemContent = `你是一个专业的合同审查专家，擅长识别法律风险并提供具体建议。
-
-核心任务：
-1. 审查合同条款的完整性和法律风险
-2. 检查条款是否与合同其他部分一致
-3. 识别潜在的法律问题和风险点
-4. 提供具体、可操作的建议
-
-**必须以 JSON 格式返回审查结果**，格式如下：
-{
-  "issues": [
-    {
-      "severity": "high|medium|low",
-      "position": "章节位置（如：第六条）",
-      "keyword": "问题相关的完整文本片段",
-      "searchKeyword": "精确的搜索关键词（5-20字符，文档中实际存在的连续文本）",
-      "comment": "问题描述和建议",
-      "checklistId": "对应的审查清单项ID（如果适用）"
-    }
-  ],
-  "risks": [
-    {
-      "severity": "high|medium|low",
-      "description": "风险描述",
-      "suggestion": "建议"
-    }
-  ]
-}
-
-重要规则：
-- 必须返回有效的 JSON 格式
-- searchKeyword 必须是文档中实际存在的连续文本（5-20字符）
-- keyword 保留完整的问题文本片段（用于显示）
-- position 准确标注章节号（如"第六条"）
-- 发现问题时，issues 数组不能为空
-- 只做批注，不做修订`
-
-    // User Message：具体审查任务
-    let userContent = `请审查以下合同条款。
-
-合同类型：${contractType.type}${contractType.subtype ? ` (${contractType.subtype})` : ''}
-
-当前审查的章节：${context.segmentPosition?.section || '未知'}
-
-当前章节内容：
-${context.currentSegment}`
-
-    // 优化上下文传递：使用摘要而非全文
-    if (context.fullDocument && context.fullDocument.length > 0) {
-      // 生成关键信息摘要（而非完整文档）
-      const summary = this.generateDocumentSummary(context.fullDocument, context.currentSegment)
-      if (summary) {
-        userContent += `\n\n合同关键信息摘要（用于上下文理解）：\n${summary}`
-      }
+    // 构建增强的上下文对象
+    const enhancedContext = {
+      ...context,
+      summary,
+      checklistText
     }
 
-    // 添加审查清单
-    if (checklistText) {
-      userContent += `\n\n审查清单（按优先级）：\n${checklistText}`
-      userContent += `\n\n审查要求：
-- 对于"必需"条款，必须检查是否存在、是否完整
-- 对于"高优先级"条款，必须进行深度审查
-- 如果条款缺失或不完整，必须指出问题
-- 如果条款存在但有问题，必须指出具体问题`
-    }
-
-    // 强调返回格式
-    userContent += `\n\n请以 JSON 格式返回审查结果，包含 issues 和 risks 两个数组。如果发现问题，请详细列出；如果没有发现问题，返回空数组。`
-
-    return [
-      { role: 'system', content: systemContent },
-      { role: 'user', content: userContent }
-    ]
+    // 使用 PromptBuilder 构建消息
+    return PromptBuilder.forContractReview(enhancedContext, contractType, checklistText)
   }
 
   /**
@@ -266,21 +241,8 @@ ${context.currentSegment}`
   async analyzeGlobal(documentText, onProgress) {
     const config = this.getAIConfig()
     
-    const systemMessage = {
-      role: 'system',
-      content: '你是一个专业的合同审查专家，擅长快速识别合同结构和潜在风险区域。请以JSON格式返回结果。'
-    }
-
-    const userMessage = {
-      role: 'user',
-      content: `请对以下合同进行全局分析，识别：
-1. 合同类型和子类型
-2. 主要章节结构
-3. 潜在高风险区域（章节位置和风险等级）
-
-合同内容：
-${documentText.substring(0, 8000)}${documentText.length > 8000 ? '\n\n[内容已截断]' : ''}`
-    }
+    // 使用 PromptBuilder 构建消息
+    const messages = PromptBuilder.forContractAnalysis(documentText)
 
     try {
       if (onProgress) {
@@ -288,7 +250,7 @@ ${documentText.substring(0, 8000)}${documentText.length > 8000 ? '\n\n[内容已
       }
 
       const response = await nonStreamChatCompletions({
-        messages: [systemMessage, userMessage],
+        messages,
         model: config.model,
         options: {
           temperature: config.temperature,
@@ -477,4 +439,5 @@ ${documentText.substring(0, 8000)}${documentText.length > 8000 ? '\n\n[内容已
 }
 
 export const reviewAIService = new ReviewAIService()
+
 
