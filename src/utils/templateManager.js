@@ -2,199 +2,278 @@
  * 模板管理器 - 使用 WPS FileSystem API 管理模板文件
  */
 
+import logger from './logger.js'
+import { pathManager } from './pathManager.js'
+
 class TemplateManager {
   constructor() {
-    this.configDirName = 'wps_addon_config'
-    this.templatesDirName = 'templates'
-  }
-
-  /**
-   * 检查 WPS 环境
-   */
-  isWPSAvailable() {
-    return typeof window !== 'undefined' && 
-           typeof window.Application !== 'undefined' &&
-           typeof window.Application.FileSystem !== 'undefined'
-  }
-
-  /**
-   * 获取模板目录路径
-   */
-  getTemplatesDir() {
-    if (!this.isWPSAvailable()) return null
-    
-    try {
-      const homePath = window.Application.Env.GetHomePath()
-      if (!homePath) {
-        console.error('无法获取用户主目录路径')
-        return null
-      }
-      const normalizedPath = homePath.replace(/\\/g, '/')
-      const configDir = normalizedPath.replace(/\/+$/, '') + '/' + this.configDirName
-      return configDir + '/' + this.templatesDirName
-    } catch (error) {
-      console.error('获取模板目录失败:', error)
-      return null
-    }
-  }
-
-  /**
-   * 获取配置文件路径
-   */
-  getConfigFilePath() {
-    const templatesDir = this.getTemplatesDir()
-    if (!templatesDir) return null
-    return templatesDir + '/templates.json'
-  }
-
-  /**
-   * 确保模板目录存在
-   */
-  ensureTemplatesDir() {
-    if (!this.isWPSAvailable()) return false
-    
-    try {
-      const fs = window.Application.FileSystem
-      const homePath = window.Application.Env.GetHomePath()
-      if (!homePath) return false
-      
-      const normalizedPath = homePath.replace(/\\/g, '/')
-      const configDir = normalizedPath.replace(/\/+$/, '') + '/' + this.configDirName
-      const templatesDir = configDir + '/' + this.templatesDirName
-      
-      // 创建配置目录
-      if (!fs.Exists(configDir)) {
-        fs.Mkdir(configDir)
-        console.log('已创建配置目录:', configDir)
-      }
-      
-      // 创建模板目录
-      if (!fs.Exists(templatesDir)) {
-        fs.Mkdir(templatesDir)
-        console.log('已创建模板目录:', templatesDir)
-      }
-      
-      return true
-    } catch (error) {
-      console.error('创建模板目录失败:', error)
-      return false
-    }
+    logger.info('TemplateManager 已初始化')
   }
 
   /**
    * 初始化模板 - 直接使用内置模板，无需复制
    */
   async initializeTemplates() {
+    logger.info('开始初始化模板')
+
     try {
       // 检查是否已初始化
       const storage = window.Application?.PluginStorage
       const initialized = storage?.getItem('templates_initialized')
-      
+
+      logger.debug('检查模板初始化状态', {
+        initialized,
+        hasStorage: !!storage
+      })
+
       if (initialized === 'true') {
-        console.log('模板已初始化，跳过')
+        logger.info('模板已初始化，跳过')
         return true
       }
 
-      console.log('开始初始化模板（直接使用内置模板）...')
-      
       // 加载内置模板配置
-      const response = await fetch('/templates/templates.json')
+      const configUrl = pathManager.getBuiltInTemplatesPath() + '/templates.json'
+      logger.logRequest('GET', configUrl)
+
+      const response = await fetch(configUrl)
+
+      logger.logRequest(
+        'GET',
+        configUrl,
+        response.status,
+        response.ok ? null : new Error(`HTTP ${response.status}`)
+      )
+
       if (!response.ok) {
-        console.error('无法加载内置模板配置')
+        logger.error('无法加载内置模板配置', {
+          url: configUrl,
+          status: response.status,
+          statusText: response.statusText,
+          method: 'initializeTemplates'
+        })
         return false
       }
-      
+
       const data = await response.json()
       const builtInTemplates = data.templates || []
-      
-      console.log(`已加载 ${builtInTemplates.length} 个内置模板`)
-      
+
+      logger.info(`已加载 ${builtInTemplates.length} 个内置模板`, {
+        templateCount: builtInTemplates.length,
+        templateNames: builtInTemplates.map((t) => t.name)
+      })
+
       // 标记为已初始化
       if (storage) {
         storage.setItem('templates_initialized', 'true')
+        logger.debug('已标记模板为已初始化')
       }
-      
-      console.log('模板初始化完成（直接使用内置模板）')
+
+      logger.info('模板初始化完成（直接使用内置模板）')
       return true
     } catch (error) {
-      console.error('初始化模板失败:', error)
+      logger.error('初始化模板失败', {
+        method: 'initializeTemplates',
+        error: error.message,
+        stack: error.stack
+      })
       return false
     }
   }
 
   /**
-   * 加载所有模板配置 - 直接从内置模板加载
+   * 加载所有模板配置 - 合并内置模板和用户模板
    */
   async loadTemplates() {
+    logger.info('开始加载所有模板配置')
+
     try {
-      // 直接从内置模板配置加载
-      const response = await fetch('/templates/templates.json')
-      if (!response.ok) {
-        console.warn('无法加载内置模板配置，尝试初始化...')
-        await this.initializeTemplates()
-        
-        // 重新尝试加载
-        const retryResponse = await fetch('/templates/templates.json')
-        if (!retryResponse.ok) {
-          console.error('加载模板配置失败')
-          return []
-        }
-        const retryData = await retryResponse.json()
-        return this.processTemplates(retryData.templates || [])
-      }
+      // 1. 加载内置模板
+      const builtInTemplates = await this.loadBuiltInTemplates()
+      logger.info(`内置模板加载完成: ${builtInTemplates.length} 个`, {
+        count: builtInTemplates.length
+      })
+
+      // 2. 加载用户保存的模板
+      const userTemplates = this.loadUserTemplates()
+      logger.info(`用户模板加载完成: ${userTemplates.length} 个`, {
+        count: userTemplates.length
+      })
+
+      // 3. 合并模板（用户模板在前，内置模板在后）
+      const allTemplates = [...userTemplates, ...builtInTemplates]
       
-      const data = await response.json()
-      return this.processTemplates(data.templates || [])
+      logger.info(`所有模板加载完成: ${allTemplates.length} 个`, {
+        total: allTemplates.length,
+        builtIn: builtInTemplates.length,
+        user: userTemplates.length
+      })
+
+      return allTemplates
     } catch (error) {
-      console.error('加载模板配置失败:', error)
+      logger.error('加载模板配置失败', {
+        method: 'loadTemplates',
+        error: error.message,
+        stack: error.stack
+      })
       return []
     }
   }
 
   /**
-   * 处理模板数据，添加 URL 路径
+   * 加载内置模板
    */
-  processTemplates(templates) {
-    return templates.map(template => ({
-      ...template,
-      // 使用内置模板的 URL 路径
-      filePath: `/templates/${template.fileName}`,
-      // 兼容旧代码，保留 fileUrl 字段
-      fileUrl: window.location.origin + `/templates/${template.fileName}`
-    }))
+  async loadBuiltInTemplates() {
+    try {
+      const configUrl = pathManager.getBuiltInTemplatesPath() + '/templates.json'
+      logger.logRequest('GET', configUrl)
+
+      const response = await fetch(configUrl)
+
+      logger.logRequest(
+        'GET',
+        configUrl,
+        response.status,
+        response.ok ? null : new Error(`HTTP ${response.status}`)
+      )
+
+      if (!response.ok) {
+        logger.error('无法加载内置模板配置', {
+          url: configUrl,
+          status: response.status
+        })
+        return []
+      }
+
+      const data = await response.json()
+      const templates = data.templates || []
+
+      // 处理内置模板路径
+      return templates.map((template) => ({
+        ...template,
+        filePath: pathManager.getBuiltInTemplatesPath() + '/' + template.fileName,
+        isBuiltIn: true
+      }))
+    } catch (error) {
+      logger.error('加载内置模板失败', {
+        error: error.message,
+        stack: error.stack
+      })
+      return []
+    }
   }
 
   /**
-   * 保存模板配置（用于保存自定义模板，内置模板无需保存）
+   * 加载用户保存的模板
    */
-  saveTemplates(templates) {
-    if (!this.isWPSAvailable()) return false
-    
+  loadUserTemplates() {
+    if (!pathManager.isWPSAvailable()) {
+      logger.debug('WPS 环境不可用，跳过用户模板加载')
+      return []
+    }
+
     try {
       const fs = window.Application.FileSystem
-      const configPath = this.getConfigFilePath()
-      
+      const configPath = pathManager.getTemplatesConfigPath()
+
       if (!configPath) {
-        console.error('无法获取配置文件路径')
+        logger.warn('无法获取用户模板配置路径')
+        return []
+      }
+
+      // 检查配置文件是否存在
+      if (!fs.Exists(configPath)) {
+        logger.debug('用户模板配置文件不存在', { configPath })
+        return []
+      }
+
+      // 读取配置文件
+      const content = fs.ReadFile(configPath)
+      if (!content || content.trim() === '') {
+        logger.warn('用户模板配置文件为空', { configPath })
+        return []
+      }
+
+      const data = JSON.parse(content)
+      const userTemplates = data.templates || []
+
+      logger.info(`用户模板配置已加载: ${userTemplates.length} 个`, {
+        configPath,
+        count: userTemplates.length
+      })
+
+      return userTemplates
+    } catch (error) {
+      logger.error('加载用户模板失败', {
+        error: error.message,
+        stack: error.stack
+      })
+      return []
+    }
+  }
+
+  /**
+   * 保存模板配置（只保存用户自定义模板）
+   */
+  saveTemplates(templates) {
+    logger.info(`开始保存模板配置: ${templates.length} 个模板`)
+
+    if (!pathManager.isWPSAvailable()) {
+      logger.warn('WPS 环境不可用，无法保存模板配置')
+      return false
+    }
+
+    try {
+      const fs = window.Application.FileSystem
+      const configPath = pathManager.getTemplatesConfigPath()
+
+      if (!configPath) {
+        logger.error('无法获取配置文件路径')
         return false
       }
-      
+
+      // 确保模板目录存在
+      const templatesDir = pathManager.getTemplatesDir()
+      if (templatesDir) {
+        pathManager.ensureDir(templatesDir)
+      }
+
+      // 只保存用户自定义模板（过滤掉内置模板）
+      const userTemplates = templates.filter(t => !t.isBuiltIn)
+
       const configData = {
-        templates: templates,
+        templates: userTemplates,
         lastUpdated: new Date().toISOString()
       }
-      
-      const writeResult = fs.WriteFile(configPath, JSON.stringify(configData, null, 2))
-      
+
+      const configJson = JSON.stringify(configData, null, 2)
+
+      logger.logFileOperation('write', configPath, null, null)
+
+      const writeResult = fs.WriteFile(configPath, configJson)
+
       if (writeResult) {
-        console.log('模板配置已保存:', templates.length, '个模板')
+        logger.logFileOperation('write', configPath, 'success', null)
+        logger.info(`用户模板配置已保存: ${userTemplates.length} 个模板`, {
+          configPath,
+          total: templates.length,
+          userTemplates: userTemplates.length,
+          builtInTemplates: templates.length - userTemplates.length
+        })
         return true
       } else {
-        console.error('保存配置文件失败')
+        logger.logFileOperation('write', configPath, 'failed', new Error('WriteFile 返回 false'))
+        logger.error('保存配置文件失败', {
+          configPath,
+          method: 'saveTemplates'
+        })
         return false
       }
     } catch (error) {
-      console.error('保存模板配置失败:', error)
+      logger.error('保存模板配置失败', {
+        method: 'saveTemplates',
+        error: error.message,
+        stack: error.stack
+      })
       return false
     }
   }
@@ -203,15 +282,24 @@ class TemplateManager {
    * 重置初始化状态（用于调试）
    */
   resetInitialization() {
-    if (!this.isWPSAvailable()) return false
-    
+    logger.info('重置模板初始化状态')
+
+    if (!pathManager.isWPSAvailable()) {
+      logger.warn('WPS 环境不可用，无法重置初始化状态')
+      return false
+    }
+
     try {
       const storage = window.Application.PluginStorage
       storage.removeItem('templates_initialized')
-      console.log('模板初始化状态已重置')
+      logger.info('模板初始化状态已重置')
       return true
     } catch (error) {
-      console.error('重置初始化状态失败:', error)
+      logger.error('重置初始化状态失败', {
+        method: 'resetInitialization',
+        error: error.message,
+        stack: error.stack
+      })
       return false
     }
   }
@@ -219,4 +307,3 @@ class TemplateManager {
 
 // 创建单例
 export const templateManager = new TemplateManager()
-

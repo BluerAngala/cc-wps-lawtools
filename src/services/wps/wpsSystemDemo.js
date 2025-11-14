@@ -1,5 +1,3 @@
-import errorLogger from '@/utils/errorLogger'
-
 function openOfficeFileFromSystemDemo(param) {
   let jsonObj = typeof param == 'string' ? JSON.parse(param) : param
   console.log('从业务系统传过来的参数为：', JSON.stringify(jsonObj))

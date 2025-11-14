@@ -2,9 +2,10 @@
  * 应用配置管理器 - 使用 WPS FileSystem API 持久化存储
  */
 
+import { pathManager } from './pathManager.js'
+
 class AppConfigManager {
   constructor() {
-    this.configDirName = 'wps_addon_config'
     this.configFileName = 'config.json'
     this.defaultConfig = {
       // AI 服务配置
@@ -94,67 +95,26 @@ class AppConfigManager {
 
   /**
    * 获取配置目录绝对路径
-   * 使用用户主目录作为配置存储目录（跨平台兼容）
+   * 使用统一路径管理器
    */
   getConfigDir() {
-    if (!this.isWPSAvailable()) return null
-    
-    try {
-      // 使用用户主目录（跨平台兼容：Windows/Linux/Mac）
-      const homePath = window.Application.Env.GetHomePath()
-      if (!homePath) {
-        console.error('无法获取用户主目录路径')
-        return null
-      }
-      // 统一使用斜杠
-      const normalizedPath = homePath.replace(/\\/g, '/')
-      return normalizedPath.replace(/\/+$/, '') + '/' + this.configDirName
-    } catch (error) {
-      console.error('获取配置目录失败:', error)
-      return null
-    }
+    return pathManager.getConfigDir()
   }
 
   /**
    * 获取配置文件完整绝对路径
    */
   getConfigFullPath() {
-    const configDir = this.getConfigDir()
-    if (!configDir) return null
-    return configDir + '/' + this.configFileName
+    return pathManager.getConfigFilePath()
   }
 
   /**
    * 确保配置目录存在
    */
   ensureConfigDir() {
-    if (!this.isWPSAvailable()) return false
-    
-    try {
-      const fs = window.Application.FileSystem
-      const configDir = this.getConfigDir()
-      
-      if (!configDir) {
-        console.error('无法获取配置目录路径')
-        return false
-      }
-      
-      // 检查目录是否存在
-      if (!fs.Exists(configDir)) {
-        fs.Mkdir(configDir)
-        
-        // 验证创建成功
-        if (!fs.Exists(configDir)) {
-          console.error('创建配置目录失败:', configDir)
-          return false
-        }
-      }
-      
-      return true
-    } catch (error) {
-      console.error('确保配置目录存在失败:', error)
-      return false
-    }
+    const configDir = this.getConfigDir()
+    if (!configDir) return false
+    return pathManager.ensureDir(configDir)
   }
 
   /**
@@ -371,24 +331,7 @@ class AppConfigManager {
    * 获取配置信息（用于调试）
    */
   getConfigInfo() {
-    const configPath = this.getConfigFullPath()
-    const configDir = this.getConfigDir()
-    
-    const info = {
-      isWPSAvailable: this.isWPSAvailable(),
-      configDir: configDir,
-      configFile: configPath,
-      dirExists: false,
-      fileExists: false
-    }
-    
-    if (this.isWPSAvailable() && configPath) {
-      const fs = window.Application.FileSystem
-      info.dirExists = configDir ? fs.Exists(configDir) : false
-      info.fileExists = fs.Exists(configPath)
-    }
-    
-    return info
+    return pathManager.getPathInfo()
   }
 }
 

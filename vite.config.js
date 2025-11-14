@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     esbuild: {
-      // 生产环境移除 console
+      // 生产环境移除 console 和 debugger
       drop: mode === 'production' ? ['console', 'debugger'] : []
     },
     server: {

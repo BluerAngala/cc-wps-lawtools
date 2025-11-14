@@ -50,7 +50,7 @@
                 共 {{ getTemplatesByCategory(category).length }} 个模板
               </span>
               <n-button 
-                v-if="!builtInCategories.includes(category)" 
+                v-if="!builtInCategories.includes(category) && category !== '自定义'" 
                 size="small" 
                 type="error" 
                 quaternary
@@ -236,11 +236,16 @@ import {
   NPopconfirm
 } from 'naive-ui'
 import { templateManager } from '../utils/templateManager.js'
+import { pathManager } from '../utils/pathManager.js'
+import logger from '../utils/logger.js'
 
-console.log('文档模板管理页面已加载')
+logger.info('文档模板管理页面已加载', {
+  component: 'TemplateManager',
+  timestamp: new Date().toISOString()
+})
 
 // 响应式数据
-const currentCategory = ref('诉讼文书')
+const currentCategory = ref('')
 const saveDialogVisible = ref(false)
 const templates = ref([])
 const selectedTemplateId = ref(null)
@@ -255,46 +260,119 @@ const newTemplate = ref({
   content: ''
 })
 
-// 内置分类
-const builtInCategories = [
-  '诉讼文书', 
-  '合同模板', 
-  '律师函', 
-  '其他文书',
-  '法律意见书',
-  '公司治理文书',
-  '知识产权文书',
-  '劳动人事文书',
-  '自定义'
-]
-
-// 分类选项（内置 + 自定义）
-const categoryOptions = computed(() => {
-  const options = [
-    { label: '诉讼文书', value: '诉讼文书' },
-    { label: '合同模板', value: '合同模板' },
-    { label: '律师函', value: '律师函' },
-    { label: '其他文书', value: '其他文书' },
-    { label: '法律意见书', value: '法律意见书' },
-    { label: '公司治理文书', value: '公司治理文书' },
-    { label: '知识产权文书', value: '知识产权文书' },
-    { label: '劳动人事文书', value: '劳动人事文书' },
-    { label: '自定义', value: '自定义' }
-  ]
+// 从模板数据中提取所有分类（动态，保持配置文件顺序）
+const builtInCategories = computed(() => {
+  // 使用数组保持顺序，而不是 Set
+  const categories = []
+  const seen = new Set()
+  let hasOtherDocs = false // 记录是否有"其他文书"分类
   
-  // 添加自定义分类
-  customCategories.value.forEach(cat => {
-    if (!options.find(opt => opt.value === cat)) {
-      options.push({ label: cat, value: cat })
+  templates.value.forEach(template => {
+    if (template.isBuiltIn && template.category && !seen.has(template.category)) {
+      // "其他文书"分类暂不添加，留到最后
+      if (template.category === '其他文书') {
+        hasOtherDocs = true
+      } else {
+        categories.push(template.category)
+        seen.add(template.category)
+      }
     }
   })
+  
+  // 添加"其他文书"分类（在"自定义"之前）
+  if (hasOtherDocs) {
+    categories.push('其他文书')
+    seen.add('其他文书')
+  }
+  
+  // 确保"自定义"分类始终存在（放在最后）
+  if (!seen.has('自定义')) {
+    categories.push('自定义')
+  }
+  
+  return categories
+})
+
+// 分类选项（从模板数据动态生成 + 自定义分类，保持配置文件顺序）
+const categoryOptions = computed(() => {
+  const options = []
+  const seen = new Set()
+  let hasOtherDocs = false // 记录是否有"其他文书"分类
+  
+  // 从模板数据中提取所有分类（保持顺序，但"其他文书"暂不添加）
+  templates.value.forEach(template => {
+    if (template.category && !seen.has(template.category)) {
+      // "其他文书"分类暂不添加，留到最后
+      if (template.category === '其他文书') {
+        hasOtherDocs = true
+      } else {
+        options.push({ label: template.category, value: template.category })
+        seen.add(template.category)
+      }
+    }
+  })
+  
+  // 添加自定义分类（在模板分类之后，"其他文书"之前）
+  customCategories.value.forEach(cat => {
+    if (!seen.has(cat) && cat !== '其他文书') {
+      options.push({ label: cat, value: cat })
+      seen.add(cat)
+    }
+  })
+  
+  // 添加"其他文书"分类（在"自定义"之前）
+  if (hasOtherDocs) {
+    options.push({ label: '其他文书', value: '其他文书' })
+    seen.add('其他文书')
+  }
+  
+  // 确保"自定义"分类存在（放在最后）
+  if (!seen.has('自定义')) {
+    options.push({ label: '自定义', value: '自定义' })
+  }
   
   return options
 })
 
-// 所有分类（用于标签页）
+// 所有分类（用于标签页）- 从模板数据动态提取，保持配置文件顺序
 const allCategories = computed(() => {
-  return [...builtInCategories, ...customCategories.value]
+  const categories = []
+  const seen = new Set()
+  let hasOtherDocs = false // 记录是否有"其他文书"分类
+  
+  // 从模板中提取所有分类（保持配置文件中的出现顺序，但"其他文书"暂不添加）
+  templates.value.forEach(template => {
+    if (template.category && !seen.has(template.category)) {
+      // "其他文书"分类暂不添加，留到最后
+      if (template.category === '其他文书') {
+        hasOtherDocs = true
+      } else {
+        categories.push(template.category)
+        seen.add(template.category)
+      }
+    }
+  })
+  
+  // 添加自定义分类（在模板分类之后，"其他文书"之前）
+  customCategories.value.forEach(cat => {
+    if (!seen.has(cat) && cat !== '其他文书') {
+      categories.push(cat)
+      seen.add(cat)
+    }
+  })
+  
+  // 添加"其他文书"分类（在"自定义"之前）
+  if (hasOtherDocs) {
+    categories.push('其他文书')
+    seen.add('其他文书')
+  }
+  
+  // 确保"自定义"分类存在（放在最后）
+  if (!seen.has('自定义')) {
+    categories.push('自定义')
+  }
+  
+  return categories
 })
 
 // 所有模板选项（用于更新）- 包括内置模板和自定义模板
@@ -303,33 +381,41 @@ const customTemplateOptions = computed(() => {
     label: `${t.name} (${t.category})${t.isBuiltIn ? ' [内置]' : ''}`,
     value: t.id
   }))
-  console.log('可选模板数量:', options.length)
+  logger.debug('可选模板数量', { count: options.length })
   return options
 })
 
-// 获取模板文件的完整路径
+// 获取模板文件的路径（本地文件）
 const getTemplateFilePath = (template) => {
-  // 优先使用 fileUrl（完整 URL）
-  if (template.fileUrl) {
-    return template.fileUrl
-  }
-  // 如果有 filePath，判断是否为完整 URL
+  logger.debug('开始获取模板文件路径', {
+    templateId: template.id,
+    templateName: template.name,
+    hasFilePath: !!template.filePath,
+    hasFileName: !!template.fileName
+  })
+  
+  // 优先使用 filePath（本地文件路径）
   if (template.filePath) {
-    // 如果是完整 URL（以 http:// 或 https:// 开头），直接使用
-    if (template.filePath.startsWith('http://') || template.filePath.startsWith('https://')) {
-      return template.filePath
-    }
-    // 如果是相对路径，转换为完整 URL
-    if (template.filePath.startsWith('/')) {
-      return window.location.origin + template.filePath
-    }
-    // 其他情况直接返回
+    logger.logPath('info', '使用 filePath 作为模板路径', {
+      templateId: template.id,
+      templateName: template.name,
+      filePath: template.filePath
+    })
     return template.filePath
   }
-  // 否则使用相对路径（兼容旧版本）
+  
+  // 如果没有 filePath，使用 fileName 构建相对路径
   const fileName = template.fileName || `${template.name}.docx`
-  const baseUrl = window.location.origin
-  return `${baseUrl}/templates/${fileName}`
+  const fallbackPath = `/templates/${fileName}`
+  
+  logger.logPath('info', '使用默认路径构建模板路径', {
+    templateId: template.id,
+    templateName: template.name,
+    fileName,
+    fallbackPath
+  })
+  
+  return fallbackPath
 }
 
 
@@ -364,8 +450,13 @@ const addCategory = () => {
     return
   }
   
-  // 检查是否已存在
-  if (builtInCategories.includes(name) || customCategories.value.includes(name)) {
+  // 检查是否已存在（包括从模板中提取的分类）
+  const allExistingCategories = new Set([
+    ...builtInCategories.value,
+    ...customCategories.value
+  ])
+  
+  if (allExistingCategories.has(name)) {
     window.$message?.warning('该分类已存在')
     return
   }
@@ -395,7 +486,8 @@ const deleteCategory = (category) => {
     
     // 切换到第一个分类
     if (currentCategory.value === category) {
-      currentCategory.value = builtInCategories[0]
+      const firstCategory = allCategories.value.length > 0 ? allCategories.value[0] : '自定义'
+      currentCategory.value = firstCategory
     }
     
     window.$message?.success(`分类"${category}"已删除`)
@@ -463,12 +555,20 @@ const showSaveTemplateDialog = () => {
 
 // 保存模板
 const saveTemplate = async () => {
+  logger.info('开始保存模板', {
+    templateName: newTemplate.value.name,
+    category: newTemplate.value.category,
+    isUpdate: !!selectedTemplateId.value
+  })
+  
   if (!newTemplate.value.name.trim()) {
+    logger.warn('模板名称为空，无法保存')
     window.$message?.warning('请输入模板名称')
     return
   }
 
   if (typeof window.Application === 'undefined') {
+    logger.error('WPS 环境不可用，无法保存模板')
     window.$message?.error('请在 WPS 环境中使用此功能')
     return
   }
@@ -476,39 +576,58 @@ const saveTemplate = async () => {
   try {
     const doc = window.Application.ActiveDocument
     if (!doc) {
+      logger.error('未找到活动文档，无法保存模板')
       window.$message?.error('未找到活动文档')
       return
     }
 
     const templateName = newTemplate.value.name.trim()
     const fileName = `${templateName}.docx`
-    const fs = window.Application.FileSystem
     
-    // 获取配置目录（使用与 appConfig 相同的目录）
-    const homeDir = window.Application.Env.GetHomePath()
-    if (!homeDir) {
-      window.$message?.error('无法获取用户主目录')
+    // 使用统一路径管理器获取模板目录
+    const templatesDir = pathManager.getTemplatesDir()
+    
+    logger.logPath('info', '获取模板目录', {
+      templatesDir,
+      fileName,
+      method: 'saveTemplate'
+    })
+    
+    if (!templatesDir) {
+      logger.error('无法获取模板目录', {
+        method: 'saveTemplate'
+      })
+      window.$message?.error('无法获取模板目录')
       return
     }
     
-    const configDir = homeDir.replace(/\\/g, '/').replace(/\/+$/, '') + '/wps_addon_config'
-    const templatesDir = configDir + '/templates'
-    
     // 确保目录存在
-    if (!fs.Exists(configDir)) {
-      fs.Mkdir(configDir)
+    if (!pathManager.ensureDir(templatesDir)) {
+      logger.error('创建模板目录失败', { templatesDir })
+      window.$message?.error('创建模板目录失败')
+      return
     }
-    if (!fs.Exists(templatesDir)) {
-      fs.Mkdir(templatesDir)
-    }
+    
+    logger.logPath('info', '模板目录已就绪', { templatesDir })
     
     // 保存文档到配置目录
     const templatePath = templatesDir + '/' + fileName
     
+    logger.logPath('info', '准备保存模板文件', {
+      templatePath,
+      fileName,
+      templateName
+    })
+    
     try {
       // 使用 SaveAs2 保存文档
       doc.SaveAs2(templatePath, 16) // 16 = wdFormatDocumentDefault (.docx)
-      console.log('模板文件已保存到:', templatePath)
+      logger.logFileOperation('save', templatePath, 'success', null)
+      logger.info('模板文件已保存', {
+        templatePath,
+        fileName,
+        templateName
+      })
       
       // 创建模板配置
       const template = {
@@ -524,8 +643,19 @@ const saveTemplate = async () => {
         updatedAt: new Date().toISOString()
       }
 
+      logger.logTemplate('create', {
+        templateId: template.id,
+        templateName: template.name,
+        filePath: template.filePath,
+        isUpdate: !!selectedTemplateId.value
+      })
+
       if (selectedTemplateId.value) {
         // 更新现有模板
+        logger.info('更新现有模板', {
+          templateId: selectedTemplateId.value,
+          templateName: templateName
+        })
         const index = templates.value.findIndex(t => t.id === selectedTemplateId.value)
         if (index !== -1) {
           templates.value[index] = {
@@ -533,27 +663,57 @@ const saveTemplate = async () => {
             ...template,
             updatedAt: new Date().toISOString()
           }
+          logger.info('模板已更新', {
+            templateId: template.id,
+            templateName: template.name
+          })
+        } else {
+          logger.warn('未找到要更新的模板', {
+            templateId: selectedTemplateId.value
+          })
         }
       } else {
         // 添加新模板
+        logger.info('添加新模板', {
+          templateId: template.id,
+          templateName: template.name
+        })
         templates.value.push(template)
       }
 
       // 保存配置到文件系统
+      logger.debug('保存模板配置到文件系统')
       const saveResult = templateManager.saveTemplates(templates.value)
       
       if (saveResult) {
+        logger.info(`模板"${templateName}"已保存成功`, {
+          templateId: template.id,
+          templateName: template.name
+        })
         window.$message?.success(`模板"${templateName}"已保存`)
         saveDialogVisible.value = false
       } else {
+        logger.error('保存模板配置失败', {
+          templateId: template.id,
+          templateName: template.name
+        })
         window.$message?.error('保存模板配置失败')
       }
     } catch (saveError) {
-      console.error('保存文件失败:', saveError)
+      logger.error('保存文件失败', {
+        templateName,
+        templatePath,
+        error: saveError.message,
+        stack: saveError.stack
+      })
       window.$message?.error('保存文件失败: ' + saveError.message)
     }
   } catch (error) {
-    console.error('保存模板失败:', error)
+    logger.error('保存模板失败', {
+      templateName: newTemplate.value.name,
+      error: error.message,
+      stack: error.stack
+    })
     window.$message?.error('保存失败: ' + error.message)
   }
 }
@@ -561,27 +721,61 @@ const saveTemplate = async () => {
 
 // 应用模板
 const applyTemplate = async (template, target) => {
+  logger.logTemplate('apply', {
+    templateId: template.id,
+    templateName: template.name,
+    isBuiltIn: template.isBuiltIn,
+    target
+  })
+  
   if (typeof window.Application === 'undefined') {
+    logger.error('WPS 环境不可用，无法应用模板', {
+      templateId: template.id,
+      templateName: template.name
+    })
     window.$message?.error('请在 WPS 环境中使用此功能')
     return
   }
 
   try {
+    const filePath = getTemplateFilePath(template)
+    
+    logger.logPath('info', '准备应用模板', {
+      templateId: template.id,
+      templateName: template.name,
+      filePath,
+      target,
+      isBuiltIn: template.isBuiltIn
+    })
+    
     if (template.isBuiltIn) {
       // 内置模板：直接打开 docx 文件
-      const filePath = getTemplateFilePath(template)
-      
       if (target === 'new') {
         // 新建文档：直接打开模板文件
+        logger.info('在新文档中打开内置模板', {
+          templateId: template.id,
+          templateName: template.name,
+          filePath
+        })
         window.Application.Documents.Open(filePath)
         window.$message?.success('已在新文档中打开模板')
       } else {
         // 应用到当前文档：清空原文后粘贴模板（保留模板格式）
         const doc = window.Application.ActiveDocument
         if (!doc) {
+          logger.error('未找到活动文档', {
+            templateId: template.id,
+            templateName: template.name
+          })
           window.$message?.error('未找到活动文档')
           return
         }
+
+        logger.info('在当前文档中应用内置模板', {
+          templateId: template.id,
+          templateName: template.name,
+          filePath
+        })
 
         // 打开模板文件并复制内容（包含格式）
         const tempDoc = window.Application.Documents.Open(filePath, false, true)
@@ -594,6 +788,10 @@ const applyTemplate = async (template, target) => {
         doc.Range().Select()
         let selection = window.Application.Selection
         if (!selection) {
+          logger.error('无法获取文档选区', {
+            templateId: template.id,
+            templateName: template.name
+          })
           window.$message?.error('无法获取文档选区，请重试')
           return
         }
@@ -604,23 +802,40 @@ const applyTemplate = async (template, target) => {
         // 粘贴模板内容，完整保留格式
         selection.Paste()
 
+        logger.info('内置模板已应用到当前文档', {
+          templateId: template.id,
+          templateName: template.name
+        })
         window.$message?.success('已应用模板到当前文档')
       }
     } else {
       // 自定义模板：使用保存的 docx 文件
-      const filePath = getTemplateFilePath(template)
-      
       if (target === 'new') {
         // 新建文档：直接打开模板文件
+        logger.info('在新文档中打开自定义模板', {
+          templateId: template.id,
+          templateName: template.name,
+          filePath
+        })
         window.Application.Documents.Open(filePath)
         window.$message?.success('已在新文档中打开模板')
       } else {
         // 应用到当前文档：清空后复制模板格式
         const doc = window.Application.ActiveDocument
         if (!doc) {
+          logger.error('未找到活动文档', {
+            templateId: template.id,
+            templateName: template.name
+          })
           window.$message?.error('未找到活动文档')
           return
         }
+        
+        logger.info('在当前文档中应用自定义模板', {
+          templateId: template.id,
+          templateName: template.name,
+          filePath
+        })
         
         // 清空当前文档内容
         const docRange = doc.Range()
@@ -637,11 +852,21 @@ const applyTemplate = async (template, target) => {
         // 粘贴到当前文档（保留格式）
         docRange.Paste()
         
+        logger.info('自定义模板已应用到当前文档', {
+          templateId: template.id,
+          templateName: template.name
+        })
         window.$message?.success('已应用模板到当前文档')
       }
     }
   } catch (error) {
-    console.error('应用模板失败:', error)
+    logger.error('应用模板失败', {
+      templateId: template.id,
+      templateName: template.name,
+      target,
+      error: error.message,
+      stack: error.stack
+    })
     window.$message?.error('应用失败: ' + error.message)
   }
 }
@@ -674,12 +899,19 @@ const saveTemplatesToStorage = () => {
   try {
     const saveResult = templateManager.saveTemplates(templates.value)
     if (saveResult) {
-      console.log('模板配置已保存')
+      logger.info('模板配置已保存', {
+        templateCount: templates.value.length
+      })
     } else {
-      console.error('保存模板配置失败')
+      logger.error('保存模板配置失败', {
+        templateCount: templates.value.length
+      })
     }
   } catch (error) {
-    console.error('保存模板失败:', error)
+    logger.error('保存模板失败', {
+      error: error.message,
+      stack: error.stack
+    })
   }
 }
 
@@ -688,10 +920,20 @@ const saveCategoriesToStorage = () => {
   try {
     const dataToSave = JSON.stringify(customCategories.value)
     
+    logger.debug('保存分类到 WPS PluginStorage', {
+      categoryCount: customCategories.value.length,
+      categories: customCategories.value
+    })
+    
     window.Application.PluginStorage.setItem('law_categories', dataToSave)
-    console.log('分类已保存到 WPS PluginStorage')
+    logger.info('分类已保存到 WPS PluginStorage', {
+      categoryCount: customCategories.value.length
+    })
   } catch (error) {
-    console.error('保存分类失败:', error)
+    logger.error('保存分类失败', {
+      error: error.message,
+      stack: error.stack
+    })
     window.$message?.error('保存分类失败: ' + error.message)
   }
 }
@@ -699,37 +941,80 @@ const saveCategoriesToStorage = () => {
 // 从 WPS 持久化存储加载分类
 const loadCategoriesFromStorage = () => {
   try {
+    logger.debug('从 WPS PluginStorage 加载分类')
     const stored = window.Application.PluginStorage.getItem('law_categories')
     
     if (stored) {
       customCategories.value = JSON.parse(stored)
-      console.log('已加载自定义分类:', customCategories.value.length, '个')
+      logger.info('已加载自定义分类', {
+        categoryCount: customCategories.value.length,
+        categories: customCategories.value
+      })
+    } else {
+      logger.debug('未找到存储的分类数据')
     }
   } catch (error) {
-    console.error('加载分类失败:', error)
+    logger.error('加载分类失败', {
+      error: error.message,
+      stack: error.stack
+    })
     customCategories.value = []
   }
 }
 
 // 从配置目录加载所有模板
 const loadTemplatesFromStorage = async () => {
+  logger.info('开始从存储加载模板')
+  
   try {
     // 使用 templateManager 加载模板
+    logger.debug('调用 templateManager.loadTemplates()')
     const allTemplates = await templateManager.loadTemplates()
     templates.value = allTemplates
     
-    console.log('已加载模板:', templates.value.length, '个')
+    // 如果当前分类为空，设置为第一个分类
+    if (!currentCategory.value && allCategories.value.length > 0) {
+      currentCategory.value = allCategories.value[0]
+      logger.debug('设置初始分类', { category: currentCategory.value })
+    }
+    
+    logger.info(`模板加载完成: ${templates.value.length} 个模板`, {
+      templateCount: templates.value.length,
+      templateNames: templates.value.map(t => t.name),
+      categories: [...new Set(templates.value.map(t => t.category))],
+      currentCategory: currentCategory.value
+    })
   } catch (error) {
-    console.error('加载模板失败:', error)
+    logger.error('加载模板失败', {
+      method: 'loadTemplatesFromStorage',
+      error: error.message,
+      stack: error.stack
+    })
     window.$message?.error('加载模板失败')
     templates.value = []
+    // 设置默认分类
+    if (!currentCategory.value) {
+      currentCategory.value = '自定义'
+    }
   }
 }
 
 // 组件挂载时加载数据
 onMounted(async () => {
+  logger.info('TemplateManager 组件已挂载，开始加载数据')
+  // 打印一下当前路径
+  logger.info('当前路径', window.location.href)
+  
+  logger.debug('加载分类数据')
   loadCategoriesFromStorage()
+  
+  logger.debug('加载模板数据')
   await loadTemplatesFromStorage()
+  
+  logger.info('TemplateManager 数据加载完成', {
+    categoryCount: customCategories.value.length,
+    templateCount: templates.value.length
+  })
 })
 </script>
 

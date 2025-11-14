@@ -7,6 +7,7 @@ import TestPage from '../views/TestPage.vue'
 import TemplateManager from '../views/TemplateManager.vue'
 import ContractRiskScan from '../views/ContractRiskScan.vue'
 import DesensitizePage from '../views/DesensitizePage.vue'
+import PathDiagnostics from '../views/PathDiagnostics.vue'
 
 const router = createRouter({
   history: createWebHashHistory(''),
@@ -44,6 +45,11 @@ const router = createRouter({
       path: '/taskpane',
       name: '任务窗格',
       component: TestPage
+    },
+    {
+      path: '/pathdiag',
+      name: '路径诊断',
+      component: PathDiagnostics
     }
   ]
 })

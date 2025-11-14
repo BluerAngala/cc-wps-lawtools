@@ -4,6 +4,8 @@
  * 使用 WPS FileSystem API 持久化存储
  */
 
+import { pathManager } from '@/utils/pathManager.js'
+
 export class CacheManager {
   constructor(options = {}) {
     this.maxCacheSize = options.maxCacheSize || 1000 // 最大缓存条目数
@@ -38,12 +40,9 @@ export class CacheManager {
     if (!this.isWPSAvailable()) return
 
     try {
-      const homePath = window.Application.Env.GetHomePath()
-      if (!homePath) return
+      this.cacheDir = pathManager.getCacheDir()
+      if (!this.cacheDir) return
 
-      const normalizedPath = homePath.replace(/\\/g, '/')
-      const baseDir = normalizedPath.replace(/\/+$/, '') + '/wps_addon_config'
-      this.cacheDir = baseDir + '/cache'
       this.cacheIndexFile = this.cacheDir + '/index.json'
 
       // 确保缓存目录存在
@@ -60,20 +59,7 @@ export class CacheManager {
     if (!this.isWPSAvailable() || !this.cacheDir) return false
 
     try {
-      const fs = window.Application.FileSystem
-      
-      // 确保基础配置目录存在
-      const baseDir = this.cacheDir.substring(0, this.cacheDir.lastIndexOf('/'))
-      if (!fs.Exists(baseDir)) {
-        fs.Mkdir(baseDir)
-      }
-
-      // 确保缓存目录存在
-      if (!fs.Exists(this.cacheDir)) {
-        fs.Mkdir(this.cacheDir)
-      }
-
-      return true
+      return pathManager.ensureDir(this.cacheDir)
     } catch (error) {
       console.warn('创建缓存目录失败:', error)
       return false
