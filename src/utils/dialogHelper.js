@@ -34,7 +34,7 @@ export function showWPSDialog(page, options = {}) {
     }
 
     // 使用 Hash 路由构建 URL
-    const dialogUrl = Util.GetAppUrl(page)
+    const dialogUrl = Util.GetUrlPath() + Util.GetRouterHash() + page
     console.log('对话框 URL:', dialogUrl)
     
     // 计算物理像素（考虑设备像素比）

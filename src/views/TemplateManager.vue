@@ -309,8 +309,21 @@ const customTemplateOptions = computed(() => {
 
 // 获取模板文件的完整路径
 const getTemplateFilePath = (template) => {
-  // 如果模板有完整路径，直接使用
+  // 优先使用 fileUrl（完整 URL）
+  if (template.fileUrl) {
+    return template.fileUrl
+  }
+  // 如果有 filePath，判断是否为完整 URL
   if (template.filePath) {
+    // 如果是完整 URL（以 http:// 或 https:// 开头），直接使用
+    if (template.filePath.startsWith('http://') || template.filePath.startsWith('https://')) {
+      return template.filePath
+    }
+    // 如果是相对路径，转换为完整 URL
+    if (template.filePath.startsWith('/')) {
+      return window.location.origin + template.filePath
+    }
+    // 其他情况直接返回
     return template.filePath
   }
   // 否则使用相对路径（兼容旧版本）

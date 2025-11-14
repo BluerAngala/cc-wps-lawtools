@@ -1,7 +1,6 @@
 // ribbon.js 初始化 wps 加载项
 
 import Util from './services/wps/wpsUtils.js'
-import { showSettingsDialog } from './utils/dialogHelper.js'
 
 console.log('ribbon.js 已加载并初始化')
 
@@ -20,36 +19,28 @@ function OnAction(control) {
     // 模板管理
     case 'btnTemplateManager':
       {
-        const url = Util.GetAppUrl('/template')
-        console.log('url', url)
-        Util.wpsService.createTaskPane(url, 'template', { width: 850 })
+        Util.wpsService.createTaskPane('template', { width: 850 })
       }
       break
 
     // 合同审查
     case 'btnContractReview':
       {
-        const url = Util.GetAppUrl('/contractreview')
-        console.log('url', url)
-        Util.wpsService.createTaskPane(url, 'contractreview', { width: 850 })
+        Util.wpsService.createTaskPane('contractreview', { width: 850 })
       }
       break
 
     // 风险扫描
     case 'btnRiskScan':
       {
-        const url = Util.GetAppUrl('/riskscan')
-        console.log('url', url)
-        Util.wpsService.createTaskPane(url, 'riskscan', { width: 850 })
+        Util.wpsService.createTaskPane('riskscan', { width: 850 })
       }
       break
 
     // 信息脱敏
     case 'btnDesensitize':
       {
-        const url = Util.GetAppUrl('/desensitize')
-        console.log('url', url)
-        Util.wpsService.createTaskPane(url, 'desensitize', { width: 850 })
+        Util.wpsService.createTaskPane('desensitize', { width: 850 })
       }
       break
 
@@ -89,7 +80,7 @@ function OnAction(control) {
     // 设置
     case 'btnSettings':
       {
-        showSettingsDialog()
+        Util.wpsService.showDialog('/settings', { width: 800, height: 600 })
       }
       break
 

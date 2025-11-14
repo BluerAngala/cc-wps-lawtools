@@ -52,16 +52,31 @@ class WPSService {
   }
 
   // 创建任务窗格（确保只有一个窗格显示）
-  createTaskPane(url, key = 'default', options = {}) {
+  createTaskPane(key = 'default', options = {}) {
     try {
       // 检查 WPS Application 对象
       if (!window.Application) {
         const errorMsg = '❌ WPS Application 对象不存在，插件可能未正确加载'
-        errorLogger.log(errorMsg, { method: 'createTaskPane', url })
+        errorLogger.log(errorMsg, { method: 'createTaskPane', key })
         return null
       }
 
-      console.log(`[创建任务窗格] URL: ${url}, Key: ${key}`)
+      // 构建任务窗格URL
+      // 根据 key 构建对应的路由路径，如果 key 有斜杠前缀则直接使用，否则加上斜杠
+      const path = key.startsWith('/') ? key : `/${key}`
+      let taskPaneUrl = GetUrlPath() + GetRouterHash() + path
+      console.log('taskPaneUrl', taskPaneUrl)
+      
+      // 如果传入的是外部URL（用于createExternalTaskPane调用），使用传入的URL
+      if (options.url) {
+        if (options.url.startsWith('http://') || options.url.startsWith('https://')) {
+          taskPaneUrl = options.url
+        } else if (options.url) {
+          taskPaneUrl = GetUrlPath() + GetRouterHash() + options.url
+        }
+      }
+
+      console.log(`[创建任务窗格] URL: ${taskPaneUrl}, Key: ${key}`)
 
       // 先关闭当前活动的任务窗格
       this.hideCurrentTaskPane()
@@ -79,12 +94,12 @@ class WPSService {
       }
       
       // 创建新窗格
-      console.log('[开始创建窗格]', url)
-      taskPane = window.Application.CreateTaskPane(url)
+      console.log('[开始创建窗格]', taskPaneUrl)
+      taskPane = window.Application.CreateTaskPane(taskPaneUrl)
       
       if (!taskPane) {
-        const errorMsg = `❌ 创建任务窗格失败 - URL: ${url} - 可能原因：URL路径不正确、文件不存在或WPS API调用失败`
-        errorLogger.log(errorMsg, { method: 'createTaskPane', url, key })
+        const errorMsg = `❌ 创建任务窗格失败 - URL: ${taskPaneUrl} - 可能原因：URL路径不正确、文件不存在或WPS API调用失败`
+        errorLogger.log(errorMsg, { method: 'createTaskPane', url: taskPaneUrl, key })
         return null
       }
 
@@ -105,7 +120,7 @@ class WPSService {
 
     } catch (error) {
       const errorMsg = `❌ 创建任务窗格异常 - ${error.message || error} - 可能原因：页面文件不存在、URL路径配置错误、服务器部署问题或WPS版本不兼容`
-      errorLogger.log(errorMsg, { method: 'createTaskPane', url, key, error: error.message || String(error) })
+      errorLogger.log(errorMsg, { method: 'createTaskPane', key, error: error.message || String(error) })
       return null
     }
   }
@@ -121,7 +136,61 @@ class WPSService {
   createExternalTaskPane(url, width = 850) {
     // 使用统一的创建方法，key使用URL作为标识
     const key = 'external_' + url.replace(/[^a-zA-Z0-9]/g, '_')
-    return this.createTaskPane(url, key, { width })
+    return this.createTaskPane(key, { width, url })
+  }
+
+  // 显示 WPS 原生对话框
+  showDialog(page, options = {}) {
+    const {
+      width = 600,
+      height = 450,
+      modal = true,
+      hasCaption = false,
+      resizeEdge = 2,
+      caption = ''
+    } = options
+
+    console.log(`准备显示 WPS 对话框: ${page}`, options)
+    
+    try {
+      if (typeof window.Application === 'undefined') {
+        console.warn('WPS Application 对象未找到')
+        errorLogger.log('请在 WPS 环境中使用此功能', { method: 'showDialog', page })
+        return
+      }
+
+      // 使用 Hash 路由构建 URL
+      const dialogUrl = GetUrlPath() + GetRouterHash() + page
+      console.log('对话框 URL:', dialogUrl)
+      
+      // 计算物理像素（考虑设备像素比）
+      const pixelRatio = window.devicePixelRatio || 1
+      const physicalWidth = Math.round(width * pixelRatio)
+      const physicalHeight = Math.round(height * pixelRatio)
+      
+      console.log('对话框尺寸:', { 
+        logical: { width, height }, 
+        physical: { width: physicalWidth, height: physicalHeight }, 
+        pixelRatio 
+      })
+      
+      // 调用 WPS API 创建对话框
+      window.Application.ShowDialog(
+        dialogUrl,
+        caption,
+        physicalWidth,
+        physicalHeight,
+        modal,
+        hasCaption,
+        resizeEdge
+      )
+      
+      console.log('WPS ShowDialog 调用成功')
+      
+    } catch (error) {
+      console.error('显示 WPS 对话框失败:', error)
+      errorLogger.log('显示对话框失败', { method: 'showDialog', page, error: error.message })
+    }
   }
 
   // 按照官方示例的方式创建/切换任务窗格（使用 PluginStorage 持久化）
@@ -267,53 +336,26 @@ class WPSService {
   }
 }
 
-// URL相关工具函数
 function GetUrlPath() {
   // 在本地网页的情况下获取路径
   if (window.location.protocol === 'file:') {
-    const path = window.location.href
+    const path = window.location.href;
     // 删除文件名以获取根路径
-    return path.substring(0, path.lastIndexOf('/'))
+    return path.substring(0, path.lastIndexOf('/'));
   }
 
   // 在非本地网页的情况下获取根路径
-  const { protocol, hostname, port } = window.location
-  const portPart = port ? `:${port}` : ''
-  return `${protocol}//${hostname}${portPart}`
+  const { protocol, hostname, port } = window.location;
+  const portPart = port ? `:${port}` : '';
+  return `${protocol}//${hostname}${portPart}`;
 }
 
-// 获取路由Hash前缀
 function GetRouterHash() {
   if (window.location.protocol === 'file:') {
-    return ''
+    return '';
   }
-  return '/#'
-}
 
-// 构建应用URL（支持Hash路由）
-function GetAppUrl(path = '/') {
-  const baseUrl = GetUrlPath()
-  // 确保路径以 / 开头
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  
-  // 调试日志
-  console.log('[GetAppUrl] baseUrl:', baseUrl)
-  console.log('[GetAppUrl] path:', normalizedPath)
-  console.log('[GetAppUrl] protocol:', window.location.protocol)
-  
-  // 根据协议选择不同的 URL 格式
-  let url
-  if (window.location.protocol === 'file:') {
-    // 本地 file:// 协议 - 需要显式指定 index.html
-    url = `${baseUrl}/index.html#${normalizedPath}`
-  } else {
-    // http/https 协议 - 使用 hash 路由，不显式指定 index.html
-    // 这样可以适配各种服务器配置
-    url = `${baseUrl}/#${normalizedPath}`
-  }
-  
-  console.log('[GetAppUrl] 构建的完整URL:', url)
-  return url
+  return '/#'
 }
 
 // 创建单例实例
@@ -323,7 +365,6 @@ export default {
   WPS_Enum,
   GetUrlPath,
   GetRouterHash,
-  GetAppUrl,
   WPSService,
   wpsService
 }

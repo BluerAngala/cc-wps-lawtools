@@ -7,9 +7,6 @@
 	"scripts": {
 		"dev": "vite --port 3889",
 		"build": "vite build",
-		"wps:build": "npx wpsjs build",
-		"wps:publish": "node scripts/wps-publish.js && npx wpsjs publish",
-		"wps:publish:clean": "node scripts/wps-publish.js clean",
 		"preview": "vite preview",
 		"lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
 		"format": "prettier --write src/",
