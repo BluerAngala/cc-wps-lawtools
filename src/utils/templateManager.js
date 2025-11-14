@@ -31,8 +31,14 @@ class TemplateManager {
         return true
       }
 
-      // 加载内置模板配置
-      const configUrl = pathManager.getBuiltInTemplatesPath() + '/templates.json'
+      // 使用基于 location.href 的绝对路径，确保打包后也能正确读取
+      const basePath = this.getBasePath()
+      const configUrl = `${basePath}templates/templates.json`
+      logger.logPath('info', '初始化模板配置', {
+        basePath,
+        configUrl,
+        locationHref: window.location.href
+      })
       logger.logRequest('GET', configUrl)
 
       const response = await fetch(configUrl)
@@ -120,11 +126,49 @@ class TemplateManager {
   }
 
   /**
+   * 获取当前页面的基础路径（兼容调试和生产环境）
+   * 打包后插件在 %ProgramData%\...\jsaddons\插件名\，需要基于 location.href 构建绝对路径
+   */
+  getBasePath() {
+    // 从 location.href 提取基础路径，去掉文件名和 hash
+    // 例如: http://127.0.0.1:3889/index.html#/template -> http://127.0.0.1:3889/
+    // 例如: file:///C:/ProgramData/.../index.html -> file:///C:/ProgramData/.../
+    try {
+      const url = new URL(window.location.href)
+      // 去掉路径中的文件名和 hash
+      const pathname = url.pathname.replace(/\/[^/]+$/, '') || '/'
+      
+      // 处理 file:// 协议（host 为空）
+      if (url.protocol === 'file:') {
+        return `${url.protocol}//${pathname}/`
+      }
+      
+      // 处理 http/https 协议
+      return `${url.protocol}//${url.host}${pathname}/`
+    } catch (error) {
+      // 如果 URL 解析失败，使用简单方法
+      const href = window.location.href
+      const base = href.replace(/\/[^/]+$/, '/').replace(/#.*$/, '')
+      logger.warn('URL 解析失败，使用备用方法', { href, base })
+      return base
+    }
+  }
+
+  /**
    * 加载内置模板
    */
   async loadBuiltInTemplates() {
     try {
-      const configUrl = pathManager.getBuiltInTemplatesPath() + '/templates.json'
+      // 使用基于 location.href 的绝对路径，确保打包后也能正确读取
+      // public/templates 目录会被原样拷贝到打包目录
+      const basePath = this.getBasePath()
+      const configUrl = `${basePath}templates/templates.json`
+      
+      logger.logPath('info', '加载内置模板配置', {
+        basePath,
+        configUrl,
+        locationHref: window.location.href
+      })
       logger.logRequest('GET', configUrl)
 
       const response = await fetch(configUrl)
@@ -139,7 +183,9 @@ class TemplateManager {
       if (!response.ok) {
         logger.error('无法加载内置模板配置', {
           url: configUrl,
-          status: response.status
+          status: response.status,
+          basePath,
+          locationHref: window.location.href
         })
         return []
       }
@@ -147,16 +193,17 @@ class TemplateManager {
       const data = await response.json()
       const templates = data.templates || []
 
-      // 处理内置模板路径
+      // 使用绝对路径构建模板文件路径（确保打包后也能读取）
       return templates.map((template) => ({
         ...template,
-        filePath: pathManager.getBuiltInTemplatesPath() + '/' + template.fileName,
+        filePath: `${basePath}templates/${template.fileName}`,  // 基于 location.href 的绝对路径
         isBuiltIn: true
       }))
     } catch (error) {
       logger.error('加载内置模板失败', {
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
+        locationHref: window.location.href
       })
       return []
     }

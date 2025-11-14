@@ -155,6 +155,9 @@ class PathManager {
   /**
    * 获取项目内置模板的相对路径（用于 HTTP 请求）
    * 这是相对于 Web 服务器根目录的路径
+   * 
+   * 注意：实际使用时，建议直接使用字符串 '/templates'，无需调用此方法
+   * 此方法主要用于调试和路径信息查询
    */
   getBuiltInTemplatesPath() {
     return '/templates'

@@ -385,6 +385,32 @@ const customTemplateOptions = computed(() => {
   return options
 })
 
+/**
+ * 获取当前页面的基础路径（兼容调试和生产环境）
+ * 打包后插件在 %ProgramData%\...\jsaddons\插件名\，需要基于 location.href 构建绝对路径
+ */
+const getBasePath = () => {
+  try {
+    const url = new URL(window.location.href)
+    // 去掉路径中的文件名和 hash
+    const pathname = url.pathname.replace(/\/[^/]+$/, '') || '/'
+    
+    // 处理 file:// 协议（host 为空）
+    if (url.protocol === 'file:') {
+      return `${url.protocol}//${pathname}/`
+    }
+    
+    // 处理 http/https 协议
+    return `${url.protocol}//${url.host}${pathname}/`
+  } catch (error) {
+    // 如果 URL 解析失败，使用简单方法
+    const href = window.location.href
+    const base = href.replace(/\/[^/]+$/, '/').replace(/#.*$/, '')
+    logger.warn('URL 解析失败，使用备用方法', { href, base })
+    return base
+  }
+}
+
 // 获取模板文件的路径（本地文件）
 const getTemplateFilePath = (template) => {
   logger.debug('开始获取模板文件路径', {
@@ -404,15 +430,19 @@ const getTemplateFilePath = (template) => {
     return template.filePath
   }
   
-  // 如果没有 filePath，使用 fileName 构建相对路径
+  // 如果没有 filePath，使用 fileName 构建基于 location.href 的绝对路径
+  // 确保打包后也能正确读取（public/templates 会被原样拷贝）
   const fileName = template.fileName || `${template.name}.docx`
-  const fallbackPath = `/templates/${fileName}`
+  const basePath = getBasePath()
+  const fallbackPath = `${basePath}templates/${fileName}`
   
   logger.logPath('info', '使用默认路径构建模板路径', {
     templateId: template.id,
     templateName: template.name,
     fileName,
-    fallbackPath
+    fallbackPath,
+    basePath,
+    locationHref: window.location.href
   })
   
   return fallbackPath
