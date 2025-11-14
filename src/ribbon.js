@@ -20,7 +20,7 @@ function OnAction(control) {
     // 模板管理
     case 'btnTemplateManager':
       {
-        const url = Util.GetUrlPath() + '/index.html?page=template'
+        const url = Util.GetAppUrl('/template')
         Util.wpsService.createTaskPane(url, 'template', { width: 850 })
       }
       break
@@ -28,9 +28,7 @@ function OnAction(control) {
     // 合同审查
     case 'btnContractReview':
       {
-        // 构建本地网页的路径，使用 URL 参数指定页面
-        const url = Util.GetUrlPath() + '/index.html?page=contractreview'
-        // 打开任务窗格并配置参数
+        const url = Util.GetAppUrl('/contractreview')
         Util.wpsService.createTaskPane(url, 'contractreview', { width: 850 })
       }
       break
@@ -38,7 +36,7 @@ function OnAction(control) {
     // 风险扫描
     case 'btnRiskScan':
       {
-        const url = Util.GetUrlPath() + '/index.html?page=riskscan'
+        const url = Util.GetAppUrl('/riskscan')
         Util.wpsService.createTaskPane(url, 'riskscan', { width: 850 })
       }
       break
@@ -46,7 +44,7 @@ function OnAction(control) {
     // 信息脱敏
     case 'btnDesensitize':
       {
-        const url = Util.GetUrlPath() + '/index.html?page=desensitize'
+        const url = Util.GetAppUrl('/desensitize')
         Util.wpsService.createTaskPane(url, 'desensitize', { width: 850 })
       }
       break
@@ -71,7 +69,7 @@ function OnAction(control) {
     // 关于我
     case 'btnAboutME':
       {
-       const externalTaskPane = Util.wpsService.createExternalTaskPane(
+        const externalTaskPane = Util.wpsService.createExternalTaskPane(
           'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
         )
         externalTaskPane.Visible = false
@@ -81,21 +79,10 @@ function OnAction(control) {
     // 设置
     case 'btnSettings':
       {
-        console.log('点击了设置按钮')
         showSettingsDialog()
       }
       break
 
-
-    // 调试窗格
-    case 'btnShowTaskPane':
-      {
-        // 构建本地网页的路径，使用 URL 参数指定页面
-        const url = Util.GetUrlPath() + '/index.html?page=taskpane'
-        // 打开任务窗格并配置参数
-        Util.wpsService.createTaskPane(url, 'taskpane', { width: 850 })
-      }
-      break
     default:
       break
   }
@@ -124,6 +111,8 @@ function GetImage(control) {
       return './images/设置.svg'
     case 'btnAboutME':
       return './images/关于我.svg'
+    case 'btnShowTaskPane':
+      return './images/1.svg'
     default:
       return './images/1.svg'
   }

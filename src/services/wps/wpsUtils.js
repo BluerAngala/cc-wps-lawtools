@@ -54,14 +54,20 @@ class WPSService {
     // 先关闭当前活动的任务窗格
     this.hideCurrentTaskPane()
     
-    // 检查是否已存在该功能的窗格
+    // 检查是否已存在该功能的窗格，如果存在则删除以确保加载新的URL
     let taskPane = this.taskPanes.get(key)
-    
-    if (!taskPane) {
-      // 创建新窗格
-      taskPane = window.Application.CreateTaskPane(url)
-      this.taskPanes.set(key, taskPane)
+    if (taskPane) {
+      try {
+        taskPane.Delete()
+      } catch (e) {
+        console.warn('删除任务窗格失败:', e)
+      }
+      this.taskPanes.delete(key)
     }
+    
+    // 创建新窗格
+    taskPane = window.Application.CreateTaskPane(url)
+    this.taskPanes.set(key, taskPane)
     
     // 显示窗格
     taskPane.Visible = true
@@ -206,12 +212,19 @@ function GetUrlPath() {
   return `${protocol}//${hostname}${portPart}`
 }
 
+// 构建应用URL（支持Hash路由）
+function GetAppUrl(path = '/') {
+  const baseUrl = GetUrlPath()
+  return `${baseUrl}/index.html#${path}`
+}
+
 // 创建单例实例
 const wpsService = new WPSService()
 
 export default {
   WPS_Enum,
   GetUrlPath,
+  GetAppUrl,
   WPSService,
   wpsService
 }

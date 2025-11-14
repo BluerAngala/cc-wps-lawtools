@@ -3,9 +3,9 @@
     <n-message-provider>
       <div class="min-h-screen bg-gradient-to-br from-purple-500 to-indigo-600 p-0 overflow-y-auto overflow-x-hidden" style="scrollbar-width: none; -ms-overflow-style: none;">
         <n-card class="w-full min-h-screen rounded-none" :bordered="false" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
-          <!-- 头部 -->
+          <!-- 头部 - 固定 -->
           <template #header>
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between sticky-header">
               <div class="flex items-center gap-3">
                 <n-icon size="24" color="#18a058">
                   <svg viewBox="0 0 24 24">
@@ -24,8 +24,9 @@
             </div>
           </template>
 
-          <!-- 标签页 -->
-          <n-tabs v-model:value="activeTab" type="segment" animated size="large" class="mt-4">
+          <!-- 标签页 - 固定 -->
+          <div class="sticky-tabs">
+            <n-tabs v-model:value="activeTab" type="segment" animated size="large" class="mt-4">
             <!-- AI 服务 -->
             <n-tab-pane name="ai" tab="🤖 AI 服务">
               <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
@@ -233,7 +234,8 @@
                 </n-card>
               </n-space>
             </n-tab-pane>
-          </n-tabs>
+            </n-tabs>
+          </div>
         </n-card>
       </div>
     </n-message-provider>
@@ -459,5 +461,32 @@ const closeDialog = () => {
 /* 隐藏滚动条 */
 div::-webkit-scrollbar {
   display: none;
+}
+
+/* 固定头部 - 针对 n-card 的 header 区域 */
+:deep(.n-card-header) {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  margin-bottom: 0;
+}
+
+/* 固定头部内容 */
+:deep(.sticky-header) {
+  position: relative;
+  z-index: 101;
+}
+
+/* 固定标签页 */
+.sticky-tabs {
+  position: sticky;
+  top: 60px; /* header 高度 */
+  z-index: 99;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding-bottom: 8px;
+  margin-top: 0;
 }
 </style>

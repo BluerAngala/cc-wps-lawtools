@@ -1,8 +1,10 @@
 // WPS 弹窗工具函数 - 通用对话框创建方法
 
+import Util from '../services/wps/wpsUtils.js'
+
 /**
  * 显示 WPS 原生对话框
- * @param {string} page - 页面名称，如 'home' 或 'settings'
+ * @param {string} page - 页面路径，如 '/settings' 或 '/contractreview'
  * @param {Object} options - 可选配置项
  * @param {number} options.width - 对话框宽度（逻辑像素），默认 600
  * @param {number} options.height - 对话框高度（逻辑像素），默认 450
@@ -30,9 +32,8 @@ export function showWPSDialog(page, options = {}) {
       return
     }
 
-    // 构建完整 URL，使用 URL 参数指定页面
-    const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/index.html')
-    const dialogUrl = `${baseUrl}?page=${page}`
+    // 使用 Hash 路由构建 URL
+    const dialogUrl = Util.GetAppUrl(page)
     console.log('对话框 URL:', dialogUrl)
     
     // 计算物理像素（考虑设备像素比）
@@ -67,11 +68,11 @@ export function showWPSDialog(page, options = {}) {
 
 // 显示欢迎弹窗
 export function showWelcomeDialog() {
-  showWPSDialog('home', { width: 600, height: 450 })
+  showWPSDialog('/contractreview', { width: 600, height: 450 })
 }
 
 // 显示设置弹窗
 export function showSettingsDialog() {
-  showWPSDialog('settings', { width: 800, height: 600 })
+  showWPSDialog('/settings', { width: 800, height: 600 })
 }
 

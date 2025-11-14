@@ -11,7 +11,6 @@
                     <button id="btnTemplateManager" label="模板管理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnSettings" label="设置" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnAboutME" label="关于我" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
-			    <button id="btnShowTaskPane" label="调试窗格" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                 </group>
             </tab>
         </tabs>
