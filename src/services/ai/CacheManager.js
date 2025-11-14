@@ -18,8 +18,8 @@ export class CacheManager {
     // 内存缓存
     this.memoryCache = new Map()
 
-    // 初始化时清理过期缓存
-    this.cleanupExpiredCache()
+    // 注意: WPS FileSystem API 不支持 GetFileList，因此不进行批量清理
+    // 过期缓存会在访问时自动清理（懒清理策略）
   }
 
   /**
@@ -285,101 +285,28 @@ export class CacheManager {
   }
 
   /**
-   * 清理过期缓存
+   * 清理过期缓存 (已废弃)
+   * 注意: WPS FileSystem API 不支持 GetFileList 方法
+   * 改用懒清理策略 - 在读取缓存时自动删除过期文件
    */
   cleanupExpiredCache() {
-    if (!this.isWPSAvailable() || !this.cacheDir) return
-
-    try {
-      const fs = window.Application.FileSystem
-      if (!fs.Exists(this.cacheDir)) return
-
-      const filesToDelete = []
-
-      // 遍历缓存目录中的所有文件
-      try {
-        const files = fs.GetFileList(this.cacheDir)
-        if (files && files.length > 0) {
-          files.forEach((file) => {
-            if (file.endsWith('.json')) {
-              const filePath = `${this.cacheDir}/${file}`
-              try {
-                const content = fs.ReadFile(filePath)
-                if (content) {
-                  const cachedData = JSON.parse(content)
-                  if (!this.isValidCache(cachedData)) {
-                    filesToDelete.push(filePath)
-                  }
-                }
-              } catch (error) {
-                // 无效的缓存数据，标记删除
-                filesToDelete.push(filePath)
-              }
-            }
-          })
-        }
-      } catch (error) {
-        // GetFileList 可能不支持，使用备用方法
-        console.warn('无法列出缓存文件:', error)
-        return
-      }
-
-      // 删除过期缓存
-      filesToDelete.forEach((filePath) => {
-        try {
-          fs.Remove(filePath)
-        } catch (error) {
-          console.warn(`删除缓存文件失败: ${filePath}`, error)
-        }
-      })
-
-      if (filesToDelete.length > 0) {
-        console.log(`清理了 ${filesToDelete.length} 个过期缓存条目`)
-      }
-    } catch (error) {
-      console.warn('清理过期缓存失败:', error)
-    }
+    // WPS API 不支持目录文件列表，跳过批量清理
+    // 过期缓存会在 get() 方法访问时自动清理
+    return
   }
 
   /**
    * 清空所有缓存
+   * 注意: 由于 WPS FileSystem API 限制，只能清空内存缓存
+   * 文件系统缓存会在访问时自动清理过期项
    */
   clear() {
     // 清空内存缓存
     this.memoryCache.clear()
+    console.log('内存缓存已清空')
 
-    // 清空文件系统缓存
-    if (!this.isWPSAvailable() || !this.cacheDir) return
-
-    try {
-      const fs = window.Application.FileSystem
-      if (!fs.Exists(this.cacheDir)) return
-
-      let deletedCount = 0
-
-      try {
-        const files = fs.GetFileList(this.cacheDir)
-        if (files && files.length > 0) {
-          files.forEach((file) => {
-            if (file.endsWith('.json')) {
-              const filePath = `${this.cacheDir}/${file}`
-              try {
-                fs.Remove(filePath)
-                deletedCount++
-              } catch (error) {
-                console.warn(`删除缓存文件失败: ${filePath}`, error)
-              }
-            }
-          })
-        }
-      } catch (error) {
-        console.warn('无法列出缓存文件:', error)
-      }
-
-      console.log(`清空了所有缓存 (${deletedCount} 个条目)`)
-    } catch (error) {
-      console.warn('清空文件系统缓存失败:', error)
-    }
+    // WPS FileSystem API 不支持列出目录文件
+    // 文件系统缓存会在读取时自动清理过期项（懒清理策略）
   }
 }
 

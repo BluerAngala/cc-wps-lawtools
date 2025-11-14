@@ -95,6 +95,46 @@ class WPSService {
     return this.createTaskPane(url, key, { width })
   }
 
+  // 按照官方示例的方式创建/切换任务窗格（使用 PluginStorage 持久化）
+  toggleTaskPaneByStorage(url, storageKey = 'taskpane_id') {
+    if (!window.Application) {
+      console.error('WPS Application对象不存在')
+      return null
+    }
+
+    try {
+      // 从 PluginStorage 获取任务窗格 ID
+      const tsId = window.Application.PluginStorage.getItem(storageKey)
+
+      if (!tsId) {
+        // 如果没有，创建新任务窗格
+        const taskPane = window.Application.CreateTaskPane(url)
+        const id = taskPane.ID
+        // 保存 ID 到 PluginStorage
+        window.Application.PluginStorage.setItem(storageKey, id)
+        taskPane.Visible = true
+        return taskPane
+      } else {
+        // 如果已有，获取任务窗格并切换可见性
+        const taskPane = window.Application.GetTaskPane(tsId)
+        if (taskPane) {
+          taskPane.Visible = !taskPane.Visible
+          return taskPane
+        } else {
+          // 如果获取失败，可能是窗格已被删除，重新创建
+          const newTaskPane = window.Application.CreateTaskPane(url)
+          const id = newTaskPane.ID
+          window.Application.PluginStorage.setItem(storageKey, id)
+          newTaskPane.Visible = true
+          return newTaskPane
+        }
+      }
+    } catch (error) {
+      console.error('切换任务窗格失败:', error)
+      return null
+    }
+  }
+
   // 停靠任务窗格
   dockTaskPane(position, key = 'default') {
     const taskPane = this.getTaskPane(key)
@@ -212,10 +252,23 @@ function GetUrlPath() {
   return `${protocol}//${hostname}${portPart}`
 }
 
+// 获取路由Hash前缀
+function GetRouterHash() {
+  if (window.location.protocol === 'file:') {
+    return ''
+  }
+  return '/#'
+}
+
 // 构建应用URL（支持Hash路由）
 function GetAppUrl(path = '/') {
   const baseUrl = GetUrlPath()
-  return `${baseUrl}/index.html#${path}`
+  // 确保路径以 / 开头
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  
+  // 在 file: 协议下，需要显式指定 index.html
+  // 在 http/https 协议下，也需要指定 index.html（因为使用了 base: './'）
+  return `${baseUrl}/index.html#${normalizedPath}`
 }
 
 // 创建单例实例
@@ -224,6 +277,7 @@ const wpsService = new WPSService()
 export default {
   WPS_Enum,
   GetUrlPath,
+  GetRouterHash,
   GetAppUrl,
   WPSService,
   wpsService

@@ -45,38 +45,41 @@
                       <n-input v-model:value="config.ai.baseUrl" @update:value="autoSave" placeholder="https://api.siliconflow.cn/v1"/>
                     </n-form-item>
                     <n-form-item label="模型">
-                      <n-space vertical class="w-full">
-                        <n-select 
-                          v-model:value="config.ai.model" 
-                          @update:value="autoSave"
-                          :options="modelOptions"
-                          placeholder="选择模型"
-                          filterable
-                          :loading="loadingModels"
-                        >
-                          <template #empty>
-                            <n-empty description="未找到模型" size="small">
-                              <template #extra>
-                                <n-button size="small" @click="refreshModelList">
-                                  刷新列表
-                                </n-button>
-                              </template>
-                            </n-empty>
-                          </template>
-                        </n-select>
-                        <n-space size="small">
-                          <n-button size="tiny" @click="refreshModelList" :loading="loadingModels">
+                      <n-space vertical class="w-full" size="small">
+                        <!-- 模型选择器和刷新按钮 -->
+                        <div class="flex gap-2 w-full">
+                          <n-select 
+                            v-model:value="config.ai.model" 
+                            @update:value="autoSave"
+                            :options="modelOptions"
+                            placeholder="选择模型"
+                            filterable
+                            :loading="loadingModels"
+                            class="flex-1"
+                          >
+                            <template #empty>
+                              <n-empty description="未找到模型" size="small">
+                                <template #extra>
+                                  <n-button size="small" @click="refreshModelList">
+                                    刷新列表
+                                  </n-button>
+                                </template>
+                              </n-empty>
+                            </template>
+                          </n-select>
+                          <n-button @click="refreshModelList" :loading="loadingModels">
                             <template #icon>
                               <n-icon>
                                 <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 20q-3.35 0-5.675-2.325T4 12q0-3.35 2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V4h2v7h-7V9h4.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12q0 2.5 1.75 4.25T12 18q1.925 0 3.475-1.1T17.65 14h2.1q-.7 2.65-2.85 4.325T12 20Z"/></svg>
                               </n-icon>
                             </template>
-                            刷新模型列表
+                            刷新
                           </n-button>
-                          <n-text depth="3" style="font-size: 12px;">
-                            {{ modelOptions.length }} 个可用模型
-                          </n-text>
-                        </n-space>
+                        </div>
+                        <!-- 模型数量提示 -->
+                        <n-text depth="3" style="font-size: 12px;">
+                          {{ modelOptions.length }} 个可用模型
+                        </n-text>
                       </n-space>
                       <template #feedback>
                         <n-alert type="info" size="small" :show-icon="false" style="margin-top: 8px;">
@@ -99,7 +102,8 @@
                         :min="1000" 
                         :max="16000" 
                         :step="1000" 
-                        class="w-full"
+                        class="w-full text-center"
+                        button-placement="both"
                       >
                         <template #suffix>
                           <n-text depth="3" style="font-size: 12px;">tokens</n-text>

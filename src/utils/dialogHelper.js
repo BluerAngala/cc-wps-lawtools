@@ -66,10 +66,7 @@ export function showWPSDialog(page, options = {}) {
   }
 }
 
-// 显示欢迎弹窗
-export function showWelcomeDialog() {
-  showWPSDialog('/contractreview', { width: 600, height: 450 })
-}
+
 
 // 显示设置弹窗
 export function showSettingsDialog() {

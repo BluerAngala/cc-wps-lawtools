@@ -21,6 +21,7 @@ function OnAction(control) {
     case 'btnTemplateManager':
       {
         const url = Util.GetAppUrl('/template')
+        console.log('url', url)
         Util.wpsService.createTaskPane(url, 'template', { width: 850 })
       }
       break
@@ -29,6 +30,7 @@ function OnAction(control) {
     case 'btnContractReview':
       {
         const url = Util.GetAppUrl('/contractreview')
+        console.log('url', url)
         Util.wpsService.createTaskPane(url, 'contractreview', { width: 850 })
       }
       break
@@ -37,6 +39,7 @@ function OnAction(control) {
     case 'btnRiskScan':
       {
         const url = Util.GetAppUrl('/riskscan')
+        console.log('url', url)
         Util.wpsService.createTaskPane(url, 'riskscan', { width: 850 })
       }
       break
@@ -45,6 +48,7 @@ function OnAction(control) {
     case 'btnDesensitize':
       {
         const url = Util.GetAppUrl('/desensitize')
+        console.log('url', url)
         Util.wpsService.createTaskPane(url, 'desensitize', { width: 850 })
       }
       break
@@ -52,8 +56,10 @@ function OnAction(control) {
     // AI助理
     case 'btnShowAI':
       {
+        const url = 'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share'
+        console.log('url', url)
         Util.wpsService.createExternalTaskPane(
-          'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share',
+          url,
           850
         )
       }
@@ -62,15 +68,19 @@ function OnAction(control) {
     // 常用导航
     case 'btnCommonNav':
       {
-        Util.wpsService.createExternalTaskPane('https://yesen.cn')
+        const url = 'https://yesen.cn'
+        console.log('url', url)
+        Util.wpsService.createExternalTaskPane(url)
       }
       break
 
     // 关于我
     case 'btnAboutME':
       {
+        const url = 'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
+        console.log('url', url)
         const externalTaskPane = Util.wpsService.createExternalTaskPane(
-          'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
+          url
         )
         externalTaskPane.Visible = false
       }

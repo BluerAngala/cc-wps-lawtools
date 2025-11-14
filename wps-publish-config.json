@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "ch-law-ai-tools": {
+      "name": "ch-law-ai-tools",
+      "addonType": "wps",
+      "online": "true",
+      "multiUser": "false",
+      "url": "https://cdn002.lawyerch.cn/public/wps/wps-addon-build/",
+      "customDomain": ""
+    }
+  }
+}
