@@ -20,7 +20,6 @@ import { CacheManager } from './services/ai/CacheManager.js'
 import { templateManager } from './utils/templateManager.js'
 
 // 引入页面组件
-import HomePage from './views/HomePage.vue'
 import ContractServices from './views/ContractServices.vue'
 import SettingsPage from './views/SettingsPage.vue'
 import TestPage from './views/TestPage.vue'
@@ -64,7 +63,7 @@ const AppContent = {
           return h(TestPage)
         case 'home':
         default:
-          return h(HomePage)
+          return h(ContractServices)
       }
     }
     

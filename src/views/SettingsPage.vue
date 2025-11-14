@@ -200,10 +200,6 @@
                 <n-card title="系统偏好" size="small" :bordered="false" class="bg-gray-50">
                   <n-space>
                     <n-space align="center">
-                      <n-text>显示欢迎页面</n-text>
-                      <n-switch v-model:value="config.system.showWelcome" @update:value="autoSave"/>
-                    </n-space>
-                    <n-space align="center">
                       <n-text>自动保存</n-text>
                       <n-switch v-model:value="config.system.autoSave" @update:value="autoSave"/>
                     </n-space>
@@ -213,7 +209,6 @@
                 <!-- 数据管理 -->
                 <n-card title="数据管理" size="small" :bordered="false" class="bg-gray-50">
                   <n-space>
-                    <n-button @click="handleResetFirstLoad">重置首次加载</n-button>
                     <n-button type="warning" @click="handleResetAll">重置所有配置</n-button>
                   </n-space>
                 </n-card>
@@ -266,7 +261,7 @@ const config = ref({
     temperature: 0.1 
   },
   kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
-  system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
+  system: { autoSave: true }
 })
 const configPath = ref('')
 const modelOptions = ref([])
@@ -382,7 +377,7 @@ const resetTab = (tab) => {
       temperature: 0.1
     },
     kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
-    system: { firstLoadCompleted: false, showWelcome: true, autoSave: true }
+    system: { autoSave: true }
   }
   
   config.value[tab] = defaults[tab]
@@ -394,17 +389,6 @@ const resetTab = (tab) => {
   }
   
   window.$message?.success('已恢复默认配置')
-}
-
-// 重置首次加载
-const handleResetFirstLoad = () => {
-  try {
-    appConfig.resetFirstLoad()
-    config.value.system.firstLoadCompleted = false
-    window.$message?.success('首次加载状态已重置')
-  } catch (error) {
-    window.$message?.error('重置失败')
-  }
 }
 
 // 重置所有配置

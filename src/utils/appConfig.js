@@ -77,8 +77,6 @@ class AppConfigManager {
       
       // 系统配置
       system: {
-        firstLoadCompleted: false,
-        showWelcome: true,
         autoSave: true,
         theme: 'light'
       }
@@ -368,31 +366,6 @@ class AppConfigManager {
     })
   }
 
-  /**
-   * 首次加载检查
-   */
-  isFirstLoad() {
-    const config = this.getConfig()
-    return !config.system?.firstLoadCompleted
-  }
-
-  /**
-   * 标记首次加载完成
-   */
-  markFirstLoadCompleted() {
-    const config = this.getConfig()
-    config.system.firstLoadCompleted = true
-    return this.saveConfig(config)
-  }
-
-  /**
-   * 重置首次加载状态
-   */
-  resetFirstLoad() {
-    const config = this.getConfig()
-    config.system.firstLoadCompleted = false
-    return this.saveConfig(config)
-  }
 
   /**
    * 获取配置信息（用于调试）

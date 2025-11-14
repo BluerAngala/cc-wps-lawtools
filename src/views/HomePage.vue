@@ -98,7 +98,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { NConfigProvider, NMessageProvider, NCard, NSpace, NText, NButton, NIcon } from 'naive-ui'
-import ribbonHandler from '@/ribbon.js'
 
 const msg = ref('欢迎使用！')
 
@@ -108,21 +107,13 @@ onMounted(() => {
 
 const closeDialog = () => {
   console.log('点击开始使用按钮，关闭欢迎页面')
-  // 直接调用ribbon.js中的OnAction函数，传入btnShowAI控件
-  ribbonHandler.OnAction({ Id: 'btnShowAI' })
-  console.log('已调用ribbon.js的AI助理事件')
   window.close()
 }
 
 const showFeatures = () => {
-  console.log('点击了解更多按钮，调用ribbon.js的关于我事件')
-  try {
-    // 直接调用ribbon.js中的OnAction函数，传入btnAboutME控件
-    ribbonHandler.OnAction({ Id: 'btnAboutME' })
-    console.log('已调用ribbon.js的关于我事件')
-  } catch (error) {
-    console.error('调用关于我事件失败:', error)
-  }
+  console.log('点击了解更多按钮')
+  // 打开外部链接
+  window.open('https://lawyerch.feishu.cn/wiki/space/7467382510423506963', '_blank')
 }
 </script>
 
