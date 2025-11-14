@@ -139,6 +139,13 @@ export function generateContractReviewPrompt(reviewRules, reviewRequirements, ac
       "reason": "修改原因"
     }
   ],
+  "risks": [
+    {
+      "description": "风险描述",
+      "severity": "high|medium|low",
+      "suggestion": "建议"
+    }
+  ],
   "summary": "整体审查总结"
 }`
     : `{
@@ -146,7 +153,15 @@ export function generateContractReviewPrompt(reviewRules, reviewRequirements, ac
     {
       "keyword": "关键词或短语",
       "comment": "批注内容和建议",
-      "position": "在文档中的位置描述"
+      "position": "在文档中的位置描述",
+      "severity": "high|medium|low"
+    }
+  ],
+  "risks": [
+    {
+      "description": "风险描述",
+      "severity": "high|medium|low",
+      "suggestion": "建议"
     }
   ],
   "summary": "整体审查总结"
@@ -164,7 +179,7 @@ ${reviewRequirements}
 ${actionDescription}
 
 ## 输出要求
-请以JSON格式返回审查结果：
+请以JSON格式返回审查结果，必须包含以下字段：
 ${outputFormat}
 
 ## 审查重点
@@ -173,6 +188,12 @@ ${outputFormat}
 3. 条款完整性：关键条款是否缺失或不明确
 4. 执行可行性：条款是否具有可操作性
 5. 风险防控：违约责任、争议解决等条款是否完善
+
+## 重要说明
+- 必须返回有效的JSON格式，不要包含任何markdown代码块或额外文本
+- issues 和 risks 都是必需的字段，即使为空也要返回空数组 []
+- 每个 issue 必须包含 keyword、comment、position 和 severity 字段
+- 每个 risk 必须包含 description、severity 和 suggestion 字段
 
 现在请审查以下合同内容：
 {{input}}`

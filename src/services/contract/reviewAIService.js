@@ -360,9 +360,18 @@ export class ReviewAIService {
   parseResponse(response) {
     const result = this.parseJSONResponse(response)
     
+    // 确保返回正确的结构，包括 issues 和 risks
+    const issues = Array.isArray(result.issues) ? result.issues : []
+    const risks = Array.isArray(result.risks) ? result.risks : []
+    
+    // 如果没有 risks 但有 revisions（修订模式），转换为 risks
+    if (risks.length === 0 && Array.isArray(result.revisions)) {
+      // revisions 模式下不需要转换，直接返回
+    }
+    
     return {
-      issues: Array.isArray(result.issues) ? result.issues : [],
-      risks: Array.isArray(result.risks) ? result.risks : []
+      issues,
+      risks
     }
   }
 
@@ -379,7 +388,10 @@ export class ReviewAIService {
       // 先尝试直接解析（最快路径）
       return JSON.parse(response)
     } catch (firstError) {
-      console.warn('直接解析失败，尝试清理...', firstError.message)
+      // 检查是否是已知的畸形格式，如果是则不输出警告
+      if (!response.match(/^\{":"/)) {
+        console.warn('直接解析失败，尝试清理...', firstError.message)
+      }
       
       try {
         // 清理响应内容
@@ -395,6 +407,25 @@ export class ReviewAIService {
         const jsonMatch = cleanResponse.match(/(\{[\s\S]*\})/)
         if (jsonMatch) {
           cleanResponse = jsonMatch[1]
+        }
+        
+        // 特殊处理：修复模型返回的畸形JSON格式
+        if (cleanResponse === '{":":"}') {
+          // 处理完全畸形的响应：{":":"}
+          return {
+            type: '未知',
+            subtype: '',
+            confidence: 'low'
+          }
+        } else if (cleanResponse.match(/^\{":"/)) {
+          // 处理格式如 {":"服务合同",...} 的情况（模型的已知问题，自动修复）
+          cleanResponse = cleanResponse.replace(/^\{":/, '{"type":')
+        } else if (cleanResponse.startsWith('{"":')) {
+          // 处理格式如 {"":"服务合同",...} 的情况
+          cleanResponse = cleanResponse.replace(/^\{"":/, '{"type":')
+        } else if (cleanResponse.startsWith('{":')) {
+          // 处理其他缺少属性名的格式
+          cleanResponse = cleanResponse.replace(/^\{":/, '{"type":')
         }
         
         // 修复常见的 JSON 字符串问题
@@ -416,9 +447,6 @@ export class ReviewAIService {
         // 尝试解析修复后的 JSON
         return JSON.parse(cleanResponse)
       } catch (secondError) {
-        console.error('清理后解析失败:', secondError.message)
-        console.error('原始响应（前500字符）:', response.substring(0, 500))
-        
         // 最后尝试：完全移除控制字符
         try {
           // eslint-disable-next-line no-control-regex
@@ -429,7 +457,7 @@ export class ReviewAIService {
             return JSON.parse(jsonMatch[1])
           }
         } catch (finalError) {
-          console.error('所有解析尝试均失败:', finalError.message)
+          console.error('JSON解析失败，返回空对象')
         }
         
         return {}

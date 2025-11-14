@@ -168,6 +168,8 @@ const batchProcessing = ref(false) // 一键处理状态
 const batchResult = ref(null) // 一键处理结果
 const configs = ref({
   extractor: {},
+  keyword: {},
+  review: {},
   smart: {}
 })
 const batchOptions = ref({
@@ -247,23 +249,23 @@ const executeSmartComment = (config) => {
 
 const updateExtractorConfig = (configForm) => {
   // 保存提取配置
-  if (configForm.extractTags) {
+  if (configForm && configForm.extractTags) {
     updateConfig('extractor', { extractTags: configForm.extractTags.value })
   }
 }
 
 const updateSmartConfig = (configForm) => {
   // 保存关键词配置
-  if (configForm.keywordList) {
+  if (configForm && configForm.keywordList) {
     updateConfig('keyword', { keywordList: configForm.keywordList })
   }
   
   // 保存审查配置（转换为标准格式）
-  if (configForm.reviewKeywordList) {
+  if (configForm && configForm.reviewKeywordList && Array.isArray(configForm.reviewKeywordList)) {
     const contractReviewRules = configForm.reviewKeywordList.map(item => ({
-      reviewRules: item.keyword,
-      reviewRequirements: item.comment,
-      actionType: item.actionType
+      reviewRules: item.keyword || '',
+      reviewRequirements: item.comment || '',
+      actionType: item.actionType || 'comment'
     }))
     updateConfig('review', { contractReviewRules })
   }
@@ -301,6 +303,12 @@ const handleBatchProcess = async () => {
   const doc = window.Application.ActiveDocument
   if (!doc) {
     window.$message?.error('未找到活动文档')
+    return
+  }
+
+  // 确保文档有名称属性
+  if (!doc.Name) {
+    window.$message?.error('文档信息不完整，无法处理')
     return
   }
 
@@ -428,7 +436,28 @@ const handleBatchProcess = async () => {
       } catch (pdfError) {
         console.error('[一键处理] ❌ PDF导出失败:', pdfError)
         console.error('[一键处理] PDF错误详情:', pdfError.message, pdfError.stack)
-        throw new Error(`PDF导出失败: ${pdfError.message || '未知错误'}`)
+        
+        // 处理WPS特定的错误码
+        let errorMessage = 'PDF导出失败'
+        if (pdfError.number) {
+          switch (pdfError.number) {
+            case -2146827284: // 文件路径不存在
+              errorMessage = 'PDF导出失败：文件路径不存在或无访问权限'
+              break
+            case -2146827850: // 磁盘空间不足
+              errorMessage = 'PDF导出失败：磁盘空间不足'
+              break
+            case -2147467259: // 未指定的错误
+              errorMessage = 'PDF导出失败：未指定的错误，请检查文档内容'
+              break
+            default:
+              errorMessage = `PDF导出失败：错误代码 ${pdfError.number}`
+          }
+        } else {
+          errorMessage = `PDF导出失败: ${pdfError.message || '未知错误'}`
+        }
+        
+        throw new Error(errorMessage)
       }
     }
 

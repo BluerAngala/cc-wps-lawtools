@@ -159,14 +159,8 @@ export class WPSDocumentService {
     const doc = this.checkWPSEnvironment()
 
     try {
-      const fullRange = doc.Range()
-      const startRange = fullRange.Duplicate
-      const endRange = fullRange.Duplicate
-
-      startRange.SetRange(startChar, startChar)
-      endRange.SetRange(endChar, endChar)
-
-      const range = doc.Range(startRange.Start, endRange.End)
+      // 直接创建Range，不需要创建中间Range
+      const range = doc.Range(startChar, endChar)
       return range
     } catch (error) {
       console.error('获取Range失败:', error)
@@ -197,14 +191,19 @@ export class WPSDocumentService {
         return null
       }
       
+      // 如果没有指定范围，则在整个文档中查找
+      const isFullDocSearch = startChar === 0 && endChar === null
+      
       // 在指定范围内查找段落
-      const relevantParagraphs = paragraphs.filter(para => {
-        if (endChar) {
-          // 段落与目标范围有交集即可
-          return para.startChar < endChar && para.endChar > startChar
-        }
-        return para.startChar >= startChar
-      })
+      const relevantParagraphs = isFullDocSearch 
+        ? paragraphs // 全文档搜索
+        : paragraphs.filter(para => {
+            if (endChar) {
+              // 段落与目标范围有交集即可
+              return para.startChar < endChar && para.endChar > startChar
+            }
+            return para.startChar >= startChar
+          })
       
       if (relevantParagraphs.length === 0) {
         console.warn(`[定位] 在范围内未找到段落: ${startChar}-${endChar || 'end'}`)
@@ -274,7 +273,7 @@ export class WPSDocumentService {
       }
       
       // 如果段落查找失败，回退到字符位置查找（仅在指定范围内）
-      if (endChar !== null) {
+      if (!isFullDocSearch && endChar !== null) {
         const fullText = this.getFullText()
         const searchText = fullText.substring(startChar, endChar)
         
@@ -285,7 +284,12 @@ export class WPSDocumentService {
           const actualEnd = actualStart + keywordLength
           
           console.log(`[定位] ✅ 通过字符位置找到: ${cleanKeyword.substring(0, 30)}...`)
-          return this.getRangeByCharPosition(actualStart, actualEnd)
+          // 确保Range位置在文档范围内
+          if (actualStart >= 0 && actualEnd <= fullText.length) {
+            return this.getRangeByCharPosition(actualStart, actualEnd)
+          } else {
+            console.warn(`[定位] ⚠️ Range位置超出文档范围: ${actualStart}-${actualEnd}, 文档长度: ${fullText.length}`)
+          }
         }
       }
       
@@ -313,7 +317,9 @@ export class WPSDocumentService {
       
       if (found) {
         // 返回相对于段落起始位置的偏移
-        return findRange.Start - paraRange.Start
+        const offset = findRange.Start - paraRange.Start
+        console.log(`[定位] 📍 段内找到，偏移量: ${offset}, 段落范围: ${paraRange.Start}-${paraRange.End}`)
+        return offset
       }
       
       return -1
@@ -375,6 +381,15 @@ export class WPSDocumentService {
     }
 
     try {
+      // 验证Range的有效性
+      if (range.Start < 0 || range.End < range.Start) {
+        console.warn(`[批注] 无效的Range: ${range.Start}-${range.End}`)
+        return false
+      }
+      
+      // 记录Range信息用于调试
+      console.log(`[批注] 添加批注到位置: ${range.Start}-${range.End}, 文本: "${range.Text.substring(0, 30)}..."`)
+      
       // 检查是否已有批注
       if (range.Comments && range.Comments.Count > 0) {
         // 检查是否重复
@@ -388,6 +403,7 @@ export class WPSDocumentService {
       }
 
       range.Comments?.Add(range, commentText)
+      console.log(`[批注] ✅ 批注添加成功`)
       return true
     } catch (error) {
       console.error('添加批注失败:', error)

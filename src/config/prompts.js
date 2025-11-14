@@ -16,7 +16,7 @@ export const PromptConfig = {
     contractReview: '你是专业的法律文书AI助手，专注于合同审查。核心原则：保持专业、准确、客观；遵守法律职业道德；只提供风险分析和参考建议，不提供具体法律意见。输出要求：必须返回完整、有效的JSON格式；不要截断输出，确保JSON正确闭合；严格遵守输出格式规范。',
     
     // 合同类型识别
-    contractClassification: '你是专业的法律文书AI助手，擅长合同类型识别和分类。输出必须是有效的JSON格式。',
+    contractClassification: '你是专业的法律文书AI助手，擅长合同类型识别和分类。核心要求：1.必须返回有效的JSON格式；2.不要包含任何markdown代码块或额外文本；3.JSON必须包含type、subtype、confidence三个字段；4.严格遵守输出格式。',
     
     // 合同分析
     contractAnalysis: '你是专业的法律文书AI助手，擅长合同结构分析和风险预判。输出必须是有效的JSON格式。'
@@ -39,8 +39,8 @@ export const PromptConfig = {
   "issues": [
     {
       "severity": "high|medium|low",
-      "position": "章节位置",
-      "searchKeyword": "定位关键词（8-15字）",
+      "position": "章节位置（如：合同首部、第一条、第二条等）",
+      "searchKeyword": "文档中的原文片段（必须是文档中真实存在的连续文本，用于精确定位问题位置，8-20字符）",
       "comment": "问题描述和建议（100字以内）",
       "checklistId": "审查清单项ID（可选）"
     }
@@ -55,19 +55,32 @@ export const PromptConfig = {
 }
 
 关键规范：
-- searchKeyword：文档中连续存在的8-15个字符，用于精确定位
+- searchKeyword：必须是文档中真实存在的连续文本片段，从问题所在的句子中直接复制，用于精确定位
+- 如果无法提取searchKeyword，使用position字段（如"第一条"、"合同首部"）
 - comment：简明扼要，重点突出，不超过100字
 - 没有问题时返回：{"issues": [], "risks": []}`,
 
     // 合同分类专家
     contractClassifier: `作为合同分类专家，请识别合同类型。
 
-输出格式：
-{
-  "type": "合同大类（如：买卖合同、服务合同等）",
-  "subtype": "合同子类（可选，如：房屋买卖合同）",
-  "confidence": "置信度（high/medium/low）"
-}`,
+【必须遵守的规则】
+1. 只返回JSON，不要包含任何其他文本、解释或markdown代码块
+2. JSON必须有效且完整，包含以下三个字段：
+   - type: 合同大类（如：服务合同、培训合同、委托合同等）
+   - subtype: 合同子类（可选，如：项目培训合同）
+   - confidence: 置信度（high/medium/low）
+3. 如果无法确定，使用"未知"作为type，""作为subtype，"low"作为confidence
+4. 不要返回空值或null，使用空字符串""
+
+【输出格式示例】
+{"type":"服务合同","subtype":"项目培训合同","confidence":"high"}
+
+【严格要求】
+- 直接返回JSON对象，第一个字符必须是{
+- 最后一个字符必须是}
+- 不要添加任何前缀或后缀
+- 不要使用markdown代码块
+- 确保JSON格式正确`,
 
     // 合同分析专家
     contractAnalyzer: `作为合同分析专家，请进行全局分析。
@@ -163,10 +176,15 @@ ${data.content}`
 
       // 合同类型识别任务
       contractClassification: (data) => {
-        return `合同内容：
+        return `【待识别的合同内容】
 ${data.content.substring(0, 5000)}${data.content.length > 5000 ? '\n\n[内容已截断]' : ''}
 
-请返回JSON格式的识别结果。`
+【任务要求】
+请识别上述合同的类型。
+
+【输出要求】
+只返回JSON格式的结果，不要包含任何其他文本。
+示例：{"type":"服务合同","subtype":"培训合同","confidence":"high"}`
       },
 
       // 合同全局分析任务

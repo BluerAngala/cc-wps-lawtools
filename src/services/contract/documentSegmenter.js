@@ -5,7 +5,7 @@
 
 export class DocumentSegmenter {
   /**
-   * 智能分段：结合多种策略
+   * 智能分段：结合多种策略，避免重复审查
    * @param {string} documentText - 文档文本
    * @param {Array} paragraphs - WPS段落信息（可选）
    * @returns {Array} 分段数组
@@ -20,7 +20,7 @@ export class DocumentSegmenter {
       const paraSegments = this.segmentByWPSParagraphs(documentText, paragraphs)
       if (paraSegments.length > 1) {
         console.log(`[分段] 使用WPS段落信息分段，共 ${paraSegments.length} 段`)
-        return this.enrichSegments(paraSegments)
+        return this.optimizeSegmentsByLength(paraSegments, 1500, 3000)
       }
     }
 
@@ -28,28 +28,202 @@ export class DocumentSegmenter {
     const sectionSegments = this.segmentBySections(documentText)
     if (sectionSegments.length > 1) {
       console.log(`[分段] 使用章节标题分段，共 ${sectionSegments.length} 段`)
-      return this.enrichSegments(sectionSegments)
+      return this.optimizeSegmentsByLength(sectionSegments, 1500, 3000)
     }
 
     // 策略2：基于语义分段（识别合同关键结构）
     const semanticSegments = this.segmentBySemantics(documentText)
     if (semanticSegments.length > 1) {
       console.log(`[分段] 使用语义分段，共 ${semanticSegments.length} 段`)
-      return this.enrichSegments(semanticSegments)
+      return this.optimizeSegmentsByLength(semanticSegments, 1500, 3000)
     }
 
     // 策略3：基于段落分段（次优）
     const paragraphSegments = this.segmentByParagraphs(documentText)
     if (paragraphSegments.length > 1) {
       console.log(`[分段] 使用段落分段，共 ${paragraphSegments.length} 段`)
-      return this.enrichSegments(paragraphSegments)
+      return this.optimizeSegmentsByLength(paragraphSegments, 1500, 3000)
     }
 
+    // 注：所有策略的最大长度都是3000字符，超过此长度会按照章节段落自然边界切割
+
     // 策略4：基于长度分段（最后兜底）- 只在确实无法识别结构时使用
-    console.warn(`[分段] 无法识别文档结构，使用长度分段（每段2000字符）`)
+    console.warn(`[分段] 无法识别文档结构，使用长度分段（每段1500-3000字符）`)
     const lengthSegments = this.segmentByLength(documentText, 2000)
     console.log(`[分段] 长度分段完成，共 ${lengthSegments.length} 段`)
     return lengthSegments
+  }
+
+  /**
+   * 优化分段长度：避免过长或过短的段落，减少重复审查
+   * @param {Array} segments - 原始分段
+   * @param {number} minLength - 最小长度（字符）
+   * @param {number} maxLength - 最大长度（字符）
+   * @returns {Array} 优化后的分段
+   */
+  optimizeSegmentsByLength(segments, minLength = 1500, maxLength = 3000) {
+    if (!segments || segments.length === 0) {
+      return segments
+    }
+
+    const optimized = []
+    let i = 0
+
+    while (i < segments.length) {
+      const segment = segments[i]
+      const contentLength = segment.content.length
+
+      // 情况1：当前段长度合适，直接添加
+      if (contentLength >= minLength && contentLength <= maxLength) {
+        optimized.push(segment)
+        i++
+      }
+      // 情况2：当前段太短，尝试与下一段合并
+      else if (contentLength < minLength && i + 1 < segments.length) {
+        const merged = this.mergeSegments(segment, segments[i + 1])
+        
+        // 如果合并后仍然太短，继续合并
+        if (merged.content.length < minLength && i + 2 < segments.length) {
+          const merged2 = this.mergeSegments(merged, segments[i + 2])
+          optimized.push(merged2)
+          i += 3
+        } else {
+          optimized.push(merged)
+          i += 2
+        }
+      }
+      // 情况3：当前段太长，需要拆分
+      else if (contentLength > maxLength) {
+        const splits = this.splitSegment(segment, maxLength)
+        optimized.push(...splits)
+        i++
+      }
+      // 情况4：当前段太短且是最后一段，合并到前一段
+      else if (contentLength < minLength && optimized.length > 0) {
+        const lastSegment = optimized[optimized.length - 1]
+        lastSegment.content += '\n\n' + segment.content
+        lastSegment.endChar = segment.endChar
+        i++
+      }
+      // 情况5：当前段太短且是唯一段，保留
+      else {
+        optimized.push(segment)
+        i++
+      }
+    }
+
+    console.log(`[分段优化] 原始分段: ${segments.length}, 优化后: ${optimized.length}`)
+    return this.enrichSegments(optimized)
+  }
+
+  /**
+   * 合并两个相邻的分段
+   */
+  mergeSegments(segment1, segment2) {
+    return {
+      section: segment1.section,
+      content: segment1.content + '\n\n' + segment2.content,
+      startChar: segment1.startChar,
+      endChar: segment2.endChar,
+      startLine: segment1.startLine,
+      endLine: segment2.endLine
+    }
+  }
+
+  /**
+   * 拆分过长的分段 - 按照章节段落的自然边界切割
+   * 优先在章节标题、段落分隔符处切割，避免破坏原文意思
+   */
+  splitSegment(segment, maxLength) {
+    const splits = []
+    const content = segment.content
+    let start = 0
+    let partIndex = 1
+
+    // 章节标题模式（用于识别自然的切割点）
+    const sectionPatterns = [
+      /^第([一二三四五六七八九十百千万\d]+)[条款章]\s*(.+)$/m,
+      /^第([一二三四五六七八九十百千万\d]+)条\s*(.+)$/m,
+      /^第([一二三四五六七八九十百千万\d]+)[条款章]$/m,
+      /^([一二三四五六七八九十百千万]+)[、．.]\s*(.+)$/m,
+      /^(\d+)[、．.]\s*(.+)$/m,
+      /^[（(](\d+)[）)]\s*(.+)$/m,
+      /^第([一二三四五六七八九十百千万\d]+)章[：:]\s*(.+)$/m,
+      /^第([一二三四五六七八九十百千万\d]+)节[：:]\s*(.+)$/m
+    ]
+
+    while (start < content.length) {
+      const preferredEnd = Math.min(start + maxLength, content.length)
+
+      // 优先在章节标题处切割
+      let actualEnd = this.findSectionBreakPoint(content, start, preferredEnd, sectionPatterns)
+      
+      // 如果没找到章节标题，再在句号/段落边界处切割
+      if (actualEnd === preferredEnd) {
+        actualEnd = this.findBreakPoint(content, start, preferredEnd)
+      }
+
+      // 如果剩余内容太少（少于300字符），合并到当前段
+      if (actualEnd >= content.length - 300) {
+        actualEnd = content.length
+      }
+
+      splits.push({
+        section: {
+          title: partIndex === 1 
+            ? segment.section.title 
+            : `${segment.section.title}（续${partIndex - 1}）`,
+          number: segment.section.number,
+          titleText: segment.section.titleText
+        },
+        content: content.substring(start, actualEnd),
+        startChar: segment.startChar + start,
+        endChar: segment.startChar + actualEnd
+      })
+
+      start = actualEnd
+      partIndex++
+
+      // 防止无限循环
+      if (start >= content.length) break
+      if (actualEnd === start) {
+        // 如果没有进展，强制前进
+        start = Math.min(start + 500, content.length)
+      }
+    }
+
+    return splits
+  }
+
+  /**
+   * 查找章节标题的切割点（在章节标题处切割，保留原文结构）
+   */
+  findSectionBreakPoint(text, start, preferredEnd, sectionPatterns) {
+    // 从preferredEnd往后查找，找到第一个章节标题
+    let searchStart = preferredEnd
+    let searchEnd = Math.min(preferredEnd + 500, text.length)
+
+    const searchText = text.substring(searchStart, searchEnd)
+    const lines = searchText.split('\n')
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+      
+      // 检查是否是章节标题
+      for (const pattern of sectionPatterns) {
+        if (pattern.test(line)) {
+          // 找到章节标题，返回该位置
+          let pos = searchStart
+          for (let j = 0; j < i; j++) {
+            pos += lines[j].length + 1 // +1 for \n
+          }
+          return pos
+        }
+      }
+    }
+
+    // 如果没找到章节标题，返回preferredEnd表示未找到
+    return preferredEnd
   }
 
   /**
@@ -416,6 +590,7 @@ export class DocumentSegmenter {
 
   /**
    * 策略4：基于长度分段（最后兜底方案，尽量少用）
+   * 优化：使用1500-3000字符的范围，避免段落过长或过短
    */
   segmentByLength(text, segmentSize = 2000) {
     const segments = []
@@ -428,8 +603,8 @@ export class DocumentSegmenter {
       // 尝试在句号、段落边界处截断
       const actualEnd = this.findBreakPoint(text, start, preferredEnd)
 
-      // 如果剩余内容太少（少于200字符），合并到最后一段
-      if (actualEnd >= text.length - 200 && segments.length > 0) {
+      // 如果剩余内容太少（少于500字符），合并到最后一段
+      if (actualEnd >= text.length - 500 && segments.length > 0) {
         const lastSegment = segments[segments.length - 1]
         lastSegment.content += text.substring(start)
         lastSegment.endChar = text.length
@@ -455,18 +630,30 @@ export class DocumentSegmenter {
   }
 
   /**
-   * 查找合适的分段点（句号、段落边界）
+   * 查找合适的分段点（优先章节标题、段落边界、句号）
+   * 按照自然的文档结构切割，避免破坏原文意思
    */
   findBreakPoint(text, start, preferredEnd) {
-    // 优先在句号、段落边界处截断
+    // 优先级顺序：章节标题 > 段落分隔 > 句号 > 换行
     const breakPatterns = [
-      { pattern: /\n\n/, offset: 2 },
-      { pattern: /[。！？]\s*\n/, offset: 1 }, // 句号+换行
-      { pattern: /[。！？]\s+/, offset: 1 }, // 句号+空格
-      { pattern: /\n/, offset: 1 }
+      // 最高优先级：章节标题（在章节标题前切割）
+      { pattern: /\n(第([一二三四五六七八九十百千万\d]+)[条款章]\s*(.+)?)$/m, offset: 0, priority: 10 },
+      { pattern: /\n(([一二三四五六七八九十百千万]+)[、．.]\s*(.+)?)$/m, offset: 0, priority: 10 },
+      { pattern: /\n((\d+)[、．.]\s*(.+)?)$/m, offset: 0, priority: 10 },
+      // 高优先级：段落分隔（空行）
+      { pattern: /\n\n/, offset: 2, priority: 8 },
+      // 中优先级：句号+换行
+      { pattern: /[。！？]\s*\n/, offset: 1, priority: 6 },
+      // 低优先级：句号+空格
+      { pattern: /[。！？]\s+/, offset: 1, priority: 4 },
+      // 最低优先级：换行
+      { pattern: /\n/, offset: 1, priority: 2 }
     ]
 
-    for (const { pattern, offset } of breakPatterns) {
+    // 按优先级排序
+    const sortedPatterns = breakPatterns.sort((a, b) => b.priority - a.priority)
+
+    for (const { pattern, offset } of sortedPatterns) {
       const segment = text.substring(start, preferredEnd)
       const matches = [...segment.matchAll(new RegExp(pattern, 'g'))]
 

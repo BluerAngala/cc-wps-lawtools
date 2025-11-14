@@ -228,8 +228,21 @@ export class TaskScheduler {
       case 'extractText':
         return await this.analyzeContent(content, 'extractText', options)
 
-      case 'contractReview':
-        return await this.analyzeContent(content, 'contractReview', options)
+      case 'contractReview': {
+        // 合同预审需要特殊处理：需要从 options 中提取规则信息
+        const reviewRules = options.reviewRules || ''
+        const reviewRequirements = options.reviewRequirements || ''
+        const actionType = options.actionType || 'comment'
+        
+        // 生成提示词
+        const prompt = generateContractReviewPrompt(reviewRules, reviewRequirements, actionType)
+        
+        // 调用AI服务
+        const response = await this.callAI(prompt, options)
+        
+        // 解析响应
+        return this.parseAIResponse(response, 'contractReview')
+      }
 
       case 'analyzeStructure':
         return await this.analyzeContent(content, 'analyzeStructure', options)
@@ -311,8 +324,13 @@ export class TaskScheduler {
         const extractTags = options.extractTags || ['甲方名称', '乙方名称', '合同金额']
         return generateContractExtractionPrompt(extractTags, content)
       }
-      case 'contractReview':
-        return generateContractReviewPrompt(content, options)
+      case 'contractReview': {
+        // contractReview 需要三个参数：reviewRules, reviewRequirements, actionType
+        const reviewRules = options.reviewRules || ''
+        const reviewRequirements = options.reviewRequirements || ''
+        const actionType = options.actionType || 'comment'
+        return generateContractReviewPrompt(reviewRules, reviewRequirements, actionType).replace('{{input}}', content)
+      }
       default:
         return `请分析以下内容：\n\n${content}`
     }

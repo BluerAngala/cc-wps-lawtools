@@ -407,6 +407,25 @@ export class ContractReviewEngine {
     console.log('[审查引擎]   - Risks:', risks.length, '个')
     console.log('[审查引擎]   - 清单统计:', Object.keys(checklistStats).length, '项匹配')
 
+    // 应用批注到文档（全文审查模式）
+    let appliedCount = 0
+    if (options.autoApply && matchedIssues.length > 0) {
+      console.log('[审查引擎] 🔄 开始应用批注到文档...')
+      // 创建虚拟segment对象用于批注应用
+      const fullSegment = {
+        content: fullText,
+        startChar: 0,
+        endChar: fullText.length,
+        section: {
+          title: '全文',
+          number: 0,
+          titleText: ''
+        }
+      }
+      appliedCount = await this.applyComments(fullSegment, matchedIssues)
+      console.log('[审查引擎] ✅ 批注应用完成，共应用 ' + appliedCount + ' 个批注')
+    }
+
     const result = {
       issues: matchedIssues,
       risks,
@@ -417,7 +436,7 @@ export class ContractReviewEngine {
         {
           issues: matchedIssues.length,
           risks: risks.length,
-          applied: options.autoApply ? matchedIssues.length : 0,
+          applied: appliedCount,
           checklistStats
         }
       ],
@@ -434,50 +453,65 @@ export class ContractReviewEngine {
     console.log('[审查引擎]   - 总问题数:', result.summary.totalIssues)
     console.log('[审查引擎]   - 总风险数:', result.summary.totalRisks)
     console.log('[审查引擎]   - 审查清单项数:', result.summary.checklistCount)
+    console.log('[审查引擎]   - 已应用批注:', appliedCount, '个')
     console.log('[审查引擎] =======================================')
 
     return result
   }
 
   /**
-   * 应用批注到WPS文档
+   * 应用批注到WPS文档 - 支持去重和合并位置接近的批注
    */
   async applyComments(segment, issues) {
     let appliedCount = 0
     let skippedCount = 0
     let duplicateCount = 0
+    let mergedCount = 0
 
     // 全局已应用的批注记录（用于避免重复批注）
     if (!this._appliedComments) {
-      this._appliedComments = new Set()
+      this._appliedComments = new Map() // 改为Map，存储位置信息
     }
 
-    for (const issue of issues) {
+    // 第一步：去重和合并位置接近的批注
+    const mergedIssues = this.mergeNearbyComments(issues)
+    console.log(`[审查引擎] 批注合并: ${issues.length} → ${mergedIssues.length}`)
+    mergedCount = issues.length - mergedIssues.length
+
+    for (const issue of mergedIssues) {
       const searchKeyword = issue.searchKeyword || issue.keyword || ''
       try {
-        // 检查是否已应用过相同内容的批注
-        const commentKey = `${searchKeyword.trim().substring(0, 30)}_${(issue.comment || '').trim().substring(0, 50)}`
-        if (this._appliedComments.has(commentKey)) {
-          duplicateCount++
-          console.log(`[审查引擎] ⏭️ 跳过已应用的批注: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
-          continue
-        }
-
         // 定位到具体位置
         const range = this.locateIssue(segment, issue)
 
         if (range) {
+          // 检查是否已应用过相同位置的批注
+          const positionKey = `${range.Start}_${range.End}`
+          if (this._appliedComments.has(positionKey)) {
+            duplicateCount++
+            console.log(`[审查引擎] ⏭️ 跳过已应用的批注: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
+            continue
+          }
+
           // 添加批注（内部会检查是否重复）
           const success = this.wpsService.addComment(range, issue.comment)
           if (success) {
             appliedCount++
             // 记录已应用的批注
-            this._appliedComments.add(commentKey)
+            this._appliedComments.set(positionKey, {
+              keyword: searchKeyword,
+              comment: issue.comment,
+              timestamp: Date.now()
+            })
             console.log(`[审查引擎] ✅ 批注已添加: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
           } else {
             skippedCount++
             // 即使添加失败，也记录（可能是重复）
-            this._appliedComments.add(commentKey)
+            this._appliedComments.set(positionKey, {
+              keyword: searchKeyword,
+              comment: issue.comment,
+              timestamp: Date.now()
+            })
             console.warn(`[审查引擎] ⚠️ 批注添加失败（可能重复）: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
           }
         } else {
@@ -490,6 +524,9 @@ export class ContractReviewEngine {
       }
     }
 
+    if (mergedCount > 0) {
+      console.log(`[审查引擎] 合并了 ${mergedCount} 个位置接近的批注`)
+    }
     if (duplicateCount > 0) {
       console.log(`[审查引擎] 跳过 ${duplicateCount} 个重复批注`)
     }
@@ -501,11 +538,146 @@ export class ContractReviewEngine {
   }
 
   /**
+   * 合并位置接近的批注
+   * 如果两个批注的关键词距离小于50字符，则合并为一条
+   */
+  mergeNearbyComments(issues) {
+    if (!Array.isArray(issues) || issues.length <= 1) {
+      return issues
+    }
+
+    const merged = []
+    const processed = new Set()
+    const DISTANCE_THRESHOLD = 50 // 50字符以内视为接近
+
+    for (let i = 0; i < issues.length; i++) {
+      if (processed.has(i)) continue
+
+      const currentIssue = issues[i]
+      const currentKeyword = (currentIssue.searchKeyword || currentIssue.keyword || '').trim()
+      
+      // 查找接近的批注
+      const nearbyIssues = [currentIssue]
+      for (let j = i + 1; j < issues.length; j++) {
+        if (processed.has(j)) continue
+
+        const nextIssue = issues[j]
+        const nextKeyword = (nextIssue.searchKeyword || nextIssue.keyword || '').trim()
+        
+        // 检查关键词是否接近（简单的字符串相似度检查）
+        const distance = this.calculateKeywordDistance(currentKeyword, nextKeyword)
+        
+        if (distance < DISTANCE_THRESHOLD) {
+          nearbyIssues.push(nextIssue)
+          processed.add(j)
+        }
+      }
+
+      // 如果有多个接近的批注，合并为一条
+      if (nearbyIssues.length > 1) {
+        const mergedComment = this.mergeComments(nearbyIssues)
+        merged.push({
+          ...currentIssue,
+          comment: mergedComment,
+          _mergedCount: nearbyIssues.length
+        })
+      } else {
+        merged.push(currentIssue)
+      }
+
+      processed.add(i)
+    }
+
+    return merged
+  }
+
+  /**
+   * 计算两个关键词的距离（基于编辑距离）
+   */
+  calculateKeywordDistance(keyword1, keyword2) {
+    if (!keyword1 || !keyword2) return 100
+
+    // 简化版本：如果包含相同的核心词，距离为0
+    const words1 = keyword1.split(/[\s、。，]/g).filter(w => w.length >= 2)
+    const words2 = keyword2.split(/[\s、。，]/g).filter(w => w.length >= 2)
+
+    // 计算共同词的数量
+    const commonWords = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)))
+    
+    if (commonWords.length > 0) {
+      return 0 // 有共同词，视为相同位置
+    }
+
+    // 如果没有共同词，返回较大的距离
+    return 100
+  }
+
+  /**
+   * 合并多条批注的内容
+   */
+  mergeComments(issues) {
+    const comments = issues
+      .map(issue => (issue.comment || '').trim())
+      .filter(comment => comment.length > 0)
+      .filter((comment, index, self) => self.indexOf(comment) === index) // 去重
+
+    if (comments.length === 0) {
+      return '存在多个相关问题'
+    }
+
+    return comments.join('；')
+  }
+
+  /**
+   * 从comment中提取关键词用于定位
+   * 优先级：position > comment中的关键词
+   */
+  extractKeywordFromComment(comment, position) {
+    if (!comment && !position) {
+      return null
+    }
+
+    // 如果有position（如"第一条"、"合同首部"），尝试使用它
+    if (position && position.trim().length >= 2) {
+      // 对于"第X条"这样的位置，提取条款编号
+      const conditionMatch = position.match(/第([一二三四五六七八九十百千万\d]+)条/)
+      if (conditionMatch) {
+        return `第${conditionMatch[1]}条`
+      }
+      
+      // 对于"合同首部"、"合同尾部"等，返回原值
+      if (position.length >= 3 && position.length <= 20) {
+        return position
+      }
+    }
+
+    // 从comment中提取关键词（取前20-30个字符中的核心词）
+    if (comment && comment.trim().length > 0) {
+      const commentTrimmed = comment.trim()
+      
+      // 提取第一句话（以。！？结尾）
+      const firstSentence = commentTrimmed.match(/^([^。！？\n]{10,50})[。！？]/)?.[1] || commentTrimmed.substring(0, 30)
+      
+      if (firstSentence && firstSentence.length >= 5) {
+        return firstSentence
+      }
+    }
+
+    return null
+  }
+
+  /**
    * 定位问题位置（智能定位，基于段落精确定位）
    */
   locateIssue(segment, issue) {
     // 方法1：优先使用searchKeyword定位（AI专门返回的定位关键字，最准确）
-    const searchKeyword = issue.searchKeyword || issue.keyword
+    let searchKeyword = issue.searchKeyword || issue.keyword
+    
+    // 如果searchKeyword为空，尝试从comment中提取关键词
+    if (!searchKeyword || searchKeyword.trim().length < 3) {
+      searchKeyword = this.extractKeywordFromComment(issue.comment, issue.position)
+    }
+    
     if (searchKeyword && searchKeyword.trim().length >= 3) {
       // 清理keyword，去除特殊字符和标点符号，提取核心文本
       let cleanKeyword = searchKeyword.trim()
@@ -609,26 +781,12 @@ export class ContractReviewEngine {
         }
       }
       
-      // 如果keyword匹配完全失败，尝试在整个文档中查找（不限制在segment内）
-      // 优先使用最长的核心文本
-      for (const searchKeyword of searchKeywords) {
-        if (searchKeyword.length < 3) continue
-        console.warn(`[定位] ⚠️ 在段内未找到关键词，尝试全文档查找: ${searchKeyword.substring(0, 30)}...`)
-        const fullDocRange = this.wpsService.findRangeByKeyword(searchKeyword)
-        if (fullDocRange) {
-          console.log(`[定位] ✅ 在全文档中找到关键词`)
-          return fullDocRange
-        }
-      }
-      
-      // 最后尝试完整keyword全文档查找
-      if (cleanKeyword.length >= 5) {
-        const fullDocRange = this.wpsService.findRangeByKeyword(cleanKeyword)
-        if (fullDocRange) {
-          console.log(`[定位] ✅ 在全文档中找到完整关键词`)
-          return fullDocRange
-        }
-      }
+      // 优化：如果在段内找不到关键词，直接跳过，不要强制全文档查找
+      // 这样可以避免跨段批注导致的问题
+      const displayKeyword = searchKeywords.length > 0 
+        ? searchKeywords[0].substring(0, 30) 
+        : cleanKeyword.substring(0, 30)
+      console.warn(`[定位] ⚠️ 在段内未找到关键词，跳过该批注（避免跨段定位）: ${displayKeyword}...`)
     }
 
     // 方法2：基于position定位（如果提供了章节号）

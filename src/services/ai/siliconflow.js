@@ -537,12 +537,19 @@ async function processContractReview({
       const allRules = reviewRules
         .map(
           (rule, index) =>
-            `## 规则${index + 1}: ${rule.reviewRules}\n审查要求: ${rule.reviewRequirements}\n执行动作: ${rule.actionType}`
+            `规则${index + 1}: ${rule.reviewRules}`
         )
-        .join('\n\n')
+        .join('\n')
+
+      const allRequirements = reviewRules
+        .map(
+          (rule, index) =>
+            `规则${index + 1}的审查要求: ${rule.reviewRequirements}`
+        )
+        .join('\n')
 
       const actionType = reviewRules[0]?.actionType || '批注'
-      promptContent = generateContractReviewPrompt('综合预审规则', allRules, actionType).replace(
+      promptContent = generateContractReviewPrompt(allRules, allRequirements, actionType).replace(
         '{{input}}',
         content
       )
