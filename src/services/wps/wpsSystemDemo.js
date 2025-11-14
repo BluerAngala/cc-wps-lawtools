@@ -1,6 +1,9 @@
+import errorLogger from '@/utils/errorLogger'
+
 function openOfficeFileFromSystemDemo(param) {
   let jsonObj = typeof param == 'string' ? JSON.parse(param) : param
-  alert('从业务系统传过来的参数为：' + JSON.stringify(jsonObj))
+  console.log('从业务系统传过来的参数为：', JSON.stringify(jsonObj))
+  window.$message?.info('收到业务系统参数: ' + jsonObj.filepath)
   return { wps加载项项返回: jsonObj.filepath + ', 这个地址给的不正确' }
 }
 

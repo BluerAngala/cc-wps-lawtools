@@ -1,3 +1,5 @@
+import errorLogger from '@/utils/errorLogger'
+
 //在后续的wps版本中，wps的所有枚举值都会通过wps.Enum对象来自动支持，现阶段先人工定义
 var WPS_Enum = {
   msoCTPDockPositionLeft: 0,
@@ -51,34 +53,61 @@ class WPSService {
 
   // 创建任务窗格（确保只有一个窗格显示）
   createTaskPane(url, key = 'default', options = {}) {
-    // 先关闭当前活动的任务窗格
-    this.hideCurrentTaskPane()
-    
-    // 检查是否已存在该功能的窗格，如果存在则删除以确保加载新的URL
-    let taskPane = this.taskPanes.get(key)
-    if (taskPane) {
-      try {
-        taskPane.Delete()
-      } catch (e) {
-        console.warn('删除任务窗格失败:', e)
+    try {
+      // 检查 WPS Application 对象
+      if (!window.Application) {
+        const errorMsg = '❌ WPS Application 对象不存在，插件可能未正确加载'
+        errorLogger.log(errorMsg, { method: 'createTaskPane', url })
+        return null
       }
-      this.taskPanes.delete(key)
+
+      console.log(`[创建任务窗格] URL: ${url}, Key: ${key}`)
+
+      // 先关闭当前活动的任务窗格
+      this.hideCurrentTaskPane()
+      
+      // 检查是否已存在该功能的窗格，如果存在则删除以确保加载新的URL
+      let taskPane = this.taskPanes.get(key)
+      if (taskPane) {
+        try {
+          taskPane.Delete()
+          console.log(`[删除旧窗格] Key: ${key}`)
+        } catch (e) {
+          console.warn('删除任务窗格失败:', e)
+        }
+        this.taskPanes.delete(key)
+      }
+      
+      // 创建新窗格
+      console.log('[开始创建窗格]', url)
+      taskPane = window.Application.CreateTaskPane(url)
+      
+      if (!taskPane) {
+        const errorMsg = `❌ 创建任务窗格失败 - URL: ${url} - 可能原因：URL路径不正确、文件不存在或WPS API调用失败`
+        errorLogger.log(errorMsg, { method: 'createTaskPane', url, key })
+        return null
+      }
+
+      this.taskPanes.set(key, taskPane)
+      console.log('[窗格创建成功] ID:', taskPane.ID)
+      
+      // 显示窗格
+      taskPane.Visible = true
+      
+      // 应用配置参数
+      if (options.width) taskPane.Width = options.width
+      if (options.height) taskPane.Height = options.height
+      if (options.dockPosition !== undefined) taskPane.DockPosition = options.dockPosition
+      
+      this.currentTaskPane = taskPane
+      console.log('[任务窗格已激活]')
+      return taskPane
+
+    } catch (error) {
+      const errorMsg = `❌ 创建任务窗格异常 - ${error.message || error} - 可能原因：页面文件不存在、URL路径配置错误、服务器部署问题或WPS版本不兼容`
+      errorLogger.log(errorMsg, { method: 'createTaskPane', url, key, error: error.message || String(error) })
+      return null
     }
-    
-    // 创建新窗格
-    taskPane = window.Application.CreateTaskPane(url)
-    this.taskPanes.set(key, taskPane)
-    
-    // 显示窗格
-    taskPane.Visible = true
-    
-    // 应用配置参数
-    if (options.width) taskPane.Width = options.width
-    if (options.height) taskPane.Height = options.height
-    if (options.dockPosition !== undefined) taskPane.DockPosition = options.dockPosition
-    
-    this.currentTaskPane = taskPane
-    return taskPane
   }
 
   // 隐藏当前活动的任务窗格
@@ -210,7 +239,8 @@ class WPSService {
   // 关闭文档
   closeDoc() {
     if (window.Application.Documents.Count < 2) {
-      alert('当前只有一个文档，别关了。')
+      const msg = '当前只有一个文档，无法关闭'
+      errorLogger.log(msg, { method: 'closeDoc' })
       return
     }
 
@@ -266,9 +296,24 @@ function GetAppUrl(path = '/') {
   // 确保路径以 / 开头
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
   
-  // 在 file: 协议下，需要显式指定 index.html
-  // 在 http/https 协议下，也需要指定 index.html（因为使用了 base: './'）
-  return `${baseUrl}/index.html#${normalizedPath}`
+  // 调试日志
+  console.log('[GetAppUrl] baseUrl:', baseUrl)
+  console.log('[GetAppUrl] path:', normalizedPath)
+  console.log('[GetAppUrl] protocol:', window.location.protocol)
+  
+  // 根据协议选择不同的 URL 格式
+  let url
+  if (window.location.protocol === 'file:') {
+    // 本地 file:// 协议 - 需要显式指定 index.html
+    url = `${baseUrl}/index.html#${normalizedPath}`
+  } else {
+    // http/https 协议 - 使用 hash 路由，不显式指定 index.html
+    // 这样可以适配各种服务器配置
+    url = `${baseUrl}/#${normalizedPath}`
+  }
+  
+  console.log('[GetAppUrl] 构建的完整URL:', url)
+  return url
 }
 
 // 创建单例实例

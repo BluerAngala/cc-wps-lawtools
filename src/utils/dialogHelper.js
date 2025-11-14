@@ -1,6 +1,7 @@
 // WPS 弹窗工具函数 - 通用对话框创建方法
 
 import Util from '../services/wps/wpsUtils.js'
+import errorLogger from './errorLogger'
 
 /**
  * 显示 WPS 原生对话框
@@ -28,7 +29,7 @@ export function showWPSDialog(page, options = {}) {
   try {
     if (typeof window.Application === 'undefined') {
       console.warn('WPS Application 对象未找到')
-      alert('请在 WPS 环境中使用此功能')
+      errorLogger.log('请在 WPS 环境中使用此功能', { method: 'showWPSDialog', page })
       return
     }
 
@@ -62,7 +63,7 @@ export function showWPSDialog(page, options = {}) {
     
   } catch (error) {
     console.error('显示 WPS 对话框失败:', error)
-    alert('显示对话框失败: ' + error.message)
+    errorLogger.log('显示对话框失败', { method: 'showWPSDialog', page, error: error.message })
   }
 }
 
