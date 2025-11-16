@@ -4,6 +4,8 @@
 
 import logger from './logger.js'
 import { pathManager } from './pathManager.js'
+// 直接导入内置模板配置（Vite 会自动处理 JSON 导入）
+import builtInTemplatesConfig from '@/data/templates.json'
 
 class TemplateManager {
   constructor() {
@@ -11,7 +13,7 @@ class TemplateManager {
   }
 
   /**
-   * 初始化模板 - 直接使用内置模板，无需复制
+   * 初始化模板 - 直接使用导入的配置，无需 HTTP 请求
    */
   async initializeTemplates() {
     logger.info('开始初始化模板')
@@ -31,41 +33,12 @@ class TemplateManager {
         return true
       }
 
-      // 使用基于 location.href 的绝对路径，确保打包后也能正确读取
-      const basePath = this.getBasePath()
-      const configUrl = `${basePath}templates/templates.json`
-      logger.logPath('info', '初始化模板配置', {
-        basePath,
-        configUrl,
-        locationHref: window.location.href
-      })
-      logger.logRequest('GET', configUrl)
+      // 直接使用导入的配置，无需 HTTP 请求
+      const templates = builtInTemplatesConfig.templates || []
 
-      const response = await fetch(configUrl)
-
-      logger.logRequest(
-        'GET',
-        configUrl,
-        response.status,
-        response.ok ? null : new Error(`HTTP ${response.status}`)
-      )
-
-      if (!response.ok) {
-        logger.error('无法加载内置模板配置', {
-          url: configUrl,
-          status: response.status,
-          statusText: response.statusText,
-          method: 'initializeTemplates'
-        })
-        return false
-      }
-
-      const data = await response.json()
-      const builtInTemplates = data.templates || []
-
-      logger.info(`已加载 ${builtInTemplates.length} 个内置模板`, {
-        templateCount: builtInTemplates.length,
-        templateNames: builtInTemplates.map((t) => t.name)
+      logger.info(`已加载 ${templates.length} 个内置模板`, {
+        templateCount: templates.length,
+        templateNames: templates.map((t) => t.name)
       })
 
       // 标记为已初始化
@@ -74,7 +47,7 @@ class TemplateManager {
         logger.debug('已标记模板为已初始化')
       }
 
-      logger.info('模板初始化完成（直接使用内置模板）')
+      logger.info('模板初始化完成（直接使用内置模板配置）')
       return true
     } catch (error) {
       logger.error('初始化模板失败', {
@@ -155,45 +128,20 @@ class TemplateManager {
   }
 
   /**
-   * 加载内置模板
+   * 加载内置模板 - 直接使用导入的配置，无需 HTTP 请求
    */
   async loadBuiltInTemplates() {
     try {
-      // 使用基于 location.href 的绝对路径，确保打包后也能正确读取
-      // public/templates 目录会被原样拷贝到打包目录
+      const templates = builtInTemplatesConfig.templates || []
       const basePath = this.getBasePath()
-      const configUrl = `${basePath}templates/templates.json`
-      
-      logger.logPath('info', '加载内置模板配置', {
-        basePath,
-        configUrl,
-        locationHref: window.location.href
+
+      logger.info(`加载内置模板配置: ${templates.length} 个`, {
+        count: templates.length,
+        basePath
       })
-      logger.logRequest('GET', configUrl)
-
-      const response = await fetch(configUrl)
-
-      logger.logRequest(
-        'GET',
-        configUrl,
-        response.status,
-        response.ok ? null : new Error(`HTTP ${response.status}`)
-      )
-
-      if (!response.ok) {
-        logger.error('无法加载内置模板配置', {
-          url: configUrl,
-          status: response.status,
-          basePath,
-          locationHref: window.location.href
-        })
-        return []
-      }
-
-      const data = await response.json()
-      const templates = data.templates || []
 
       // 使用绝对路径构建模板文件路径（确保打包后也能读取）
+      // 模板文件（.docx）仍然在 public/templates 目录，需要通过 HTTP 访问
       return templates.map((template) => ({
         ...template,
         filePath: `${basePath}templates/${template.fileName}`,  // 基于 location.href 的绝对路径
@@ -202,8 +150,7 @@ class TemplateManager {
     } catch (error) {
       logger.error('加载内置模板失败', {
         error: error.message,
-        stack: error.stack,
-        locationHref: window.location.href
+        stack: error.stack
       })
       return []
     }

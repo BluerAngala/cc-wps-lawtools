@@ -1,0 +1,257 @@
+{
+  "templates": [
+    {
+      "id": "民事起诉状",
+      "name": "民事起诉状",
+      "category": "诉讼文书",
+      "description": "用于向人民法院提起民事诉讼的标准格式",
+      "scene": "民事诉讼立案阶段",
+      "fileName": "民事起诉状.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "民事答辩状",
+      "name": "民事答辩状",
+      "category": "诉讼文书",
+      "description": "用于被告对原告起诉进行答辩的标准格式",
+      "scene": "民事诉讼答辩阶段",
+      "fileName": "民事答辩状.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "上诉状",
+      "name": "上诉状",
+      "category": "诉讼文书",
+      "description": "用于对一审判决不服提起上诉的标准格式",
+      "scene": "民事诉讼上诉阶段",
+      "fileName": "上诉状.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "再审申请书",
+      "name": "再审申请书",
+      "category": "诉讼文书",
+      "description": "用于对已生效判决申请再审的标准格式",
+      "scene": "民事诉讼再审申请阶段",
+      "fileName": "再审申请书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "财产保全申请书",
+      "name": "财产保全申请书",
+      "category": "诉讼文书",
+      "description": "用于申请财产保全的标准格式",
+      "scene": "诉讼前或诉讼中财产保全",
+      "fileName": "财产保全申请书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "劳动合同",
+      "name": "劳动合同",
+      "category": "合同模板",
+      "description": "用人单位与劳动者签订的劳动合同标准格式",
+      "scene": "劳动关系建立",
+      "fileName": "劳动合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "房屋租赁合同",
+      "name": "房屋租赁合同",
+      "category": "合同模板",
+      "description": "房屋出租方与承租方签订的租赁合同标准格式",
+      "scene": "房屋租赁关系建立",
+      "fileName": "房屋租赁合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "买卖合同",
+      "name": "买卖合同",
+      "category": "合同模板",
+      "description": "买卖双方签订的商品买卖合同标准格式",
+      "scene": "商品交易",
+      "fileName": "买卖合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "借款合同",
+      "name": "借款合同",
+      "category": "合同模板",
+      "description": "出借人与借款人签订的借款合同标准格式",
+      "scene": "民间借贷",
+      "fileName": "借款合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "股权转让协议",
+      "name": "股权转让协议",
+      "category": "合同模板",
+      "description": "股东之间或股东与第三方之间转让股权的协议",
+      "scene": "股权转让",
+      "fileName": "股权转让协议.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "服务合同",
+      "name": "服务合同",
+      "category": "合同模板",
+      "description": "服务提供方与服务接受方签订的服务合同",
+      "scene": "服务提供",
+      "fileName": "服务合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "律师函",
+      "name": "律师函",
+      "category": "律师函",
+      "description": "律师事务所出具的正式法律函件",
+      "scene": "法律事务交涉",
+      "fileName": "律师函.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "催款律师函",
+      "name": "催款律师函",
+      "category": "律师函",
+      "description": "用于催收欠款的律师函",
+      "scene": "债务催收",
+      "fileName": "催款律师函.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "侵权警告律师函",
+      "name": "侵权警告律师函",
+      "category": "律师函",
+      "description": "用于警告侵权行为的律师函",
+      "scene": "知识产权侵权",
+      "fileName": "侵权警告律师函.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "劳动争议律师函",
+      "name": "劳动争议律师函",
+      "category": "律师函",
+      "description": "用于处理劳动争议的律师函",
+      "scene": "劳动纠纷",
+      "fileName": "劳动争议律师函.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "授权委托书",
+      "name": "授权委托书",
+      "category": "其他文书",
+      "description": "委托他人代理法律事务的授权书",
+      "scene": "法律事务代理",
+      "fileName": "授权委托书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "遗嘱",
+      "name": "遗嘱",
+      "category": "其他文书",
+      "description": "个人处分财产的遗嘱文书",
+      "scene": "财产继承安排",
+      "fileName": "遗嘱.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "离婚协议书",
+      "name": "离婚协议书",
+      "category": "其他文书",
+      "description": "夫妻双方自愿离婚的协议书",
+      "scene": "协议离婚",
+      "fileName": "离婚协议书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "和解协议书",
+      "name": "和解协议书",
+      "category": "其他文书",
+      "description": "纠纷双方达成和解的协议书",
+      "scene": "纠纷和解",
+      "fileName": "和解协议书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "保密协议",
+      "name": "保密协议",
+      "category": "其他文书",
+      "description": "约定保密义务的协议书",
+      "scene": "商业合作保密",
+      "fileName": "保密协议.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "法律意见书",
+      "name": "法律意见书",
+      "category": "法律意见书",
+      "description": "律师事务所就特定法律问题出具的专业法律意见",
+      "scene": "法律咨询与论证",
+      "fileName": "法律意见书.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "尽职调查报告",
+      "name": "尽职调查报告",
+      "category": "法律意见书",
+      "description": "对目标公司或项目进行法律尽职调查后出具的专业报告",
+      "scene": "投资并购、项目评估",
+      "fileName": "尽职调查报告.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "公司章程",
+      "name": "公司章程",
+      "category": "公司治理文书",
+      "description": "有限责任公司或股份有限公司的章程文件",
+      "scene": "公司设立、章程修改",
+      "fileName": "公司章程.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "股东协议",
+      "name": "股东协议",
+      "category": "公司治理文书",
+      "description": "公司股东之间就公司治理、股权转让等事项达成的协议",
+      "scene": "公司设立、股权调整",
+      "fileName": "股东协议.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "商标使用许可合同",
+      "name": "商标使用许可合同",
+      "category": "知识产权文书",
+      "description": "商标权人许可他人使用其注册商标的合同",
+      "scene": "商标许可使用",
+      "fileName": "商标使用许可合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "专利实施许可合同",
+      "name": "专利实施许可合同",
+      "category": "知识产权文书",
+      "description": "专利权人许可他人实施其专利的合同",
+      "scene": "专利许可使用",
+      "fileName": "专利实施许可合同.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "竞业限制协议",
+      "name": "竞业限制协议",
+      "category": "劳动人事文书",
+      "description": "用人单位与劳动者签订的竞业限制协议",
+      "scene": "员工离职、商业秘密保护",
+      "fileName": "竞业限制协议.docx",
+      "isBuiltIn": true
+    },
+    {
+      "id": "培训服务协议",
+      "name": "培训服务协议",
+      "category": "劳动人事文书",
+      "description": "用人单位与劳动者签订的培训服务期协议",
+      "scene": "员工培训、服务期约定",
+      "fileName": "培训服务协议.docx",
+      "isBuiltIn": true
+    }
+  ],
+  "lastUpdated": "2025-11-12T08:23:12.824Z"
+}
