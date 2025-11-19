@@ -251,6 +251,9 @@ export class DataSubmitter {
 
       console.log('金山文档创建响应:', res)
 
+      // 保存请求信息
+      const requestInfo = res?._requestInfo || null
+
       let 审查编号 = res?.data?.[0]?.fields?.审查编号
       console.log('审查编号:', 审查编号)
 
@@ -266,7 +269,7 @@ export class DataSubmitter {
         }
       }
 
-      return { success: true, 审查编号, data: res?.data?.[0] }
+      return { success: true, 审查编号, data: res?.data?.[0], requestInfo }
     } catch (error) {
       console.error('创建金山文档记录失败:', error)
       throw error
@@ -336,7 +339,8 @@ export class DataSubmitter {
         message: '数据提交成功！',
         审查编号: kdocsResult.审查编号,
         data: kdocsResult.data,
-        headerAdded: headerResult.success
+        headerAdded: headerResult.success,
+        requestInfo: kdocsResult.requestInfo
       }
     } catch (error) {
       console.error('提交数据失败:', error)

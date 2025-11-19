@@ -52,6 +52,33 @@
           @update:extracted-data="extractedData = $event"
           @update-config="updateExtractorConfig"
         />
+        
+        <!-- 请求信息显示区域 -->
+        <div v-if="requestInfo" class="mt-4">
+          <n-divider>请求信息</n-divider>
+          <n-card size="small" class="bg-gray-50">
+            <n-space vertical :size="12">
+              <div>
+                <n-text strong class="text-sm">请求 URL：</n-text>
+                <div class="mt-1">
+                  <n-code :code="requestInfo.url" language="text" />
+                </div>
+              </div>
+              <div>
+                <n-text strong class="text-sm">请求方法：</n-text>
+                <n-tag :type="requestInfo.method === 'POST' ? 'success' : 'info'" size="small" class="ml-2">
+                  {{ requestInfo.method }}
+                </n-tag>
+              </div>
+              <div>
+                <n-text strong class="text-sm">请求数据：</n-text>
+                <div class="mt-1">
+                  <n-code :code="formatRequestData(requestInfo.requestData)" language="json" />
+                </div>
+              </div>
+            </n-space>
+          </n-card>
+        </div>
       </n-collapse-item>
 
       <!-- 智能文档处理 -->
@@ -148,7 +175,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace } from 'naive-ui'
+import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NCard, NCode, NText } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,
   Refresh as RefreshIcon,
@@ -166,6 +193,7 @@ const extractedData = ref(null) // 存储提取的合同信息
 const submitting = ref(false) // 提交状态
 const batchProcessing = ref(false) // 一键处理状态
 const batchResult = ref(null) // 一键处理结果
+const requestInfo = ref(null) // 请求信息
 const configs = ref({
   extractor: {},
   keyword: {},
@@ -542,6 +570,19 @@ const loadConfig = () => {
   configs.value = contractService.loadConfig()
 }
 
+// 格式化请求数据（用于显示）
+const formatRequestData = (data) => {
+  if (!data) return ''
+  // 深拷贝避免修改原数据
+  const formatted = JSON.parse(JSON.stringify(data))
+  // 对 token 进行部分隐藏处理（保留前后各3位）
+  if (formatted.token && typeof formatted.token === 'string' && formatted.token.length > 6) {
+    const token = formatted.token
+    formatted.token = `${token.substring(0, 3)}${'*'.repeat(Math.max(0, token.length - 6))}${token.substring(token.length - 3)}`
+  }
+  return JSON.stringify(formatted, null, 2)
+}
+
 // 提交提取的数据（简化）
 const submitExtractedData = async () => {
   if (!extractedData.value) {
@@ -550,14 +591,20 @@ const submitExtractedData = async () => {
   }
 
   submitting.value = true
+  requestInfo.value = null // 清空之前的请求信息
   try {
     const result = await contractService.submitExtractedData(extractedData.value)
     if (result?.success) {
       window.$message?.success(result.message || '数据提交成功！')
+      // 保存请求信息用于显示
+      if (result.requestInfo) {
+        requestInfo.value = result.requestInfo
+      }
     }
   } catch (error) {
     console.error('提交数据失败:', error)
     window.$message?.error(error.message || '提交数据失败，请稍后重试')
+    requestInfo.value = null
   } finally {
     submitting.value = false
   }

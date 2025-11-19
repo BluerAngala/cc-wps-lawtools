@@ -6,12 +6,12 @@ import { appConfig } from '../../utils/appConfig.js'
 const getKdocsConfig = () => {
   const config = appConfig.get('kdocs')
   return {
-    webhookUrl: config.webhookUrl || import.meta.env.VITE_KDOCS_WEBHOOK_URL,
-    token: config.token || import.meta.env.VITE_KDOCS_TOKEN,
-    sheetId: config.sheetId || Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
+    webhookUrl: config.webhookUrl,
+    token: config.token ,
+    sheetId: config.sheetId,
     apiUrl: import.meta.env.DEV 
       ? '/api/kdocs' 
-      : (config.apiUrl || import.meta.env.VITE_KDOCS_API_URL || 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn/wps-kdocs')
+      :  'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn/wps-kdocs'
   }
 }
 
@@ -81,7 +81,15 @@ async function kdocsHandler({
     })
     
     console.log('金山文档操作成功')
-    return response.data
+    return {
+      ...response.data,
+      _requestInfo: {
+        url: config.apiUrl,
+        requestData: JSON.parse(requestData),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }
+    }
     
   } catch (error) {
     console.error('金山文档操作失败:', error.message)
