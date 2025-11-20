@@ -44,7 +44,7 @@ export class ContractReviewEngine {
     // 3. 合同类型识别（基于全文）
     unifiedLogger.info('开始识别合同类型', { type: 'contract_analysis' })
     const contractType = await this.aiService.identifyContractType(fullText)
-    unifiedLogger.info('识别到合同类型', { type: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
+    unifiedLogger.info('识别到合同类型', { contractCategory: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
 
     // 4. 审查策略选择
     if (options.strategy === 'full') {
@@ -359,7 +359,7 @@ export class ContractReviewEngine {
   async reviewByFullText(fullText, contractType, options) {
     unifiedLogger.info('全文审查开始', { type: 'contract_analysis' })
     unifiedLogger.info('文档长度', { length: fullText?.length || 0, type: 'contract_analysis' })
-    unifiedLogger.info('合同类型', { type: contractType?.type, subtype: contractType?.subtype, type: 'contract_analysis' })
+    unifiedLogger.info('合同类型', { contractCategory: contractType?.type, subtype: contractType?.subtype, contractType: contractType, type: 'contract_analysis' })
     unifiedLogger.info('审查选项', { options: options, type: 'contract_analysis' })
     
     // 1. 生成审查清单
