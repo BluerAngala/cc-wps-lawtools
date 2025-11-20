@@ -6,6 +6,7 @@
 import { streamChatCompletions, nonStreamChatCompletions } from '../ai/siliconflow.js'
 import { appConfig } from '../../utils/appConfig.js'
 import { PromptBuilder } from '../../config/prompts.js'
+import unifiedLogger from '../../utils/unifiedLogger.js'
 
 export class ReviewAIService {
   constructor() {
@@ -82,7 +83,7 @@ export class ReviewAIService {
         }
       } catch (error) {
         lastError = error
-        console.error('识别合同类型失败:', error)
+        unifiedLogger.error('识别合同类型失败', { error: error.message, type: 'contract_identification' })
       }
     }
 
@@ -91,7 +92,7 @@ export class ReviewAIService {
     }
 
     if (lastError && (!lastResult || lastResult.type === '未知')) {
-      console.warn('多次识别仍未得到明确合同类型，返回默认结果')
+      unifiedLogger.warn('多次识别仍未得到明确合同类型，返回默认结果', { type: 'contract_identification' })
     }
 
     return lastResult
@@ -111,10 +112,10 @@ export class ReviewAIService {
     const useStream = options.stream === true && !needJsonFormat
 
     try {
-      console.log(`[AI审查] 审查条款: ${context.segmentPosition?.section || '未知'}`)
+      unifiedLogger.info('审查条款', { section: context.segmentPosition?.section || '未知', type: 'contract_review' })
       const totalLength = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0)
-      console.log(`[AI审查] Messages数量: ${messages.length}, 总长度: ${totalLength}字符`)
-      console.log(`[AI审查] 使用${useStream ? '流式' : '非流式'}请求，需要JSON: ${needJsonFormat}`)
+      unifiedLogger.info('AI消息统计', { messageCount: messages.length, totalLength: totalLength, type: 'contract_review' })
+      unifiedLogger.info('AI请求配置', { streamMode: useStream, needJson: needJsonFormat, type: 'contract_review' })
 
       let response
       
@@ -125,13 +126,13 @@ export class ReviewAIService {
             content: context.checklist
           })
         } catch (error) {
-          console.warn('[AI审查] 进度回调（审查清单）失败:', error)
+          unifiedLogger.warn('进度回调（审查清单）失败', { error: error.message, type: 'contract_review' })
         }
       }
 
       if (useStream) {
         // 流式请求（仅用于展示，不解析为 JSON）
-        console.log('[AI审查] 使用流式模式（展示用）')
+        unifiedLogger.info('使用流式模式', { type: 'contract_review' })
         response = await streamChatCompletions({
           messages,
           model: config.model,
@@ -143,26 +144,26 @@ export class ReviewAIService {
           }
         })
         
-        console.log(`[AI审查] 流式响应长度: ${response.length}字符`)
+        unifiedLogger.info('流式响应长度', { length: response.length, type: 'contract_review' })
       } else {
         // 非流式请求（默认，支持JSON模式）
         if (options.onProgress) {
           options.onProgress({ stage: '正在审查条款...', content: '' })
         }
 
-        console.log('[AI审查] 使用非流式模式（JSON格式）')
-        console.log('[AI审查] ========== 审查请求详情 ==========')
-        console.log('[AI审查] 🤖 模型:', config.model)
-        console.log('[AI审查] 🌡️ Temperature:', config.temperature)
-        console.log('[AI审查] 📏 MaxTokens:', config.maxTokens)
-        console.log('[AI审查] 📍 审查位置:', context.segmentPosition?.section || '未知')
-        console.log('[AI审查] 📝 当前段落长度:', context.currentSegment?.length || 0, '字符')
-        console.log('[AI审查] 📚 完整文档长度:', context.fullDocument?.length || 0, '字符')
-        console.log('[AI审查] 📋 审查清单项数:', context.checklist?.length || 0)
-        console.log('[AI审查] 💬 System Message:', messages[0]?.content)
-        console.log('[AI审查] 💬 User Message:', messages[1]?.content)
-        console.log('[AI审查] 📊 Messages 总长度:', messages.reduce((sum, m) => sum + (m.content?.length || 0), 0), '字符')
-        console.log('[AI审查] =======================================')
+        unifiedLogger.info('使用非流式模式', { type: 'contract_review' })
+        unifiedLogger.info('审查请求开始', { type: 'contract_review' })
+        unifiedLogger.info('AI模型', { model: config.model, type: 'contract_review' })
+        unifiedLogger.info('AI温度', { temperature: config.temperature, type: 'contract_review' })
+        unifiedLogger.info('AI最大令牌数', { maxTokens: config.maxTokens, type: 'contract_review' })
+        unifiedLogger.info('审查位置', { section: context.segmentPosition?.section || '未知', type: 'contract_review' })
+        unifiedLogger.info('当前段落长度', { length: context.currentSegment?.length || 0, type: 'contract_review' })
+        unifiedLogger.info('完整文档长度', { length: context.fullDocument?.length || 0, type: 'contract_review' })
+        unifiedLogger.info('审查清单项数', { count: context.checklist?.length || 0, type: 'contract_review' })
+        unifiedLogger.info('系统消息', { content: messages[0]?.content?.substring(0, 100) + '...', type: 'contract_review' })
+        unifiedLogger.info('用户消息', { content: messages[1]?.content?.substring(0, 100) + '...', type: 'contract_review' })
+        unifiedLogger.info('消息总长度', { totalLength: messages.reduce((sum, m) => sum + (m.content?.length || 0), 0), type: 'contract_review' })
+        unifiedLogger.info('请求详情结束', { type: 'contract_review' })
         
         const requestStartTime = Date.now()
         // 注意：某些模型对 response_format 支持不佳，尝试不使用该参数
@@ -178,12 +179,10 @@ export class ReviewAIService {
         })
         const requestDuration = Date.now() - requestStartTime
 
-        console.log('[AI审查] ========== 审查响应详情 ==========')
-        console.log('[AI审查] ⏱️ 请求耗时:', requestDuration, 'ms (', (requestDuration / 1000).toFixed(2), '秒)')
-        console.log('[AI审查] 📝 响应长度:', response?.length || 0, '字符')
-        console.log('[AI审查] 📝 完整响应内容:')
-        console.log(response)
-        console.log('[AI审查] =======================================')
+        
+        unifiedLogger.info('请求耗时', { duration: requestDuration, type: 'contract_review' })
+        unifiedLogger.info('响应长度', { length: response?.length || 0, type: 'contract_review' })
+        unifiedLogger.info('完整响应内容', { content: response?.substring(0, 100) + '...', type: 'contract_review' })
 
         if (options.onProgress) {
           options.onProgress({ stage: '审查完成', content: response })
@@ -191,17 +190,17 @@ export class ReviewAIService {
       }
 
       const result = this.parseResponse(response)
-      console.log('[AI审查] ===== 解析结果 =====')
-      console.log(`[AI审查] Issues 数组:`, result.issues)
-      console.log(`[AI审查] Risks 数组:`, result.risks)
-      console.log(`[AI审查] 统计: ${result.issues?.length || 0} 个问题, ${result.risks?.length || 0} 个风险`)
-      console.log('[AI审查] ====================')
+      unifiedLogger.info('解析结果开始', { type: 'contract_review' })
+      unifiedLogger.info('问题数组', { count: result.issues?.length || 0, type: 'contract_review' })
+      unifiedLogger.info('风险数组', { count: result.risks?.length || 0, type: 'contract_review' })
+      unifiedLogger.info('审查统计', { issues: result.issues?.length || 0, risks: result.risks?.length || 0, type: 'contract_review' })
+      unifiedLogger.info('解析结果结束', { type: 'contract_review' })
 
 
       return result
     } catch (error) {
-      console.error(`[AI审查] 审查失败:`, error)
-      console.error(`[AI审查] 错误详情 - 类型: ${error.name}, 消息: ${error.message}`)
+      unifiedLogger.error('审查失败', { error: error.message, type: 'contract_review' })
+      unifiedLogger.error('审查错误详情', { errorType: error.name, errorMessage: error.message, type: 'contract_review' })
       
       // 不要吞掉错误，应该向上抛出让调用者处理
       throw error
@@ -272,7 +271,7 @@ export class ReviewAIService {
         riskAreas: result.riskAreas || [] // [{section: "第六条", riskLevel: "high", reason: "..."}]
       }
     } catch (error) {
-      console.error('全局分析失败:', error)
+      unifiedLogger.error('全局分析失败', { error: error.message, type: 'contract_analysis' })
       // 降级：只识别类型
       const typeInfo = await this.identifyContractType(documentText, onProgress)
       return {
@@ -390,7 +389,7 @@ export class ReviewAIService {
     } catch (firstError) {
       // 检查是否是已知的畸形格式，如果是则不输出警告
       if (!response.match(/^\{":"/)) {
-        console.warn('直接解析失败，尝试清理...', firstError.message)
+        unifiedLogger.warn('直接解析失败，尝试清理', { error: firstError.message, type: 'response_parsing' })
       }
       
       try {
@@ -457,7 +456,7 @@ export class ReviewAIService {
             return JSON.parse(jsonMatch[1])
           }
         } catch (finalError) {
-          console.error('JSON解析失败，返回空对象')
+          unifiedLogger.error('JSON解析失败，返回空对象', { type: 'response_parsing' })
         }
         
         return {}

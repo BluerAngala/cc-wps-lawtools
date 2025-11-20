@@ -1,16 +1,20 @@
 /**
- * 完善的日志系统
+ * 统一的日志系统
+ * 整合了原有的 logger.js 和 errorLogger.js 功能，避免重复
  * 支持不同级别的日志记录，特别关注文件路径相关的操作
  */
 
-class Logger {
+class UnifiedLogger {
   constructor() {
     this.logs = []
     this.maxLogs = 500 // 最多保存500条日志
-    this.storageKey = 'wps_addon_logs'
+    this.storageKey = 'wps_addon_unified_logs'
     this.enableStorage = true // 是否保存到 localStorage
     this.enableConsole = true // 是否输出到控制台
     this.logLevel = 'debug' // 日志级别：debug, info, warn, error
+    this.lastLogSignature = null
+    this.lastLogTimestamp = 0
+    this.duplicateInterval = 1000 // 1 秒内相同日志不重复输出
     this.loadLogs()
   }
 
@@ -30,7 +34,7 @@ class Logger {
         }
       }
     } catch (e) {
-      console.warn('[Logger] 加载历史日志失败:', e)
+      console.warn('[UnifiedLogger] 加载历史日志失败:', e)
     }
   }
 
@@ -49,10 +53,10 @@ class Logger {
         try {
           localStorage.setItem(this.storageKey, JSON.stringify(this.logs))
         } catch (e2) {
-          console.warn('[Logger] 保存日志失败，已清理部分日志:', e2)
+          console.warn('[UnifiedLogger] 保存日志失败，已清理部分日志:', e2)
         }
       } else {
-        console.warn('[Logger] 保存日志失败:', e)
+        console.warn('[UnifiedLogger] 保存日志失败:', e)
       }
     }
   }
@@ -90,6 +94,9 @@ class Logger {
   _log(level, message, extra = {}) {
     if (!this.shouldLog(level)) return
 
+    const signature = this.getLogSignature(level, message, extra)
+    if (this.isDuplicateLog(signature)) return
+
     const { logEntry, consoleMessage } = this.formatMessage(level, message, extra)
 
     // 保存到内存
@@ -106,6 +113,37 @@ class Logger {
       const consoleMethod = console[level] || console.log
       consoleMethod(consoleMessage)
     }
+
+    // 如果有 NaiveUI 的 message 组件，对于错误日志显示提示
+    if (window.$message && level === 'error') {
+      window.$message.error(message)
+    }
+  }
+
+  /**
+   * 生成日志唯一标识
+   */
+  getLogSignature(level, message, extra) {
+    let extraKey = ''
+    try {
+      extraKey = JSON.stringify(extra)
+    } catch {
+      extraKey = String(extra)
+    }
+    return `${level}|${message}|${extraKey}`
+  }
+
+  /**
+   * 判断是否重复日志
+   */
+  isDuplicateLog(signature) {
+    const now = Date.now()
+    if (this.lastLogSignature === signature && now - this.lastLogTimestamp < this.duplicateInterval) {
+      return true
+    }
+    this.lastLogSignature = signature
+    this.lastLogTimestamp = now
+    return false
   }
 
   /**
@@ -248,7 +286,7 @@ class Logger {
     const a = document.createElement('a')
     a.href = url
     const levelSuffix = level ? `-${level}` : ''
-    a.download = `wps-addon-logs${levelSuffix}-${new Date().toISOString().slice(0, 10)}.txt`
+    a.download = `wps-addon-unified-logs${levelSuffix}-${new Date().toISOString().slice(0, 10)}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -284,14 +322,13 @@ class Logger {
 }
 
 // 创建单例实例
-const logger = new Logger()
+const unifiedLogger = new UnifiedLogger()
 
 // 在开发环境设置为 debug 级别，生产环境设置为 info 级别
 if (import.meta.env.DEV) {
-  logger.setLogLevel('debug')
+  unifiedLogger.setLogLevel('debug')
 } else {
-  logger.setLogLevel('info')
+  unifiedLogger.setLogLevel('info')
 }
 
-export default logger
-
+export default unifiedLogger

@@ -570,7 +570,7 @@ const executeCommenting = async () => {
         )
       }, 100)
     } catch (error) {
-      console.error('审查失败:', error)
+      unifiedLogger.error('审查失败', { method: 'handleReview', error: error.message })
       // 重置处理状态
       isAIProcessing.value = false
       reviewProgress.value = { current: 0, total: 0, stage: '' }

@@ -215,7 +215,7 @@ import {
 import taskPane from '../services/wps/wpsTestHelper.js'
 import { desensitizeText } from '../services/document/desensitize.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
-import errorLogger from '@/utils/errorLogger'
+import unifiedLogger from '@/utils/unifiedLogger.js'
 
 console.log('TaskPane组件已加载')
 console.log('当前打开的文档：', window.Application.ActiveDocument)
@@ -376,7 +376,7 @@ const handleAIProcess = async (processFunc) => {
     await processFunc()
   } catch (error) {
     console.error('AI处理失败:', error)
-    errorLogger.log('AI处理失败，请查看控制台错误信息', { method: 'handleAIProcess', error: error.message })
+    unifiedLogger.error('AI处理失败，请查看控制台错误信息', { method: 'handleAIProcess', error: error.message })
   }
 }
 
@@ -406,7 +406,7 @@ const processWithAI = async () => {
 // 处理用户输入的AI文本
 const onProcessUserTextWithAI = async () => {
   if (!userInputText.value || !userProcessRequest.value) {
-    errorLogger.log('请输入文本内容和处理要求', { method: 'onProcessUserTextWithAI' })
+    unifiedLogger.error('请输入文本内容和处理要求', { method: 'onProcessUserTextWithAI' })
     return
   }
 
@@ -438,7 +438,7 @@ const onProcessUserTextWithAI = async () => {
     const handleTaskError = (task, error) => {
       if (task.id === taskId) {
         console.error('AI处理失败:', error)
-        errorLogger.log('AI处理失败，请查看控制台错误信息', { method: 'onProcessUserTextWithAI', taskId, error: error.message })
+        unifiedLogger.error('AI处理失败，请查看控制台错误信息', { method: 'onProcessUserTextWithAI', taskId, error: error.message })
         taskScheduler.off('taskError', handleTaskError)
       }
     }

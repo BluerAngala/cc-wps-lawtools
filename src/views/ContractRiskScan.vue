@@ -226,8 +226,9 @@ import {
 import { ContractReviewEngine } from '../services/contract/contractReviewEngine.js'
 import { ReviewAIService } from '../services/contract/reviewAIService.js'
 import { wpsDocumentService } from '../services/wps/wpsDocumentService.js'
+import unifiedLogger from '../utils/unifiedLogger.js'
 
-console.log('合同风险扫描页面已加载')
+
 
 // 响应式数据
 const isScanning = ref(false)
@@ -315,7 +316,7 @@ const startScan = async () => {
       return
     }
 
-    console.log('开始扫描，文档长度:', fullText.length)
+    
 
     // 计算预计时间区间（基于字数和模式，预留充足时间）
     const wordCount = fullText.length
@@ -372,7 +373,7 @@ const startScan = async () => {
     const typeText = identifiedType.subtype || identifiedType.type || '未知'
     contractType.value = typeText
 
-    console.log('识别的合同类型:', identifiedType, '显示文本:', typeText)
+    
 
     // 2. 执行审查
     scanProgress.value.stage = '正在分析合同内容...'
@@ -407,9 +408,9 @@ const startScan = async () => {
       result = await reviewEngine.reviewByFullText(fullText, contractTypeObj.value, options)
     } else {
       // 分段审查需要先分段
-      console.log('开始分段处理...')
+      
       const segments = await reviewEngine.segmenter.segmentDocument(fullText)
-      console.log(`文档分段完成：${segments.length} 段`)
+      
 
       // 分段审查，参数顺序：segments, fullText, contractType, options
       result = await reviewEngine.reviewBySegments(segments, fullText, contractTypeObj.value, options)
@@ -418,7 +419,7 @@ const startScan = async () => {
     scanResult.value = result
     scanned.value = true
 
-    console.log('扫描完成，结果:', result)
+    
 
     if (result.summary?.totalIssues > 0 || result.summary?.totalRisks > 0) {
       window.$message?.success(
@@ -428,7 +429,7 @@ const startScan = async () => {
       window.$message?.success('扫描完成，未发现明显风险')
     }
   } catch (error) {
-    console.error('扫描失败:', error)
+    
     // 显示详细错误，支持换行
     const errorMsg = error.message || '未知错误'
     window.$message?.error(errorMsg, {
@@ -512,7 +513,7 @@ const exportReport = () => {
 
     window.$message?.success('报告已生成到新文档')
   } catch (error) {
-    console.error('导出报告失败:', error)
+    
     window.$message?.error('导出失败: ' + error.message)
   }
 }

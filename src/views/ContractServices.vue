@@ -52,33 +52,6 @@
           @update:extracted-data="extractedData = $event"
           @update-config="updateExtractorConfig"
         />
-        
-        <!-- 请求信息显示区域 -->
-        <div v-if="requestInfo" class="mt-4">
-          <n-divider>请求信息</n-divider>
-          <n-card size="small" class="bg-gray-50">
-            <n-space vertical :size="12">
-              <div>
-                <n-text strong class="text-sm">请求 URL：</n-text>
-                <div class="mt-1">
-                  <pre class="text-sm whitespace-pre-wrap">{{ requestInfo.url }}</pre>
-                </div>
-              </div>
-              <div>
-                <n-text strong class="text-sm">请求方法：</n-text>
-                <n-tag :type="requestInfo.method === 'POST' ? 'success' : 'info'" size="small" class="ml-2">
-                  {{ requestInfo.method }}
-                </n-tag>
-              </div>
-              <div>
-                <n-text strong class="text-sm">请求数据：</n-text>
-                <div class="mt-1">
-                  <pre class="text-sm whitespace-pre-wrap">{{ formatRequestData(requestInfo.requestData) }}</pre>
-                </div>
-              </div>
-            </n-space>
-          </n-card>
-        </div>
       </n-collapse-item>
 
       <!-- 智能文档处理 -->
@@ -175,7 +148,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NCard, NText } from 'naive-ui'
+import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,
   Refresh as RefreshIcon,
@@ -186,14 +159,13 @@ import SmartCommenter from '../components/SmartCommenter.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { appConfig } from '../utils/appConfig.js'
 
-console.log('合同审查组件已加载')
+
 
 // 响应式数据
 const extractedData = ref(null) // 存储提取的合同信息
 const submitting = ref(false) // 提交状态
 const batchProcessing = ref(false) // 一键处理状态
 const batchResult = ref(null) // 一键处理结果
-const requestInfo = ref(null) // 请求信息
 const configs = ref({
   extractor: {},
   keyword: {},
@@ -363,25 +335,25 @@ const handleBatchProcess = async () => {
     const pathSeparator = directory.includes('/') ? '/' : '\\'
     const originalFullPath = directory ? `${directory}${pathSeparator}${originalName}` : originalName
 
-    console.log('[一键处理] 开始处理...')
-    console.log('[一键处理] 原文件路径:', directory)
-    console.log('[一键处理] 原文件名:', originalName)
+    
+    
+    
 
     let currentFileName = originalName
 
     if (shouldRename) {
       renameAttempted = true
-      console.log('[一键处理] 步骤1: 开始重命名文档...')
+      
       const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
       const extension = originalName.match(/\.[^/.]+$/)?.[0] || ''
       newFileName = `「已修订」${nameWithoutExt}${extension}`
       const newFullPath = directory ? `${directory}${pathSeparator}${newFileName}` : newFileName
 
-      console.log('[一键处理] 新文件路径:', newFullPath)
+      
       doc.SaveAs2(newFullPath)
       renameSuccess = true
       currentFileName = newFileName
-      console.log('[一键处理] ✅ 文档重命名成功:', newFullPath)
+      
 
       if (shouldDeleteOriginal) {
         const fs = window.Application?.FileSystem
@@ -390,26 +362,26 @@ const handleBatchProcess = async () => {
           try {
             fs.unlinkSync(originalFullPath)
             deleteSuccess = true
-            console.log('[一键处理] ✅ 原文件已删除:', originalFullPath)
+            
           } catch (deleteError) {
-            console.error('[一键处理] ❌ 删除原文件失败:', deleteError)
+            
             throw new Error(`删除原文件失败: ${deleteError.message || '未知错误'}`)
           }
         } else {
           deleteUnsupported = true
-          console.warn('[一键处理] ⚠️ unlinkSync 方法不可用，无法自动删除原文件')
+          
         }
       }
     }
 
     if (shouldExport) {
       pdfAttempted = true
-      console.log('[一键处理] 步骤2: 开始导出PDF...')
+      
       const pdfFileName = currentFileName.replace(/\.[^/.]+$/, '.pdf')
       pdfFullPath = directory ? `${directory}${pathSeparator}${pdfFileName}` : pdfFileName
 
-      console.log('[一键处理] PDF保存路径:', pdfFullPath)
-      console.log('[一键处理] 开始调用 ExportAsFixedFormat...')
+      
+      
 
       try {
         doc.ExportAsFixedFormat(
@@ -429,9 +401,9 @@ const handleBatchProcess = async () => {
           false
         )
         pdfSuccess = true
-        console.log('[一键处理] ✅ PDF导出调用成功:', pdfFullPath)
+        
 
-        console.log('[一键处理] 等待PDF文件生成...')
+        
         await new Promise(resolve => setTimeout(resolve, 1000))
 
         if (window.Application?.FileSystem) {
@@ -443,27 +415,18 @@ const handleBatchProcess = async () => {
           while (checkCount < maxChecks && !fileExists) {
             fileExists = fs.Exists(pdfFullPath)
             if (fileExists) {
-              console.log('[一键处理] ✅ PDF文件已确认存在:', pdfFullPath)
+              
               break
             }
             checkCount++
             if (checkCount < maxChecks) {
-              console.log(`[一键处理] 等待文件生成中... (${checkCount}/${maxChecks})`)
+              
               await new Promise(resolve => setTimeout(resolve, 500))
             }
           }
-
-          if (!fileExists) {
-            console.warn('[一键处理] ⚠️ 文件系统检查未找到PDF文件，但导出可能已成功')
-            console.warn('[一键处理] ⚠️ 请手动检查路径:', pdfFullPath)
-            console.warn('[一键处理] ⚠️ 注意：WPS云盘文件可能需要同步时间')
-          }
-        } else {
-          console.log('[一键处理] ⚠️ FileSystem不可用，无法验证文件')
+          
         }
       } catch (pdfError) {
-        console.error('[一键处理] ❌ PDF导出失败:', pdfError)
-        console.error('[一键处理] PDF错误详情:', pdfError.message, pdfError.stack)
         
         // 处理WPS特定的错误码
         let errorMessage = 'PDF导出失败'
@@ -527,8 +490,8 @@ const handleBatchProcess = async () => {
       window.$message?.warning('部分操作未成功，请查看详情')
     }
   } catch (error) {
-    console.error('[一键处理] ❌ 处理失败:', error)
-    console.error('[一键处理] 错误详情:', error.message, error.stack)
+    
+    
 
     const errorMessages = []
     if (renameAttempted) {
@@ -562,25 +525,12 @@ const handleBatchProcess = async () => {
     window.$message?.error('处理失败：' + (error.message || '未知错误'))
   } finally {
     batchProcessing.value = false
-    console.log('[一键处理] 处理流程结束')
+    
   }
 }
 
 const loadConfig = () => {
   configs.value = contractService.loadConfig()
-}
-
-// 格式化请求数据（用于显示）
-const formatRequestData = (data) => {
-  if (!data) return ''
-  // 深拷贝避免修改原数据
-  const formatted = JSON.parse(JSON.stringify(data))
-  // 对 token 进行部分隐藏处理（保留前后各3位）
-  if (formatted.token && typeof formatted.token === 'string' && formatted.token.length > 6) {
-    const token = formatted.token
-    formatted.token = `${token.substring(0, 3)}${'*'.repeat(Math.max(0, token.length - 6))}${token.substring(token.length - 3)}`
-  }
-  return JSON.stringify(formatted, null, 2)
 }
 
 // 提交提取的数据（简化）
@@ -591,20 +541,14 @@ const submitExtractedData = async () => {
   }
 
   submitting.value = true
-  requestInfo.value = null // 清空之前的请求信息
   try {
     const result = await contractService.submitExtractedData(extractedData.value)
     if (result?.success) {
       window.$message?.success(result.message || '数据提交成功！')
-      // 保存请求信息用于显示
-      if (result.requestInfo) {
-        requestInfo.value = result.requestInfo
-      }
     }
   } catch (error) {
     console.error('提交数据失败:', error)
     window.$message?.error(error.message || '提交数据失败，请稍后重试')
-    requestInfo.value = null
   } finally {
     submitting.value = false
   }
@@ -612,7 +556,7 @@ const submitExtractedData = async () => {
 
 // 组件挂载时的初始化
 onMounted(() => {
-  console.log('合同审查组件已挂载')
+  
   loadConfig()
 })
 

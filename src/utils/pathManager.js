@@ -4,7 +4,7 @@
  * 项目目录: Application.Env.GetAppDataPath() + /kingsoft/wps/jsaddons/{projectName}_{version}/config
  */
 
-import logger from './logger.js'
+import unifiedLogger from './unifiedLogger.js'
 
 class PathManager {
   constructor() {
@@ -18,7 +18,7 @@ class PathManager {
     // 基础路径: /kingsoft/wps/jsaddons
     this.basePathSegment = '/kingsoft/wps/jsaddons'
     
-    logger.info('PathManager 已初始化', {
+    unifiedLogger.info('PathManager 已初始化', {
       projectName: this.projectName,
       projectVersion: this.projectVersion,
       projectDirName: this.projectDirName
@@ -41,7 +41,7 @@ class PathManager {
    */
   getAppDataPath() {
     if (!this.isWPSAvailable()) {
-      logger.warn('WPS 环境不可用，无法获取应用数据路径')
+      unifiedLogger.warn('WPS 环境不可用，无法获取应用数据路径')
       return null
     }
 
@@ -49,20 +49,20 @@ class PathManager {
       const appDataPath = window.Application.Env.GetAppDataPath()
       
       if (!appDataPath) {
-        logger.error('无法获取应用数据路径', {
+        unifiedLogger.error('无法获取应用数据路径', {
           method: 'GetAppDataPath()'
         })
         return null
       }
 
-      logger.logPath('info', '获取应用数据路径', {
+      unifiedLogger.logPath('info', '获取应用数据路径', {
         appDataPath,
         method: 'GetAppDataPath()'
       })
 
       return appDataPath
     } catch (error) {
-      logger.error('获取应用数据路径失败', {
+      unifiedLogger.error('获取应用数据路径失败', {
         error: error.message,
         stack: error.stack
       })
@@ -83,7 +83,7 @@ class PathManager {
       const normalizedPath = appDataPath.replace(/\\/g, '/')
       const projectRoot = normalizedPath.replace(/\/+$/, '') + this.basePathSegment + '/' + this.projectDirName
 
-      logger.logPath('info', '项目根目录', {
+      unifiedLogger.logPath('info', '项目根目录', {
         appDataPath,
         normalizedPath,
         projectRoot
@@ -91,7 +91,7 @@ class PathManager {
 
       return projectRoot
     } catch (error) {
-      logger.error('构建项目根目录失败', {
+      unifiedLogger.error('构建项目根目录失败', {
         error: error.message,
         stack: error.stack
       })
@@ -179,7 +179,7 @@ class PathManager {
    */
   ensureDir(dirPath) {
     if (!this.isWPSAvailable() || !dirPath) {
-      logger.warn('无法确保目录存在', {
+      unifiedLogger.warn('无法确保目录存在', {
         isWPSAvailable: this.isWPSAvailable(),
         hasDirPath: !!dirPath
       })
@@ -203,9 +203,9 @@ class PathManager {
       // 创建目录
       try {
         const mkdirResult = fs.Mkdir(dirPath)
-        logger.debug('Mkdir 返回值', { dirPath, result: mkdirResult })
+        unifiedLogger.debug('Mkdir 返回值', { dirPath, result: mkdirResult })
       } catch (mkdirError) {
-        logger.error('Mkdir 调用失败', {
+        unifiedLogger.error('Mkdir 调用失败', {
           dirPath,
           error: mkdirError.message,
           stack: mkdirError.stack
@@ -215,14 +215,14 @@ class PathManager {
       
       // 验证创建成功
       if (fs.Exists(dirPath)) {
-        logger.logPath('info', '目录已创建', { dirPath })
+        unifiedLogger.logPath('info', '目录已创建', { dirPath })
         return true
       } else {
-        logger.error('创建目录失败（Mkdir 未报错但目录不存在）', { dirPath })
+        unifiedLogger.error('创建目录失败（Mkdir 未报错但目录不存在）', { dirPath })
         return false
       }
     } catch (error) {
-      logger.error('确保目录存在失败', {
+      unifiedLogger.error('确保目录存在失败', {
         dirPath,
         error: error.message,
         stack: error.stack
@@ -236,7 +236,7 @@ class PathManager {
    * 注意：项目根目录是只读的，由 WPS 管理，不需要创建
    */
   ensureAllDirs() {
-    logger.info('开始确保所有必需目录存在')
+    unifiedLogger.info('开始确保所有必需目录存在')
 
     const dirs = [
       { name: '配置目录', path: this.getConfigDir() },
@@ -249,23 +249,23 @@ class PathManager {
 
     for (const dir of dirs) {
       if (!dir.path) {
-        logger.error(`无法获取${dir.name}路径`)
+        unifiedLogger.error(`无法获取${dir.name}路径`)
         allSuccess = false
         continue
       }
 
       if (!this.ensureDir(dir.path)) {
-        logger.error(`创建${dir.name}失败`, { path: dir.path })
+        unifiedLogger.error(`创建${dir.name}失败`, { path: dir.path })
         allSuccess = false
       } else {
-        logger.info(`${dir.name}已就绪`, { path: dir.path })
+        unifiedLogger.info(`${dir.name}已就绪`, { path: dir.path })
       }
     }
 
     if (allSuccess) {
-      logger.info('所有必需目录已就绪')
+      unifiedLogger.info('所有必需目录已就绪')
     } else {
-      logger.warn('部分目录创建失败')
+      unifiedLogger.warn('部分目录创建失败')
     }
 
     return allSuccess

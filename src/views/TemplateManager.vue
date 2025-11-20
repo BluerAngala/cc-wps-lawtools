@@ -237,9 +237,9 @@ import {
 } from 'naive-ui'
 import { templateManager } from '../utils/templateManager.js'
 import { pathManager } from '../utils/pathManager.js'
-import logger from '../utils/logger.js'
+import unifiedLogger from '../utils/unifiedLogger.js'
 
-logger.info('文档模板管理页面已加载', {
+unifiedLogger.info('文档模板管理页面已加载', {
   component: 'TemplateManager',
   timestamp: new Date().toISOString()
 })
@@ -381,7 +381,7 @@ const customTemplateOptions = computed(() => {
     label: `${t.name} (${t.category})${t.isBuiltIn ? ' [内置]' : ''}`,
     value: t.id
   }))
-  logger.debug('可选模板数量', { count: options.length })
+  unifiedLogger.debug('可选模板数量', { count: options.length })
   return options
 })
 
@@ -406,14 +406,14 @@ const getBasePath = () => {
     // 如果 URL 解析失败，使用简单方法
     const href = window.location.href
     const base = href.replace(/\/[^/]+$/, '/').replace(/#.*$/, '')
-    logger.warn('URL 解析失败，使用备用方法', { href, base })
+    unifiedLogger.warn('URL 解析失败，使用备用方法', { href, base })
     return base
   }
 }
 
 // 获取模板文件的路径（本地文件）
 const getTemplateFilePath = (template) => {
-  logger.debug('开始获取模板文件路径', {
+  unifiedLogger.debug('开始获取模板文件路径', {
     templateId: template.id,
     templateName: template.name,
     hasFilePath: !!template.filePath,
@@ -422,7 +422,7 @@ const getTemplateFilePath = (template) => {
   
   // 优先使用 filePath（本地文件路径）
   if (template.filePath) {
-    logger.logPath('info', '使用 filePath 作为模板路径', {
+    unifiedLogger.logPath('info', '使用 filePath 作为模板路径', {
       templateId: template.id,
       templateName: template.name,
       filePath: template.filePath
@@ -436,7 +436,7 @@ const getTemplateFilePath = (template) => {
   const basePath = getBasePath()
   const fallbackPath = `${basePath}templates/${fileName}`
   
-  logger.logPath('info', '使用默认路径构建模板路径', {
+  unifiedLogger.logPath('info', '使用默认路径构建模板路径', {
     templateId: template.id,
     templateName: template.name,
     fileName,
@@ -585,20 +585,20 @@ const showSaveTemplateDialog = () => {
 
 // 保存模板
 const saveTemplate = async () => {
-  logger.info('开始保存模板', {
+  unifiedLogger.info('开始保存模板', {
     templateName: newTemplate.value.name,
     category: newTemplate.value.category,
     isUpdate: !!selectedTemplateId.value
   })
   
   if (!newTemplate.value.name.trim()) {
-    logger.warn('模板名称为空，无法保存')
+    unifiedLogger.warn('模板名称为空，无法保存')
     window.$message?.warning('请输入模板名称')
     return
   }
 
   if (typeof window.Application === 'undefined') {
-    logger.error('WPS 环境不可用，无法保存模板')
+    unifiedLogger.error('WPS 环境不可用，无法保存模板')
     window.$message?.error('请在 WPS 环境中使用此功能')
     return
   }
@@ -606,7 +606,7 @@ const saveTemplate = async () => {
   try {
     const doc = window.Application.ActiveDocument
     if (!doc) {
-      logger.error('未找到活动文档，无法保存模板')
+      unifiedLogger.error('未找到活动文档，无法保存模板')
       window.$message?.error('未找到活动文档')
       return
     }
@@ -617,14 +617,14 @@ const saveTemplate = async () => {
     // 使用统一路径管理器获取模板目录
     const templatesDir = pathManager.getTemplatesDir()
     
-    logger.logPath('info', '获取模板目录', {
+    unifiedLogger.logPath('info', '获取模板目录', {
       templatesDir,
       fileName,
       method: 'saveTemplate'
     })
     
     if (!templatesDir) {
-      logger.error('无法获取模板目录', {
+      unifiedLogger.error('无法获取模板目录', {
         method: 'saveTemplate'
       })
       window.$message?.error('无法获取模板目录')
@@ -633,17 +633,17 @@ const saveTemplate = async () => {
     
     // 确保目录存在
     if (!pathManager.ensureDir(templatesDir)) {
-      logger.error('创建模板目录失败', { templatesDir })
+      unifiedLogger.error('创建模板目录失败', { templatesDir })
       window.$message?.error('创建模板目录失败')
       return
     }
     
-    logger.logPath('info', '模板目录已就绪', { templatesDir })
+    unifiedLogger.logPath('info', '模板目录已就绪', { templatesDir })
     
     // 保存文档到配置目录
     const templatePath = templatesDir + '/' + fileName
     
-    logger.logPath('info', '准备保存模板文件', {
+    unifiedLogger.logPath('info', '准备保存模板文件', {
       templatePath,
       fileName,
       templateName
@@ -652,8 +652,8 @@ const saveTemplate = async () => {
     try {
       // 使用 SaveAs2 保存文档
       doc.SaveAs2(templatePath, 16) // 16 = wdFormatDocumentDefault (.docx)
-      logger.logFileOperation('save', templatePath, 'success', null)
-      logger.info('模板文件已保存', {
+      unifiedLogger.logFileOperation('save', templatePath, 'success', null)
+      unifiedLogger.info('模板文件已保存', {
         templatePath,
         fileName,
         templateName
@@ -673,7 +673,7 @@ const saveTemplate = async () => {
         updatedAt: new Date().toISOString()
       }
 
-      logger.logTemplate('create', {
+      unifiedLogger.logTemplate('create', {
         templateId: template.id,
         templateName: template.name,
         filePath: template.filePath,
@@ -682,7 +682,7 @@ const saveTemplate = async () => {
 
       if (selectedTemplateId.value) {
         // 更新现有模板
-        logger.info('更新现有模板', {
+        unifiedLogger.info('更新现有模板', {
           templateId: selectedTemplateId.value,
           templateName: templateName
         })
@@ -693,18 +693,18 @@ const saveTemplate = async () => {
             ...template,
             updatedAt: new Date().toISOString()
           }
-          logger.info('模板已更新', {
+          unifiedLogger.info('模板已更新', {
             templateId: template.id,
             templateName: template.name
           })
         } else {
-          logger.warn('未找到要更新的模板', {
+          unifiedLogger.warn('未找到要更新的模板', {
             templateId: selectedTemplateId.value
           })
         }
       } else {
         // 添加新模板
-        logger.info('添加新模板', {
+        unifiedLogger.info('添加新模板', {
           templateId: template.id,
           templateName: template.name
         })
@@ -712,25 +712,25 @@ const saveTemplate = async () => {
       }
 
       // 保存配置到文件系统
-      logger.debug('保存模板配置到文件系统')
+      unifiedLogger.debug('保存模板配置到文件系统')
       const saveResult = templateManager.saveTemplates(templates.value)
       
       if (saveResult) {
-        logger.info(`模板"${templateName}"已保存成功`, {
+        unifiedLogger.info(`模板"${templateName}"已保存成功`, {
           templateId: template.id,
           templateName: template.name
         })
         window.$message?.success(`模板"${templateName}"已保存`)
         saveDialogVisible.value = false
       } else {
-        logger.error('保存模板配置失败', {
+        unifiedLogger.error('保存模板配置失败', {
           templateId: template.id,
           templateName: template.name
         })
         window.$message?.error('保存模板配置失败')
       }
     } catch (saveError) {
-      logger.error('保存文件失败', {
+      unifiedLogger.error('保存文件失败', {
         templateName,
         templatePath,
         error: saveError.message,
@@ -739,7 +739,7 @@ const saveTemplate = async () => {
       window.$message?.error('保存文件失败: ' + saveError.message)
     }
   } catch (error) {
-    logger.error('保存模板失败', {
+    unifiedLogger.error('保存模板失败', {
       templateName: newTemplate.value.name,
       error: error.message,
       stack: error.stack
@@ -751,7 +751,7 @@ const saveTemplate = async () => {
 
 // 应用模板
 const applyTemplate = async (template, target) => {
-  logger.logTemplate('apply', {
+  unifiedLogger.logTemplate('apply', {
     templateId: template.id,
     templateName: template.name,
     isBuiltIn: template.isBuiltIn,
@@ -759,7 +759,7 @@ const applyTemplate = async (template, target) => {
   })
   
   if (typeof window.Application === 'undefined') {
-    logger.error('WPS 环境不可用，无法应用模板', {
+    unifiedLogger.error('WPS 环境不可用，无法应用模板', {
       templateId: template.id,
       templateName: template.name
     })
@@ -770,7 +770,7 @@ const applyTemplate = async (template, target) => {
   try {
     const filePath = getTemplateFilePath(template)
     
-    logger.logPath('info', '准备应用模板', {
+    unifiedLogger.logPath('info', '准备应用模板', {
       templateId: template.id,
       templateName: template.name,
       filePath,
@@ -782,7 +782,7 @@ const applyTemplate = async (template, target) => {
       // 内置模板：直接打开 docx 文件
       if (target === 'new') {
         // 新建文档：直接打开模板文件
-        logger.info('在新文档中打开内置模板', {
+        unifiedLogger.info('在新文档中打开内置模板', {
           templateId: template.id,
           templateName: template.name,
           filePath
@@ -793,7 +793,7 @@ const applyTemplate = async (template, target) => {
         // 应用到当前文档：清空原文后粘贴模板（保留模板格式）
         const doc = window.Application.ActiveDocument
         if (!doc) {
-          logger.error('未找到活动文档', {
+          unifiedLogger.error('未找到活动文档', {
             templateId: template.id,
             templateName: template.name
           })
@@ -801,7 +801,7 @@ const applyTemplate = async (template, target) => {
           return
         }
 
-        logger.info('在当前文档中应用内置模板', {
+        unifiedLogger.info('在当前文档中应用内置模板', {
           templateId: template.id,
           templateName: template.name,
           filePath
@@ -818,7 +818,7 @@ const applyTemplate = async (template, target) => {
         doc.Range().Select()
         let selection = window.Application.Selection
         if (!selection) {
-          logger.error('无法获取文档选区', {
+          unifiedLogger.error('无法获取文档选区', {
             templateId: template.id,
             templateName: template.name
           })
@@ -832,7 +832,7 @@ const applyTemplate = async (template, target) => {
         // 粘贴模板内容，完整保留格式
         selection.Paste()
 
-        logger.info('内置模板已应用到当前文档', {
+        unifiedLogger.info('内置模板已应用到当前文档', {
           templateId: template.id,
           templateName: template.name
         })
@@ -842,7 +842,7 @@ const applyTemplate = async (template, target) => {
       // 自定义模板：使用保存的 docx 文件
       if (target === 'new') {
         // 新建文档：直接打开模板文件
-        logger.info('在新文档中打开自定义模板', {
+        unifiedLogger.info('在新文档中打开自定义模板', {
           templateId: template.id,
           templateName: template.name,
           filePath
@@ -853,7 +853,7 @@ const applyTemplate = async (template, target) => {
         // 应用到当前文档：清空后复制模板格式
         const doc = window.Application.ActiveDocument
         if (!doc) {
-          logger.error('未找到活动文档', {
+          unifiedLogger.error('未找到活动文档', {
             templateId: template.id,
             templateName: template.name
           })
@@ -861,7 +861,7 @@ const applyTemplate = async (template, target) => {
           return
         }
         
-        logger.info('在当前文档中应用自定义模板', {
+        unifiedLogger.info('在当前文档中应用自定义模板', {
           templateId: template.id,
           templateName: template.name,
           filePath
@@ -882,7 +882,7 @@ const applyTemplate = async (template, target) => {
         // 粘贴到当前文档（保留格式）
         docRange.Paste()
         
-        logger.info('自定义模板已应用到当前文档', {
+        unifiedLogger.info('自定义模板已应用到当前文档', {
           templateId: template.id,
           templateName: template.name
         })
@@ -890,7 +890,7 @@ const applyTemplate = async (template, target) => {
       }
     }
   } catch (error) {
-    logger.error('应用模板失败', {
+    unifiedLogger.error('应用模板失败', {
       templateId: template.id,
       templateName: template.name,
       target,
@@ -929,16 +929,16 @@ const saveTemplatesToStorage = () => {
   try {
     const saveResult = templateManager.saveTemplates(templates.value)
     if (saveResult) {
-      logger.info('模板配置已保存', {
+      unifiedLogger.info('模板配置已保存', {
         templateCount: templates.value.length
       })
     } else {
-      logger.error('保存模板配置失败', {
+      unifiedLogger.error('保存模板配置失败', {
         templateCount: templates.value.length
       })
     }
   } catch (error) {
-    logger.error('保存模板失败', {
+    unifiedLogger.error('保存模板失败', {
       error: error.message,
       stack: error.stack
     })
@@ -950,17 +950,17 @@ const saveCategoriesToStorage = () => {
   try {
     const dataToSave = JSON.stringify(customCategories.value)
     
-    logger.debug('保存分类到 WPS PluginStorage', {
+    unifiedLogger.debug('保存分类到 WPS PluginStorage', {
       categoryCount: customCategories.value.length,
       categories: customCategories.value
     })
     
     window.Application.PluginStorage.setItem('law_categories', dataToSave)
-    logger.info('分类已保存到 WPS PluginStorage', {
+    unifiedLogger.info('分类已保存到 WPS PluginStorage', {
       categoryCount: customCategories.value.length
     })
   } catch (error) {
-    logger.error('保存分类失败', {
+    unifiedLogger.error('保存分类失败', {
       error: error.message,
       stack: error.stack
     })
@@ -971,20 +971,20 @@ const saveCategoriesToStorage = () => {
 // 从 WPS 持久化存储加载分类
 const loadCategoriesFromStorage = () => {
   try {
-    logger.debug('从 WPS PluginStorage 加载分类')
+    unifiedLogger.debug('从 WPS PluginStorage 加载分类')
     const stored = window.Application.PluginStorage.getItem('law_categories')
     
     if (stored) {
       customCategories.value = JSON.parse(stored)
-      logger.info('已加载自定义分类', {
+      unifiedLogger.info('已加载自定义分类', {
         categoryCount: customCategories.value.length,
         categories: customCategories.value
       })
     } else {
-      logger.debug('未找到存储的分类数据')
+      unifiedLogger.debug('未找到存储的分类数据')
     }
   } catch (error) {
-    logger.error('加载分类失败', {
+    unifiedLogger.error('加载分类失败', {
       error: error.message,
       stack: error.stack
     })
@@ -994,28 +994,28 @@ const loadCategoriesFromStorage = () => {
 
 // 从配置目录加载所有模板
 const loadTemplatesFromStorage = async () => {
-  logger.info('开始从存储加载模板')
+  unifiedLogger.info('开始从存储加载模板')
   
   try {
     // 使用 templateManager 加载模板
-    logger.debug('调用 templateManager.loadTemplates()')
+    unifiedLogger.debug('调用 templateManager.loadTemplates()')
     const allTemplates = await templateManager.loadTemplates()
     templates.value = allTemplates
     
     // 如果当前分类为空，设置为第一个分类
     if (!currentCategory.value && allCategories.value.length > 0) {
       currentCategory.value = allCategories.value[0]
-      logger.debug('设置初始分类', { category: currentCategory.value })
+      unifiedLogger.debug('设置初始分类', { category: currentCategory.value })
     }
     
-    logger.info(`模板加载完成: ${templates.value.length} 个模板`, {
+    unifiedLogger.info(`模板加载完成: ${templates.value.length} 个模板`, {
       templateCount: templates.value.length,
       templateNames: templates.value.map(t => t.name),
       categories: [...new Set(templates.value.map(t => t.category))],
       currentCategory: currentCategory.value
     })
   } catch (error) {
-    logger.error('加载模板失败', {
+    unifiedLogger.error('加载模板失败', {
       method: 'loadTemplatesFromStorage',
       error: error.message,
       stack: error.stack
@@ -1031,17 +1031,17 @@ const loadTemplatesFromStorage = async () => {
 
 // 组件挂载时加载数据
 onMounted(async () => {
-  logger.info('TemplateManager 组件已挂载，开始加载数据')
+  unifiedLogger.info('TemplateManager 组件已挂载，开始加载数据')
   // 打印一下当前路径
-  logger.info('当前路径', window.location.href)
+  unifiedLogger.info('当前路径', window.location.href)
   
-  logger.debug('加载分类数据')
+  unifiedLogger.debug('加载分类数据')
   loadCategoriesFromStorage()
   
-  logger.debug('加载模板数据')
+  unifiedLogger.debug('加载模板数据')
   await loadTemplatesFromStorage()
   
-  logger.info('TemplateManager 数据加载完成', {
+  unifiedLogger.info('TemplateManager 数据加载完成', {
     categoryCount: customCategories.value.length,
     templateCount: templates.value.length
   })

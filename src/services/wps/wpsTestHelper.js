@@ -2,7 +2,7 @@ import Util from './wpsUtils.js'
 import { wpsDocumentService } from './wpsDocumentService.js'
 import { kdocsHandler } from '../kdocs/kdocs.js'
 import TaskScheduler from '../ai/TaskScheduler.js'
-import errorLogger from '@/utils/errorLogger'
+import unifiedLogger from '@/utils/unifiedLogger.js'
 
 // 任务窗格处理类 负责处理任务窗格的各个操作
 class TaskPaneHandler {
@@ -255,7 +255,7 @@ class TaskPaneHandler {
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
           console.error('AI处理出错:', error)
-          errorLogger.log('AI处理出错，请稍后重试', { method: 'extractText', taskId, error: error.message })
+          unifiedLogger.error('AI处理出错，请稍后重试', { method: 'extractText', taskId, error: error.message })
         }
       })
     } catch (error) {
@@ -299,7 +299,7 @@ class TaskPaneHandler {
             console.log('合同预审完成')
           } catch (error) {
             console.error('处理AI预审结果时出错:', error)
-            errorLogger.log('处理AI预审结果时出错，请稍后重试', { method: 'contractReview', error: error.message })
+            unifiedLogger.error('处理AI预审结果时出错，请稍后重试', { method: 'contractReview', error: error.message })
           }
         }
       })
@@ -308,12 +308,12 @@ class TaskPaneHandler {
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
           console.error('AI预审任务失败:', error)
-          errorLogger.log('AI预审失败，请稍后重试', { method: 'contractReview', taskId, error: error.message })
+          unifiedLogger.error('AI预审失败，请稍后重试', { method: 'contractReview', taskId, error: error.message })
         }
       })
     } catch (error) {
       console.error('创建AI预审任务失败:', error)
-      errorLogger.log('创建AI预审任务失败，请稍后重试', { method: 'contractReview', error: error.message })
+      unifiedLogger.error('创建AI预审任务失败，请稍后重试', { method: 'contractReview', error: error.message })
     }
   }
 
@@ -339,7 +339,7 @@ class TaskPaneHandler {
       console.log(`成功添加${addedCount}个预审批注`)
       window.$message?.success(`成功添加${addedCount}个预审批注`)
     } else {
-      errorLogger.log('未找到需要批注的内容', { method: 'addReviewComments' })
+      unifiedLogger.error('未找到需要批注的内容', { method: 'addReviewComments' })
     }
   }
 
@@ -373,7 +373,7 @@ class TaskPaneHandler {
       console.log(`成功进行${revisedCount}处预审修订`)
       window.$message?.success(`成功进行${revisedCount}处预审修订`)
     } else {
-      errorLogger.log('未找到需要修订的内容', { method: 'addReviewRevisions' })
+      unifiedLogger.error('未找到需要修订的内容', { method: 'addReviewRevisions' })
     }
   }
 
@@ -404,7 +404,7 @@ class TaskPaneHandler {
       window.Application?.PluginStorage?.setItem('formatted_data', JSON.stringify(formattedData))
       window.$message?.success('格式化文本已提取并保存')
     } else {
-      errorLogger.log('请先选择要提取的文本', { method: 'extractFormatted' })
+      unifiedLogger.error('请先选择要提取的文本', { method: 'extractFormatted' })
     }
   }
 
@@ -472,14 +472,14 @@ class TaskPaneHandler {
             const recordID = res?.data?.[0]?.id
             console.log('recordID', recordID)
             if (!recordID) {
-              errorLogger.log('创建金山文档行记录失败或者没有返回id', { method: 'processWithAI' })
+              unifiedLogger.error('创建金山文档行记录失败或者没有返回id', { method: 'processWithAI' })
               return
             }
 
             return res?.data?.[0]
           } catch (error) {
             console.error('处理AI提取结果时出错:', error)
-            errorLogger.log('处理AI提取结果时出错，请稍后重试', { method: 'processWithAI', error: error.message })
+            unifiedLogger.error('处理AI提取结果时出错，请稍后重试', { method: 'processWithAI', error: error.message })
           }
         }
       })
@@ -488,12 +488,12 @@ class TaskPaneHandler {
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
           console.error('AI处理任务失败:', error)
-          errorLogger.log('AI处理失败，请稍后重试', { method: 'processWithAI', taskId, error: error.message })
+          unifiedLogger.error('AI处理失败，请稍后重试', { method: 'processWithAI', taskId, error: error.message })
         }
       })
     } catch (error) {
       console.error('创建AI处理任务失败:', error)
-      errorLogger.log('创建AI处理任务失败，请稍后重试', { method: 'processWithAI', error: error.message })
+      unifiedLogger.error('创建AI处理任务失败，请稍后重试', { method: 'processWithAI', error: error.message })
     }
   }
 
@@ -505,7 +505,7 @@ class TaskPaneHandler {
 
     const selection = window.Application?.Selection
     if (!selection?.Text) {
-      errorLogger.log('请先选择要脱敏的文本', { method: 'desensitizeText' })
+      unifiedLogger.error('请先选择要脱敏的文本', { method: 'desensitizeText' })
       return
     }
 
@@ -539,7 +539,7 @@ class TaskPaneHandler {
 
     const desensitizedText = param?.desensitizedText
     if (!desensitizedText) {
-      errorLogger.log('没有提供脱敏文本', { method: 'applyDesensitization' })
+      unifiedLogger.error('没有提供脱敏文本', { method: 'applyDesensitization' })
       return
     }
 
@@ -548,7 +548,7 @@ class TaskPaneHandler {
       selection.Text = desensitizedText
       console.log('脱敏文本已应用')
     } else {
-      errorLogger.log('请先选择要替换的文本区域', { method: 'applyDesensitization' })
+      unifiedLogger.error('请先选择要替换的文本区域', { method: 'applyDesensitization' })
     }
   }
 
@@ -576,7 +576,7 @@ class TaskPaneHandler {
             window.$message?.success('文档结构分析完成，请查看控制台输出')
           } catch (error) {
             console.error('处理AI结构分析结果时出错:', error)
-            errorLogger.log('处理AI结构分析结果时出错，请稍后重试', { method: 'analyzeDocStructure', error: error.message })
+            unifiedLogger.error('处理AI结构分析结果时出错，请稍后重试', { method: 'analyzeDocStructure', error: error.message })
           }
         }
       })
@@ -585,12 +585,12 @@ class TaskPaneHandler {
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
           console.error('AI文档结构分析任务失败:', error)
-          errorLogger.log('AI文档结构分析失败，请稍后重试', { method: 'analyzeDocStructure', taskId, error: error.message })
+          unifiedLogger.error('AI文档结构分析失败，请稍后重试', { method: 'analyzeDocStructure', taskId, error: error.message })
         }
       })
     } catch (error) {
       console.error('创建AI文档结构分析任务失败:', error)
-      errorLogger.log('创建AI文档结构分析任务失败，请稍后重试', { method: 'analyzeDocStructure', error: error.message })
+      unifiedLogger.error('创建AI文档结构分析任务失败，请稍后重试', { method: 'analyzeDocStructure', error: error.message })
     }
   }
 

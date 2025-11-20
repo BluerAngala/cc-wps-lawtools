@@ -8,6 +8,7 @@ import { wpsDocumentService } from '../wps/wpsDocumentService.js'
 import { reviewAIService } from './reviewAIService.js'
 import { reviewChecklistGenerator } from './reviewChecklistGenerator.js'
 import { appConfig } from '../../utils/appConfig.js'
+import unifiedLogger from '../../utils/unifiedLogger.js'
 
 export class ContractReviewEngine {
   constructor() {
@@ -30,20 +31,20 @@ export class ContractReviewEngine {
       throw new Error('无法获取文档内容')
     }
 
-    console.log(`[审查引擎] 文档长度: ${fullText.length}字符`)
+    unifiedLogger.info('文档长度', { length: fullText.length, type: 'document_analysis' })
 
     // 2. 获取段落信息（用于改进分段）
     const paragraphs = this.wpsService.getParagraphs() || []
-    console.log(`[审查引擎] 获取到 ${paragraphs.length} 个段落`)
+    unifiedLogger.info('获取段落数', { count: paragraphs.length, type: 'document_analysis' })
 
     // 3. 智能分段（传入段落信息以改进分段效果）
     const segments = this.segmenter.segmentDocument(fullText, paragraphs)
-    console.log(`[审查引擎] 文档分段完成，共 ${segments.length} 段`)
+    unifiedLogger.info('文档分段完成', { count: segments.length, type: 'document_analysis' })
 
     // 3. 合同类型识别（基于全文）
-    console.log(`[审查引擎] 开始识别合同类型...`)
+    unifiedLogger.info('开始识别合同类型', { type: 'contract_analysis' })
     const contractType = await this.aiService.identifyContractType(fullText)
-    console.log(`[审查引擎] 合同类型: ${contractType.type}${contractType.subtype ? ` (${contractType.subtype})` : ''}`)
+    unifiedLogger.info('识别到合同类型', { type: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
 
     // 4. 审查策略选择
     if (options.strategy === 'full') {
@@ -79,7 +80,7 @@ export class ContractReviewEngine {
     let riskAreas = []
     if (options.enableGlobalAnalysis !== false) {
       try {
-        console.log(`[审查引擎] 开始全局分析...`)
+        unifiedLogger.info('开始全局分析', { type: 'contract_analysis' })
         if (options.onProgress) {
           // 兼容旧格式和新格式
           if (typeof options.onProgress === 'function') {
@@ -96,7 +97,7 @@ export class ContractReviewEngine {
         
         const globalAnalysis = await this.aiService.analyzeGlobal(fullText)
         riskAreas = globalAnalysis.riskAreas || []
-        console.log(`[审查引擎] 全局分析完成，识别到 ${riskAreas.length} 个风险区域`)
+        unifiedLogger.info('全局分析完成', { count: riskAreas.length, type: 'contract_analysis' })
         
         // 更新合同类型（如果全局分析返回了更准确的信息）
         if (globalAnalysis.type && globalAnalysis.type !== '未知') {
@@ -104,7 +105,7 @@ export class ContractReviewEngine {
           contractType.subtype = globalAnalysis.subtype || contractType.subtype
         }
       } catch (error) {
-        console.warn(`[审查引擎] 全局分析失败，继续使用分段审查:`, error)
+        unifiedLogger.warn('全局分析失败，继续使用分段审查', { error: error.message, type: 'contract_analysis' })
       }
     }
 
@@ -114,7 +115,7 @@ export class ContractReviewEngine {
 
     // 先审查高风险区域（批量并行，每批3个）
     if (segmentGroups.high.length > 0) {
-      console.log(`[审查引擎] 开始审查高风险区域（${segmentGroups.high.length} 段），批量并行处理...`)
+      unifiedLogger.info('开始审查高风险区域', { count: segmentGroups.high.length, type: 'contract_analysis' })
       if (options.onProgress) {
         try {
           options.onProgress({ stage: '审查高风险区域...', current: 0, total: segments.length })
@@ -126,7 +127,7 @@ export class ContractReviewEngine {
       const batchSize = 3
       for (let i = 0; i < segmentGroups.high.length; i += batchSize) {
         const batch = segmentGroups.high.slice(i, i + batchSize)
-        console.log(`[审查引擎] 处理高风险批次 ${Math.floor(i/batchSize) + 1}/${Math.ceil(segmentGroups.high.length/batchSize)}，${batch.length} 段并行`)
+        unifiedLogger.info('处理高风险批次', { batchNum: Math.floor(i/batchSize) + 1, totalBatches: Math.ceil(segmentGroups.high.length/batchSize), batchSize: batch.length, type: 'contract_analysis' })
         
         const batchResults = await Promise.allSettled(
           batch.map((segment, batchIndex) =>
@@ -140,7 +141,7 @@ export class ContractReviewEngine {
             this.mergeResults(results, result.value.segmentResult)
             results.segments.push(result.value.segmentInfo)
           } else {
-            console.error(`[审查引擎] 高风险区域审查失败:`, result.reason)
+            unifiedLogger.error('高风险区域审查失败', { reason: result.reason, type: 'contract_analysis' })
             results.segments.push({ error: result.reason?.message || '未知错误' })
           }
         })
@@ -160,7 +161,7 @@ export class ContractReviewEngine {
     // 再审查中低风险区域（串行或小批量并行）
     const remainingSegments = [...segmentGroups.medium, ...segmentGroups.low]
     if (remainingSegments.length > 0) {
-      console.log(`[审查引擎] 开始审查中低风险区域（${remainingSegments.length} 段）...`)
+      unifiedLogger.info('开始审查中低风险区域', { count: remainingSegments.length, type: 'contract_analysis' })
       
       // 小批量并行（每批3个）
       const batchSize = 3
@@ -177,7 +178,7 @@ export class ContractReviewEngine {
             this.mergeResults(results, result.value.segmentResult)
             results.segments.push(result.value.segmentInfo)
           } else {
-            console.error(`[审查引擎] 中低风险区域审查失败:`, result.reason)
+            unifiedLogger.error('中低风险区域审查失败', { reason: result.reason, type: 'contract_analysis' })
             results.segments.push({ error: result.reason?.message || '未知错误' })
           }
         })
@@ -238,7 +239,7 @@ export class ContractReviewEngine {
    * 审查段（带进度信息）
    */
   async reviewSegmentWithProgress(segment, fullText, contractType, reviewedItems, options, checklist, currentIndex, total) {
-    console.log(`[审查引擎] 审查段 ${currentIndex + 1}/${total}: ${segment.section.title}`)
+    unifiedLogger.info('审查段落', { current: currentIndex + 1, total: total, title: segment.section.title, type: 'contract_analysis' })
 
     try {
       const segmentResult = await this.reviewSegment(
@@ -253,7 +254,7 @@ export class ContractReviewEngine {
       // 立即应用批注（如果启用）
       if (options.autoApply && segmentResult.issues.length > 0) {
         const appliedCount = await this.applyComments(segment, segmentResult.issues)
-        console.log(`[审查引擎] 已应用批注: ${appliedCount}/${segmentResult.issues.length} 个`)
+        unifiedLogger.info('批注应用进度', { applied: appliedCount, total: segmentResult.issues.length, type: 'contract_analysis' })
       }
 
       return {
@@ -266,7 +267,7 @@ export class ContractReviewEngine {
         }
       }
     } catch (error) {
-      console.error(`[审查引擎] 审查段失败:`, error)
+      unifiedLogger.error('审查段失败', { error: error.message, type: 'contract_analysis' })
       throw error
     }
   }
@@ -316,7 +317,7 @@ export class ContractReviewEngine {
       const key = `${keywordCore}_${commentCore}`
       
       if (reviewedItems.has(key)) {
-        console.log(`[审查引擎] 跳过重复问题: ${keywordCore.substring(0, 20)}...`)
+        unifiedLogger.info('跳过重复问题', { keyword: keywordCore.substring(0, 20), type: 'contract_analysis' })
         return false
       }
       reviewedItems.add(key)
@@ -343,11 +344,11 @@ export class ContractReviewEngine {
       const reviewConfig = config.review || {}
       const userRules = reviewConfig.contractReviewRules || []
       
-      console.log(`[审查引擎] 加载用户规则: ${userRules.length} 条`)
+      unifiedLogger.info('加载用户规则', { count: userRules.length, type: 'contract_analysis' })
       
       return userRules
     } catch (error) {
-      console.error('获取用户规则失败:', error)
+      unifiedLogger.error('获取用户规则失败', { error: error.message, type: 'contract_analysis' })
       return []
     }
   }
@@ -356,22 +357,22 @@ export class ContractReviewEngine {
    * 全文审查（结合审查清单）
    */
   async reviewByFullText(fullText, contractType, options) {
-    console.log('[审查引擎] ========== 全文审查开始 ==========')
-    console.log('[审查引擎] 📄 文档长度:', fullText?.length || 0, '字符')
-    console.log('[审查引擎] 📋 合同类型:', contractType?.type, contractType?.subtype ? `(${contractType.subtype})` : '')
-    console.log('[审查引擎] ⚙️ 选项:', JSON.stringify(options, null, 2))
+    unifiedLogger.info('全文审查开始', { type: 'contract_analysis' })
+    unifiedLogger.info('文档长度', { length: fullText?.length || 0, type: 'contract_analysis' })
+    unifiedLogger.info('合同类型', { type: contractType?.type, subtype: contractType?.subtype, type: 'contract_analysis' })
+    unifiedLogger.info('审查选项', { options: options, type: 'contract_analysis' })
     
     // 1. 生成审查清单
     const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType)
-    console.log('[审查引擎] 📋 基础审查清单:', baseChecklist.length, '项')
+    unifiedLogger.info('基础审查清单', { count: baseChecklist.length, type: 'contract_analysis' })
     
     // 2. 获取用户自定义规则（仅在useCustomRules为true时）
     const userRules = options.useCustomRules ? this.getUserReviewRules() : []
-    console.log('[审查引擎] 📋 用户自定义规则:', userRules.length, '条')
+    unifiedLogger.info('用户自定义规则', { count: userRules.length, type: 'contract_analysis' })
     
     // 3. 合并清单
     const checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
-    console.log('[审查引擎] 📋 最终审查清单:', checklist.length, '项')
+    unifiedLogger.info('最终审查清单', { count: checklist.length, type: 'contract_analysis' })
     
     const context = {
       currentSegment: fullText,
@@ -383,7 +384,7 @@ export class ContractReviewEngine {
       checklist: checklist // 传递审查清单
     }
 
-    console.log('[审查引擎] 🚀 开始调用 AI 审查服务...')
+    unifiedLogger.info('开始调用AI审查服务', { type: 'contract_analysis' })
     const aiStartTime = Date.now()
     
     const aiResult = await this.aiService.reviewClause(
@@ -393,24 +394,24 @@ export class ContractReviewEngine {
     )
     
     const aiDuration = Date.now() - aiStartTime
-    console.log('[审查引擎] ✅ AI 审查完成，耗时:', aiDuration, 'ms (', (aiDuration / 1000).toFixed(2), '秒)')
-    console.log('[审查引擎] 📊 AI 返回结果:')
-    console.log('[审查引擎]   - Issues:', aiResult.issues?.length || 0, '个')
-    console.log('[审查引擎]   - Risks:', aiResult.risks?.length || 0, '个')
+    unifiedLogger.info('AI审查完成', { duration: aiDuration, type: 'contract_analysis' })
+    unifiedLogger.info('AI返回结果', { type: 'contract_analysis' })
+    unifiedLogger.info('AI问题数量', { count: aiResult.issues?.length || 0, type: 'contract_analysis' })
+    unifiedLogger.info('AI风险数量', { count: aiResult.risks?.length || 0, type: 'contract_analysis' })
 
     const matchedIssues = this.matchIssuesToChecklist(aiResult.issues || [], checklist)
     const checklistStats = this.buildChecklistStats(matchedIssues)
     const risks = aiResult.risks || []
 
-    console.log('[审查引擎] 🔍 匹配审查清单完成')
-    console.log('[审查引擎]   - 匹配后 Issues:', matchedIssues.length, '个')
-    console.log('[审查引擎]   - Risks:', risks.length, '个')
-    console.log('[审查引擎]   - 清单统计:', Object.keys(checklistStats).length, '项匹配')
+    unifiedLogger.info('匹配审查清单完成', { type: 'contract_analysis' })
+    unifiedLogger.info('匹配后问题数量', { count: matchedIssues.length, type: 'contract_analysis' })
+    unifiedLogger.info('风险数量', { count: risks.length, type: 'contract_analysis' })
+    unifiedLogger.info('清单统计', { count: Object.keys(checklistStats).length, type: 'contract_analysis' })
 
     // 应用批注到文档（全文审查模式）
     let appliedCount = 0
     if (options.autoApply && matchedIssues.length > 0) {
-      console.log('[审查引擎] 🔄 开始应用批注到文档...')
+      unifiedLogger.info('开始应用批注到文档', { type: 'contract_analysis' })
       // 创建虚拟segment对象用于批注应用
       const fullSegment = {
         content: fullText,
@@ -423,7 +424,7 @@ export class ContractReviewEngine {
         }
       }
       appliedCount = await this.applyComments(fullSegment, matchedIssues)
-      console.log('[审查引擎] ✅ 批注应用完成，共应用 ' + appliedCount + ' 个批注')
+      unifiedLogger.info('批注应用完成', { count: appliedCount, type: 'contract_analysis' })
     }
 
     const result = {
@@ -448,13 +449,13 @@ export class ContractReviewEngine {
       }
     }
 
-    console.log('[审查引擎] ========== 全文审查完成 ==========')
-    console.log('[审查引擎] 📊 最终结果:')
-    console.log('[审查引擎]   - 总问题数:', result.summary.totalIssues)
-    console.log('[审查引擎]   - 总风险数:', result.summary.totalRisks)
-    console.log('[审查引擎]   - 审查清单项数:', result.summary.checklistCount)
-    console.log('[审查引擎]   - 已应用批注:', appliedCount, '个')
-    console.log('[审查引擎] =======================================')
+    unifiedLogger.info('全文审查完成', { type: 'contract_analysis' })
+    unifiedLogger.info('最终结果', { type: 'contract_analysis' })
+    unifiedLogger.info('总问题数', { count: result.summary.totalIssues, type: 'contract_analysis' })
+    unifiedLogger.info('总风险数', { count: result.summary.totalRisks, type: 'contract_analysis' })
+    unifiedLogger.info('审查清单项数', { count: result.summary.checklistCount, type: 'contract_analysis' })
+    unifiedLogger.info('已应用批注数', { count: appliedCount, type: 'contract_analysis' })
+    unifiedLogger.info('审查流程结束', { type: 'contract_analysis' })
 
     return result
   }
@@ -475,7 +476,7 @@ export class ContractReviewEngine {
 
     // 第一步：去重和合并位置接近的批注
     const mergedIssues = this.mergeNearbyComments(issues)
-    console.log(`[审查引擎] 批注合并: ${issues.length} → ${mergedIssues.length}`)
+    unifiedLogger.info('批注合并', { before: issues.length, after: mergedIssues.length, type: 'contract_analysis' })
     mergedCount = issues.length - mergedIssues.length
 
     for (const issue of mergedIssues) {
@@ -489,7 +490,7 @@ export class ContractReviewEngine {
           const positionKey = `${range.Start}_${range.End}`
           if (this._appliedComments.has(positionKey)) {
             duplicateCount++
-            console.log(`[审查引擎] ⏭️ 跳过已应用的批注: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
+            unifiedLogger.info('跳过已应用的批注', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_analysis' })
             continue
           }
 
@@ -503,7 +504,7 @@ export class ContractReviewEngine {
               comment: issue.comment,
               timestamp: Date.now()
             })
-            console.log(`[审查引擎] ✅ 批注已添加: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
+            unifiedLogger.info('批注已添加', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_analysis' })
           } else {
             skippedCount++
             // 即使添加失败，也记录（可能是重复）
@@ -512,26 +513,26 @@ export class ContractReviewEngine {
               comment: issue.comment,
               timestamp: Date.now()
             })
-            console.warn(`[审查引擎] ⚠️ 批注添加失败（可能重复）: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
+            unifiedLogger.warn('批注添加失败（可能重复）', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_annotation' })
           }
         } else {
           skippedCount++
-          console.warn(`[审查引擎] ⚠️ 未找到定位点，跳过批注: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
+          unifiedLogger.warn('未找到定位点，跳过批注', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_annotation' })
         }
       } catch (error) {
         skippedCount++
-        console.error(`[审查引擎] ❌ 添加批注失败:`, error, `问题: ${(searchKeyword || issue.position || '未知').substring(0, 30)}...`)
+        unifiedLogger.error('添加批注失败', { error: error.message, keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_analysis' })
       }
     }
 
     if (mergedCount > 0) {
-      console.log(`[审查引擎] 合并了 ${mergedCount} 个位置接近的批注`)
+      unifiedLogger.info('合并批注', { count: mergedCount, type: 'contract_analysis' })
     }
     if (duplicateCount > 0) {
-      console.log(`[审查引擎] 跳过 ${duplicateCount} 个重复批注`)
+      unifiedLogger.info('跳过重复批注', { count: duplicateCount, type: 'contract_analysis' })
     }
     if (skippedCount > 0) {
-      console.warn(`[审查引擎] 共跳过 ${skippedCount} 个批注（无法定位）`)
+      unifiedLogger.warn('跳过批注统计', { count: skippedCount, type: 'contract_annotation' })
     }
 
     return appliedCount
@@ -762,7 +763,7 @@ export class ContractReviewEngine {
         )
         
         if (keywordRange) {
-          console.log(`[定位] ✅ 找到关键词: ${searchKeyword.substring(0, 30)}...`)
+          unifiedLogger.info('找到关键词', { keyword: searchKeyword.substring(0, 30), type: 'keyword_search' })
           return keywordRange
         }
       }
@@ -776,7 +777,7 @@ export class ContractReviewEngine {
         )
         
         if (keywordRange) {
-          console.log(`[定位] ✅ 找到清理后的完整关键词`)
+          unifiedLogger.info('找到清理后的完整关键词', { type: 'keyword_search' })
           return keywordRange
         }
       }
@@ -786,20 +787,20 @@ export class ContractReviewEngine {
       const displayKeyword = searchKeywords.length > 0 
         ? searchKeywords[0].substring(0, 30) 
         : cleanKeyword.substring(0, 30)
-      console.warn(`[定位] ⚠️ 在段内未找到关键词，跳过该批注（避免跨段定位）: ${displayKeyword}...`)
+      unifiedLogger.warn('段内未找到关键词，跳过批注', { keyword: displayKeyword.substring(0, 30), type: 'keyword_search' })
     }
 
     // 方法2：基于position定位（如果提供了章节号）
     if (issue.position) {
       const positionRange = this.wpsService.findRangeByPosition(issue.position, segment)
       if (positionRange) {
-        console.log(`[定位] ✅ 通过position定位: ${issue.position}`)
+        unifiedLogger.info('通过position定位', { position: issue.position, type: 'keyword_search' })
         return positionRange
       }
     }
 
     // 方法3：如果所有定位都失败，返回null（不添加批注，避免错误定位）
-    console.warn(`[定位] ❌ 无法定位问题，跳过批注。keyword: ${issue.keyword?.substring(0, 30) || '无'}, position: ${issue.position || '无'}`)
+    unifiedLogger.warn('无法定位问题，跳过批注', { keyword: issue.keyword?.substring(0, 30) || '无', position: issue.position || '无', type: 'keyword_search' })
     return null
   }
 

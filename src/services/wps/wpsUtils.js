@@ -1,4 +1,4 @@
-import errorLogger from '@/utils/errorLogger'
+import unifiedLogger from '@/utils/unifiedLogger.js'
 
 //在后续的wps版本中，wps的所有枚举值都会通过wps.Enum对象来自动支持，现阶段先人工定义
 var WPS_Enum = {
@@ -57,7 +57,7 @@ class WPSService {
       // 检查 WPS Application 对象
       if (!window.Application) {
         const errorMsg = '❌ WPS Application 对象不存在，插件可能未正确加载'
-        errorLogger.log(errorMsg, { method: 'createTaskPane', key })
+        unifiedLogger.error(errorMsg, { method: 'createTaskPane', key })
         return null
       }
 
@@ -99,7 +99,7 @@ class WPSService {
       
       if (!taskPane) {
         const errorMsg = `❌ 创建任务窗格失败 - URL: ${taskPaneUrl} - 可能原因：URL路径不正确、文件不存在或WPS API调用失败`
-        errorLogger.log(errorMsg, { method: 'createTaskPane', url: taskPaneUrl, key })
+        unifiedLogger.error(errorMsg, { method: 'createTaskPane', url: taskPaneUrl, key })
         return null
       }
 
@@ -120,7 +120,7 @@ class WPSService {
 
     } catch (error) {
       const errorMsg = `❌ 创建任务窗格异常 - ${error.message || error} - 可能原因：页面文件不存在、URL路径配置错误、服务器部署问题或WPS版本不兼容`
-      errorLogger.log(errorMsg, { method: 'createTaskPane', key, error: error.message || String(error) })
+      unifiedLogger.error(errorMsg, { method: 'createTaskPane', key, error: error.message || String(error) })
       return null
     }
   }
@@ -155,7 +155,7 @@ class WPSService {
     try {
       if (typeof window.Application === 'undefined') {
         console.warn('WPS Application 对象未找到')
-        errorLogger.log('请在 WPS 环境中使用此功能', { method: 'showDialog', page })
+        unifiedLogger.error('请在 WPS 环境中使用此功能', { method: 'showDialog', page })
         return
       }
 
@@ -189,7 +189,7 @@ class WPSService {
       
     } catch (error) {
       console.error('显示 WPS 对话框失败:', error)
-      errorLogger.log('显示对话框失败', { method: 'showDialog', page, error: error.message })
+      unifiedLogger.error('显示对话框失败', { method: 'showDialog', page, error: error.message })
     }
   }
 
@@ -309,7 +309,7 @@ class WPSService {
   closeDoc() {
     if (window.Application.Documents.Count < 2) {
       const msg = '当前只有一个文档，无法关闭'
-      errorLogger.log(msg, { method: 'closeDoc' })
+      unifiedLogger.error(msg, { method: 'closeDoc' })
       return
     }
 
