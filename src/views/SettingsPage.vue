@@ -175,74 +175,125 @@
             </n-tab-pane>
 
             <!-- 金山文档 -->
-            <n-tab-pane name="kdocs" tab="📄 金山文档">
+
+            <n-tab-pane name="kdocs" tab="📄 金山文档对接">
+
               <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+
                 <n-text>配置金山文档接口参数（Coze 工作流）</n-text>
+
                 <n-button size="small" @click="resetTab('kdocs')">恢复默认</n-button>
+
               </div>
-              <n-form label-placement="left" label-width="120">
+
+              <n-form label-placement="left" label-width="150">
+
                 <n-form-item label="Webhook URL">
+
                   <n-input v-model:value="config.kdocs.webhookUrl" @update:value="autoSave" placeholder="请输入 Webhook URL"/>
+
                 </n-form-item>
+
                 <n-form-item label="Token">
+
                   <n-input v-model:value="config.kdocs.token" @update:value="autoSave" type="password" show-password-on="click" placeholder="请输入 Token"/>
+
                 </n-form-item>
+
                 <n-form-item label="Sheet ID">
+
                   <n-input-number v-model:value="config.kdocs.sheetId" @update:value="autoSave" :min="1" :step="1" class="w-full" placeholder="5"/>
+
                 </n-form-item>
+
                 <n-form-item label="Coze API Key">
+
                   <n-input v-model:value="config.kdocs.cozeApiKey" @update:value="autoSave" type="password" show-password-on="click" placeholder="请输入 Coze API Key"/>
+
                 </n-form-item>
-                <n-form-item label="Workflow ID">
-                  <n-input v-model:value="config.kdocs.workflowId" @update:value="autoSave" placeholder="请输入 Workflow ID"/>
+
+                <n-form-item label="金山文档工作流ID">
+
+                  <n-input v-model:value="config.kdocs.workflowId" @update:value="autoSave" placeholder="请输入金山文档操作工作流ID"/>
+
                 </n-form-item>
+
+                <n-form-item label="企业信息工作流ID">
+
+                  <n-input v-model:value="config.kdocs.companyInfoWorkflowId" @update:value="autoSave" placeholder="请输入企业信息查询工作流ID"/>
+
+                </n-form-item>
+
               </n-form>
+
             </n-tab-pane>
 
             <!-- 系统设置 -->
+
             <n-tab-pane name="system" tab="⚙️ 系统">
+
               <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+
                 <n-text>系统设置与数据管理</n-text>
-                <n-button size="small" @click="resetTab('system')">恢复默认</n-button>
+
               </div>
+
               
+
               <n-space vertical size="large">
-                <!-- 系统偏好 -->
-                <n-card title="系统偏好" size="small" :bordered="false" class="bg-gray-50">
-                  <n-space>
-                    <n-space align="center">
-                      <n-text>自动保存</n-text>
-                      <n-switch v-model:value="config.system.autoSave" @update:value="autoSave"/>
-                    </n-space>
-                  </n-space>
-                </n-card>
 
                 <!-- 数据管理 -->
+
                 <n-card title="数据管理" size="small" :bordered="false" class="bg-gray-50">
+
                   <n-space>
+
                     <n-button type="warning" @click="handleResetAll">重置所有配置</n-button>
+
                   </n-space>
+
                 </n-card>
 
+
+
                 <!-- 配置导入导出 -->
+
                 <n-card title="配置导入导出" size="small" :bordered="false" class="bg-gray-50">
+
                   <n-space vertical>
+
                     <n-space>
+
                       <n-button @click="handleExport">导出配置</n-button>
+
                       <n-upload :show-file-list="false" accept=".json" @before-upload="handleImport">
+
                         <n-button>导入配置</n-button>
+
                       </n-upload>
+
                       <n-button @click="showConfigPath">查看配置文件路径</n-button>
+
                     </n-space>
+
                     <n-alert v-if="configPath" type="info" style="margin-top: 8px;">
+
                       <template #header>配置文件位置</template>
+
                       <n-text style="font-size: 12px; word-break: break-all; font-family: monospace;">
+
                         {{ configPath }}
+
                       </n-text>
+
                     </n-alert>
+
                   </n-space>
+
                 </n-card>
+
               </n-space>
+
             </n-tab-pane>
             </n-tabs>
           </div>
@@ -256,28 +307,19 @@
 import { ref, onMounted, computed } from 'vue'
 import {
   NConfigProvider, NMessageProvider, NCard, NTabs, NTabPane, NForm, NFormItem,
-  NInput, NInputNumber, NSwitch, NButton, NIcon, NText,
+  NInput, NInputNumber, NButton, NIcon, NText,
   NSpace, NUpload, NAlert, NSlider, NSelect, NEmpty
 } from 'naive-ui'
 import { appConfig } from '../utils/appConfig.js'
 import { reinitializeAIClient, getAvailableModels } from '../services/ai/siliconflow.js'
 
 const activeTab = ref('ai')
-const config = ref({
-  ai: { 
-    apiKey: '', 
-    baseUrl: '', 
-    model: '', 
-    timeout: 300000, // 增加到300秒（5分钟）
-    maxTokens: 8000,
-    temperature: 0.1 
-  },
-  kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
-  system: { autoSave: true }
-})
 const configPath = ref('')
 const modelOptions = ref([])
 const loadingModels = ref(false)
+
+// 初始化配置，使用appConfig的默认配置
+const config = ref(appConfig.getDefaultConfig())
 
 // 超时时间（秒）的计算属性
 const timeoutSeconds = computed({
@@ -306,14 +348,16 @@ const loadModelList = async () => {
     console.log('模型列表加载成功:', modelOptions.value.length, '个模型')
   } catch (error) {
     console.error('加载模型列表失败:', error)
-    // 使用默认模型列表
-    modelOptions.value = [
+    // 使用默认模型列表，这些模型应与appConfig.js中的默认模型保持一致
+    const defaultConfig = appConfig.getDefaultConfig()
+    const defaultModels = defaultConfig.ai?.defaultModels || [
       { label: 'Qwen2.5-7B-Instruct (推荐-快速)', value: 'Qwen/Qwen2.5-7B-Instruct', tag: '推荐' },
       { label: 'Qwen2.5-14B-Instruct (推荐-平衡)', value: 'Qwen/Qwen2.5-14B-Instruct', tag: '推荐' },
       { label: 'Qwen2.5-72B-Instruct (强大)', value: 'Qwen/Qwen2.5-72B-Instruct', tag: '高级' },
       { label: 'DeepSeek-V3 (高性能)', value: 'deepseek-ai/DeepSeek-V3', tag: '高级' },
       { label: 'GLM-4-9B (快速)', value: 'Pro/THUDM/glm-4-9b-chat', tag: '推荐' }
     ]
+    modelOptions.value = defaultModels
   } finally {
     loadingModels.value = false
   }
@@ -340,20 +384,29 @@ const refreshModelList = () => {
 const loadConfig = () => {
   try {
     const loadedConfig = appConfig.getConfig()
-    // 确保 AI 配置有默认值
+    const defaultConfig = appConfig.getDefaultConfig()
+    
+    // 使用深度合并确保所有层级都有默认值
     config.value = {
+      ...defaultConfig,
       ...loadedConfig,
       ai: {
-        apiKey: loadedConfig.ai?.apiKey || '',
-        baseUrl: loadedConfig.ai?.baseUrl || '',
-        model: loadedConfig.ai?.model || '',
-        timeout: loadedConfig.ai?.timeout || 180000, // 增加到180秒（3分钟）
-        maxTokens: loadedConfig.ai?.maxTokens || 8000,
-        temperature: loadedConfig.ai?.temperature !== undefined ? loadedConfig.ai.temperature : 0.1
+        ...defaultConfig.ai,
+        ...(loadedConfig.ai || {}),
+      },
+      kdocs: {
+        ...defaultConfig.kdocs,
+        ...(loadedConfig.kdocs || {}),
+      },
+      system: {
+        ...defaultConfig.system,
+        ...(loadedConfig.system || {}),
       }
     }
   } catch (error) {
     console.error('加载配置失败:', error)
+    // 如果加载失败，使用默认配置
+    config.value = appConfig.getDefaultConfig()
   }
 }
 
@@ -379,20 +432,14 @@ const autoSave = () => {
 
 // 重置当前标签页
 const resetTab = (tab) => {
-  const defaults = {
-    ai: { 
-      apiKey: '', 
-      baseUrl: 'https://api.siliconflow.cn/v1', 
-      model: 'Qwen/Qwen2.5-7B-Instruct', // 改用更快的模型
-      timeout: 300000, // 增加到300秒（5分钟）
-      maxTokens: 8000,
-      temperature: 0.1
-    },
-    kdocs: { webhookUrl: '', token: '', sheetId: 5, apiUrl: '' },
-    system: { autoSave: true }
+  if (tab === 'system') {
+    // 系统标签页不再有可配置项，只需提示用户
+    window.$message?.info('系统标签页无需配置')
+    return
   }
   
-  config.value[tab] = defaults[tab]
+  const defaultConfig = appConfig.getDefaultConfig()
+  config.value[tab] = { ...defaultConfig[tab] }
   autoSave()
   
   // 如果重置的是 AI 配置，需要重新初始化客户端
