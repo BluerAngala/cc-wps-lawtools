@@ -30,9 +30,9 @@ class AppConfigManager {
         webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL || '',
         token: import.meta.env.VITE_KDOCS_TOKEN || '',
         sheetId: Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
-        cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
-        workflowId: import.meta.env.VITE_COZE_WORKFLOW_ID || '7550481657011421226',  // 用于金山文档操作的工作流ID
-        companyInfoWorkflowId: '7550481844523221034'  // 用于获取企业信息的工作流ID
+        cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
+        workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '',  // 用于金山文档操作的工作流ID
+        companyInfoWorkflowId: import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034'  // 用于获取企业信息的工作流ID
       },
       
       // 合同要素提取配置

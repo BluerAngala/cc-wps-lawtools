@@ -1,0 +1,26 @@
+# .iflowignore for React/Vue project
+
+# 构建输出
+build/
+dist/
+.next/
+
+# 依赖
+node_modules/
+
+# 日志和缓存
+*.log
+.cache/
+.parcel-cache/
+
+# 环境变量文件
+.env.local
+.env.production
+
+# 测试覆盖率
+coverage/
+
+# IDE 配置（但保留 .vscode）
+.idea/
+*.swp
+*.swo
