@@ -226,7 +226,6 @@ import {
 import { ContractReviewEngine } from '../services/contract/contractReviewEngine.js'
 import { ReviewAIService } from '../services/contract/reviewAIService.js'
 import { wpsDocumentService } from '../services/wps/wpsDocumentService.js'
-import unifiedLogger from '../utils/unifiedLogger.js'
 
 
 
