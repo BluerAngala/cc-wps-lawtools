@@ -70,7 +70,7 @@
 
           <!-- 测试结果 -->
           <n-card v-if="testResult" title="测试结果" size="small" :bordered="false">
-            <n-code :code="testResult" language="json" />
+            <pre class="text-sm whitespace-pre-wrap">{{ testResult }}</pre>
           </n-card>
         </n-space>
       </n-card>
@@ -80,7 +80,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { NConfigProvider, NCard, NSpace, NButton, NAlert, NTag, NCode } from 'naive-ui'
+import { NConfigProvider, NCard, NSpace, NButton, NAlert, NTag } from 'naive-ui'
 import { pathManager } from '../utils/pathManager.js'
 
 const pathInfo = ref(null)

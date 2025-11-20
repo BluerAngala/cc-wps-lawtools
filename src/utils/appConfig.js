@@ -21,7 +21,8 @@ class AppConfigManager {
         webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL || '',
         token: import.meta.env.VITE_KDOCS_TOKEN || '',
         sheetId: Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
-        apiUrl: import.meta.env.VITE_KDOCS_API_URL || ''
+        cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
+        workflowId: import.meta.env.VITE_COZE_WORKFLOW_ID || ''
       },
       
       // 合同要素提取配置

@@ -61,7 +61,7 @@
               <div>
                 <n-text strong class="text-sm">请求 URL：</n-text>
                 <div class="mt-1">
-                  <n-code :code="requestInfo.url" language="text" />
+                  <pre class="text-sm whitespace-pre-wrap">{{ requestInfo.url }}</pre>
                 </div>
               </div>
               <div>
@@ -73,7 +73,7 @@
               <div>
                 <n-text strong class="text-sm">请求数据：</n-text>
                 <div class="mt-1">
-                  <n-code :code="formatRequestData(requestInfo.requestData)" language="json" />
+                  <pre class="text-sm whitespace-pre-wrap">{{ formatRequestData(requestInfo.requestData) }}</pre>
                 </div>
               </div>
             </n-space>
@@ -175,7 +175,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NCard, NCode, NText } from 'naive-ui'
+import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NCard, NText } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,
   Refresh as RefreshIcon,

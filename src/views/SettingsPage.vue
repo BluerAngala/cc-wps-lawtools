@@ -177,7 +177,7 @@
             <!-- 金山文档 -->
             <n-tab-pane name="kdocs" tab="📄 金山文档">
               <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                <n-text>配置金山文档接口参数</n-text>
+                <n-text>配置金山文档接口参数（Coze 工作流）</n-text>
                 <n-button size="small" @click="resetTab('kdocs')">恢复默认</n-button>
               </div>
               <n-form label-placement="left" label-width="120">
@@ -189,6 +189,12 @@
                 </n-form-item>
                 <n-form-item label="Sheet ID">
                   <n-input-number v-model:value="config.kdocs.sheetId" @update:value="autoSave" :min="1" :step="1" class="w-full" placeholder="5"/>
+                </n-form-item>
+                <n-form-item label="Coze API Key">
+                  <n-input v-model:value="config.kdocs.cozeApiKey" @update:value="autoSave" type="password" show-password-on="click" placeholder="请输入 Coze API Key"/>
+                </n-form-item>
+                <n-form-item label="Workflow ID">
+                  <n-input v-model:value="config.kdocs.workflowId" @update:value="autoSave" placeholder="请输入 Workflow ID"/>
                 </n-form-item>
               </n-form>
             </n-tab-pane>

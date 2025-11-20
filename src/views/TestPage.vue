@@ -42,7 +42,7 @@
               </n-space>
               <!-- 结果预览 -->
               <n-alert v-if="testResults.basicOps" type="info" title="执行结果">
-                <n-code :code="testResults.basicOps" language="text" />
+                <pre class="text-sm whitespace-pre-wrap">{{ testResults.basicOps }}</pre>
               </n-alert>
             </n-space>
           </n-collapse-item>
@@ -89,7 +89,7 @@
               
               <!-- 结果预览 -->
               <n-alert v-if="testResults.textProcessing" type="success" title="执行结果">
-                <n-code :code="testResults.textProcessing" language="text" />
+                <pre class="text-sm whitespace-pre-wrap">{{ testResults.textProcessing }}</pre>
               </n-alert>
             </n-space>
           </n-collapse-item>
@@ -133,12 +133,12 @@
               
               <!-- 结果预览 -->
               <n-alert v-if="testResults.aiFeatures" type="info" title="执行结果">
-                <n-code :code="testResults.aiFeatures" language="text" />
+                <pre class="text-sm whitespace-pre-wrap">{{ testResults.aiFeatures }}</pre>
               </n-alert>
               
               <!-- AI处理结果 -->
               <n-alert v-if="aiProcessedText" type="success" title="✨ AI处理结果">
-                <n-code :code="aiProcessedText" language="text" />
+                <pre class="text-sm whitespace-pre-wrap">{{ aiProcessedText }}</pre>
               </n-alert>
             </n-space>
           </n-collapse-item>
@@ -159,7 +159,7 @@
               </n-space>
               <!-- 结果预览 -->
               <n-alert v-if="testResults.paneControl" type="warning" title="执行结果">
-                <n-code :code="testResults.paneControl" language="text" />
+                <pre class="text-sm whitespace-pre-wrap">{{ testResults.paneControl }}</pre>
               </n-alert>
             </n-space>
           </n-collapse-item>
@@ -168,12 +168,12 @@
 
       <!-- 全局文档信息 -->
       <n-card v-if="docName" title="📄 当前文档" size="small">
-        <n-code :code="docName" language="text" />
+        <pre class="text-sm whitespace-pre-wrap">{{ docName }}</pre>
       </n-card>
 
       <!-- 全局提取的文本内容 -->
       <n-card v-if="extractedText" title="📝 文档文本内容" size="small">
-        <n-code :code="extractedText" language="text" :max-height="240" />
+        <pre class="text-sm whitespace-pre-wrap" style="max-height: 240px; overflow-y: auto;">{{ extractedText }}</pre>
       </n-card>
 
       <!-- 脱敏信息 -->
@@ -209,7 +209,7 @@
 import { ref, computed } from 'vue'
 import { 
   NConfigProvider, NCard, NButton, NSpace, NText, NIcon, NTag, 
-  NCollapse, NCollapseItem, NAlert, NCode, NInput, NFormItem, 
+  NCollapse, NCollapseItem, NAlert, NInput, NFormItem, 
   NDivider, NList, NListItem, NThing 
 } from 'naive-ui'
 import taskPane from '../services/wps/wpsTestHelper.js'
