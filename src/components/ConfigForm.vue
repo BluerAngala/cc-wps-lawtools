@@ -49,16 +49,6 @@
                 @update:value="updateConfig"
               />
             </div>
-            <div class="keyword-title">- {{ props.mode === 'keyword' ? '批注内容' : '任务要求' }}</div>
-            <n-input
-              v-model:value="item.comment"
-              :placeholder="props.mode === 'keyword' ? '请输入固定的批注内容' : '请输入AI任务要求，描述需要AI做什么'"
-              size="small"
-              type="textarea"
-              :rows="2"
-              class="w-full mt-0.5"
-              @update:value="updateConfig"
-            />
             <div class="keyword-title mt-2">- 执行动作</div>
             <n-select 
               v-model:value="item.actionType" 
@@ -67,6 +57,30 @@
               class="w-full mt-0.5"
               @update:value="updateConfig"
             />
+            <div v-if="item.actionType === '批注'" class="mt-2">
+              <div class="keyword-title">- {{ props.mode === 'keyword' ? '批注内容' : '任务要求' }}</div>
+              <n-input
+                v-model:value="item.comment"
+                :placeholder="props.mode === 'keyword' ? '请输入固定的批注内容' : '请输入AI任务要求，描述需要AI做什么'"
+                size="small"
+                type="textarea"
+                :rows="2"
+                class="w-full mt-0.5"
+                @update:value="updateConfig"
+              />
+            </div>
+            <div v-if="item.actionType === '修订'" class="mt-2">
+              <div class="keyword-title">- 修改内容</div>
+              <n-input
+                v-model:value="item.suggestedText"
+                placeholder="请输入修改后的内容"
+                size="small"
+                type="textarea"
+                :rows="2"
+                class="w-full mt-0.5"
+                @update:value="updateConfig"
+              />
+            </div>
           </div>
         </div>
         <n-button
@@ -204,7 +218,7 @@ const updateConfig = () => {
 }
 
 const addKeyword = (field) => {
-  field.value.push({ keyword: '', comment: '', actionType: '批注' })
+  field.value.push({ keyword: '', comment: '', actionType: '批注', suggestedText: '' })
   updateConfig()
 }
 

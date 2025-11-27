@@ -84,13 +84,13 @@
         />
       </n-collapse-item>
 
-      <!-- 一键处理结果 -->
+      <!-- 执行工作流 -->
       <n-collapse-item name="batch">
         <template #header>
           <div class="flex items-center justify-between w-full pr-2">
             <div class="flex items-center gap-2">
               <span>📄</span>
-              <span>一键处理结果</span>
+              <span>执行工作流</span>
               <n-tag v-if="batchProcessing" type="warning" size="small">处理中</n-tag>
             </div>
             <n-button
@@ -106,11 +106,25 @@
         </template>
         <div class="p-4">
           <n-alert type="info" :closable="false" show-icon class="mb-4">
-            <template #header>一键处理说明</template>
+            <template #header>工作流说明</template>
             <template #default>勾选需要执行的操作，系统会自动完成。</template>
           </n-alert>
 
           <n-form label-placement="left" label-width="auto" size="small" class="mb-4">
+            <n-form-item label="添加合同编号">
+              <n-space align="center" :size="12">
+                <n-switch v-model:value="batchOptions.addContractNumber" size="small" />
+                <span class="text-sm text-gray-600">添加合同编号到页眉</span>
+              </n-space>
+            </n-form-item>
+            <n-form-item label="合同编号" v-if="batchOptions.addContractNumber">
+              <n-input
+                v-model:value="batchOptions.contractNumber"
+                placeholder="请输入合同编号"
+                size="small"
+                clearable
+              />
+            </n-form-item>
             <n-form-item label="文档重命名">
               <n-space align="center" :size="12">
                 <n-switch v-model:value="batchOptions.rename" size="small" />
@@ -148,7 +162,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace } from 'naive-ui'
+import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NInput } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,
   Refresh as RefreshIcon,
@@ -158,6 +172,7 @@ import ContractExtractor from '../components/ContractExtractor.vue'
 import SmartCommenter from '../components/SmartCommenter.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { appConfig } from '../utils/appConfig.js'
+import taskPane from '../services/wps/wpsTestHelper.js'
 
 
 
@@ -173,6 +188,8 @@ const configs = ref({
   smart: {}
 })
 const batchOptions = ref({
+  addContractNumber: false,
+  contractNumber: '',
   rename: true,
   exportPdf: false,
   deleteOriginal: true
@@ -185,7 +202,11 @@ const smartProcessing = computed(
     contractService.isTaskProcessing('contractReviewNew')
 )
 const smartAIProcessing = computed(() => smartCommenterRef.value?.isAIProcessing?.value ?? false)
-const batchActionEnabled = computed(() => batchOptions.value.rename || batchOptions.value.exportPdf)
+const batchActionEnabled = computed(() => 
+  batchOptions.value.addContractNumber || 
+  batchOptions.value.rename || 
+  batchOptions.value.exportPdf
+)
 
 const triggerSmartProcess = () => {
   if (smartCommenterRef.value?.triggerExecute) {
@@ -285,12 +306,18 @@ const resetConfig = () => {
 }
 const clearCache = () => contractService.clearCache()
 
-// 一键处理：重命名 + 导出PDF
+// 一键处理：添加合同编号 + 重命名 + 导出PDF
 const handleBatchProcess = async () => {
   if (batchProcessing.value) return
 
-  if (!batchOptions.value.rename && !batchOptions.value.exportPdf) {
+  if (!batchOptions.value.addContractNumber && !batchOptions.value.rename && !batchOptions.value.exportPdf) {
     window.$message?.warning('请至少选择一个操作')
+    return
+  }
+
+  // 验证合同编号
+  if (batchOptions.value.addContractNumber && !batchOptions.value.contractNumber?.trim()) {
+    window.$message?.warning('请输入合同编号')
     return
   }
 
@@ -315,10 +342,13 @@ const handleBatchProcess = async () => {
   batchProcessing.value = true
   batchResult.value = null
 
+  const shouldAddContractNumber = batchOptions.value.addContractNumber
   const shouldRename = batchOptions.value.rename
   const shouldExport = batchOptions.value.exportPdf
   const shouldDeleteOriginal = batchOptions.value.deleteOriginal && shouldRename
 
+  let contractNumberAttempted = false
+  let contractNumberSuccess = false
   let renameAttempted = false
   let renameSuccess = false
   let deleteAttempted = false
@@ -335,12 +365,29 @@ const handleBatchProcess = async () => {
     const pathSeparator = directory.includes('/') ? '/' : '\\'
     const originalFullPath = directory ? `${directory}${pathSeparator}${originalName}` : originalName
 
-    
-    
-    
-
     let currentFileName = originalName
 
+    // 1. 添加合同编号到页眉
+    if (shouldAddContractNumber) {
+      contractNumberAttempted = true
+      try {
+        const headerResult = await taskPane.onbuttonclick('addHeader', {
+          headerText: `文件编号：${batchOptions.value.contractNumber.trim()}`,
+          fontSize: '12',
+          alignment: '右对齐'
+        })
+        
+        if (headerResult?.success) {
+          contractNumberSuccess = true
+        } else {
+          throw new Error(headerResult?.message || '页眉添加失败')
+        }
+      } catch (headerError) {
+        throw new Error(`添加合同编号失败: ${headerError.message || '未知错误'}`)
+      }
+    }
+
+    // 2. 文档重命名
     if (shouldRename) {
       renameAttempted = true
       
@@ -349,11 +396,9 @@ const handleBatchProcess = async () => {
       newFileName = `「已修订」${nameWithoutExt}${extension}`
       const newFullPath = directory ? `${directory}${pathSeparator}${newFileName}` : newFileName
 
-      
       doc.SaveAs2(newFullPath)
       renameSuccess = true
       currentFileName = newFileName
-      
 
       if (shouldDeleteOriginal) {
         const fs = window.Application?.FileSystem
@@ -374,6 +419,7 @@ const handleBatchProcess = async () => {
       }
     }
 
+    // 3. 导出PDF
     if (shouldExport) {
       pdfAttempted = true
       
@@ -453,6 +499,9 @@ const handleBatchProcess = async () => {
     }
 
     const messages = []
+    if (contractNumberAttempted && contractNumberSuccess) {
+      messages.push(`合同编号"${batchOptions.value.contractNumber.trim()}"已添加到页眉`)
+    }
     if (renameAttempted && renameSuccess) {
       messages.push(`文档已重命名为"${newFileName}"`)
     }
@@ -462,7 +511,7 @@ const handleBatchProcess = async () => {
       messages.push('当前环境不支持自动删除原文件，请手动删除原文件')
     } else if (shouldRename) {
       messages.push('保留了原始文件副本')
-    } else {
+    } else if (!contractNumberAttempted) {
       messages.push('已跳过文档重命名')
     }
     if (pdfAttempted && pdfSuccess) {
@@ -470,11 +519,12 @@ const handleBatchProcess = async () => {
       messages.push(`PDF已导出为"${pdfFileName}"`)
       messages.push(`PDF保存路径: ${pdfFullPath}`)
     }
-    if (!pdfAttempted) {
+    if (!pdfAttempted && !contractNumberAttempted) {
       messages.push('已跳过导出PDF')
     }
 
     const successFlags = []
+    if (contractNumberAttempted) successFlags.push(contractNumberSuccess)
     if (renameAttempted) successFlags.push(renameSuccess && (!deleteAttempted || deleteSuccess))
     if (pdfAttempted) successFlags.push(pdfSuccess)
     const overallSuccess = successFlags.length > 0 && successFlags.every(Boolean)
@@ -491,9 +541,14 @@ const handleBatchProcess = async () => {
     }
   } catch (error) {
     
-    
-
     const errorMessages = []
+    if (contractNumberAttempted) {
+      if (contractNumberSuccess) {
+        errorMessages.push(`合同编号"${batchOptions.value.contractNumber.trim()}"已添加到页眉`)
+      } else {
+        errorMessages.push(`添加合同编号失败: ${error.message || '未知错误'}`)
+      }
+    }
     if (renameAttempted) {
       if (renameSuccess) {
         errorMessages.push(`文档已重命名为"${newFileName}"`)
@@ -505,7 +560,7 @@ const handleBatchProcess = async () => {
       } else if (shouldDeleteOriginal && deleteUnsupported) {
         errorMessages.push('当前环境不支持自动删除原文件，请手动删除原文件')
       }
-    } else {
+    } else if (!contractNumberAttempted) {
       errorMessages.push('已跳过文档重命名')
     }
     if (pdfAttempted) {
@@ -514,7 +569,7 @@ const handleBatchProcess = async () => {
       } else {
         errorMessages.push(`PDF导出失败: ${error.message || '未知错误'}`)
       }
-    } else {
+    } else if (!contractNumberAttempted) {
       errorMessages.push('已跳过导出PDF')
     }
 
