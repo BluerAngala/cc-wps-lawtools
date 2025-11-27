@@ -58,8 +58,22 @@
         </n-collapse-item>
       </n-collapse>
 
-      <!-- 配置表单 -->
+      <!-- 方案选择器 -->
       <div v-if="currentMode === 'keyword' || currentMode === 'aiLawyer'">
+        <SchemeSelector
+          :schemes="currentSchemes"
+          :active-scheme-id="activeSchemeId"
+          :type="currentMode === 'keyword' ? 'keyword' : 'review'"
+          @update:active-scheme-id="handleSchemeChange"
+          @scheme-change="handleSchemeChange"
+          @scheme-create="handleSchemeCreate"
+          @scheme-update="handleSchemeUpdate"
+          @scheme-delete="handleSchemeDelete"
+        />
+      </div>
+
+      <!-- 配置表单 -->
+      <div v-if="currentMode === 'keyword' || currentMode === 'aiLawyer'" class="config-form-wrapper">
         <ConfigForm 
           :config="getConfigForm()" 
           :mode="currentMode === 'keyword' ? 'keyword' : 'review'" 
@@ -270,10 +284,12 @@ import {
   NProgress
 } from 'naive-ui'
 import ConfigForm from './ConfigForm.vue'
+import SchemeSelector from './SchemeSelector.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { reviewAIService } from '../services/contract/reviewAIService.js'
 import { reviewChecklistGenerator } from '../services/contract/reviewChecklistGenerator.js'
 import { wpsDocumentService } from '../services/wps/wpsDocumentService.js'
+import { appConfig } from '../utils/appConfig.js'
 
 // Props
 const props = defineProps({
@@ -308,6 +324,10 @@ const configForm = reactive({
   keywordList: [],
   reviewKeywordList: []
 })
+
+// 方案管理
+const currentSchemes = ref([])
+const activeSchemeId = ref(null)
 
 // 审查结果（仅AI模式）
 const reviewResult = ref(null)
@@ -646,25 +666,102 @@ const updateConfig = (configData) => {
   } else if (currentMode.value === 'aiLawyer') {
     configForm.reviewKeywordList = configData.keywordList.value
   }
+  
+  // 自动保存到当前激活方案
+  const type = currentMode.value === 'keyword' ? 'keyword' : 'review'
+  const rules = currentMode.value === 'keyword' ? configForm.keywordList : configForm.reviewKeywordList
+  appConfig.updateScheme(type, activeSchemeId.value, { rules })
+  
   emit('update-config', configForm)
 }
 
-// 监听 props 变化，同步配置
+// 加载方案数据
+const loadSchemes = (type) => {
+  const schemesData = appConfig.getSchemes(type)
+  currentSchemes.value = schemesData.schemes
+  activeSchemeId.value = schemesData.activeSchemeId
+  
+  // 加载当前激活方案的规则
+  const activeScheme = schemesData.schemes.find(s => s.id === schemesData.activeSchemeId)
+  if (activeScheme) {
+    if (type === 'keyword') {
+      configForm.keywordList = activeScheme.rules || []
+    } else {
+      configForm.reviewKeywordList = activeScheme.rules || []
+    }
+  }
+}
+
+// 方案切换
+const handleSchemeChange = (schemeId) => {
+  activeSchemeId.value = schemeId
+  const type = currentMode.value === 'keyword' ? 'keyword' : 'review'
+  appConfig.setActiveScheme(type, schemeId)
+  
+  // 加载方案规则
+  const scheme = currentSchemes.value.find(s => s.id === schemeId)
+  if (scheme) {
+    if (type === 'keyword') {
+      configForm.keywordList = scheme.rules || []
+    } else {
+      configForm.reviewKeywordList = scheme.rules || []
+    }
+    emit('update-config', configForm)
+  }
+}
+
+// 创建方案
+const handleSchemeCreate = (newScheme) => {
+  const type = currentMode.value === 'keyword' ? 'keyword' : 'review'
+  appConfig.createScheme(type, newScheme)
+  loadSchemes(type)
+  window.$message?.success(`方案"${newScheme.name}"创建成功`)
+}
+
+// 更新方案
+const handleSchemeUpdate = (schemeId, updates) => {
+  const type = currentMode.value === 'keyword' ? 'keyword' : 'review'
+  appConfig.updateScheme(type, schemeId, updates)
+  loadSchemes(type)
+  window.$message?.success('方案更新成功')
+}
+
+// 删除方案
+const handleSchemeDelete = (schemeId) => {
+  const type = currentMode.value === 'keyword' ? 'keyword' : 'review'
+  const success = appConfig.deleteScheme(type, schemeId)
+  if (success) {
+    loadSchemes(type)
+    window.$message?.success('方案删除成功')
+  } else {
+    window.$message?.error('删除失败，至少需要保留一个方案')
+  }
+}
+
+// 监听模式切换，加载对应方案
+watch(currentMode, (newMode) => {
+  if (newMode === 'keyword') {
+    loadSchemes('keyword')
+  } else if (newMode === 'aiLawyer') {
+    loadSchemes('review')
+  }
+}, { immediate: true })
+
+// 监听 props 变化，同步配置（保留兼容性）
 watch(
   () => props.keywordConfig,
   (newConfig) => {
-    if (newConfig && newConfig.keywordList) {
+    if (newConfig && newConfig.keywordList && currentMode.value === 'keyword') {
       configForm.keywordList = newConfig.keywordList
     }
   },
-  { immediate: true, deep: true }
+  { deep: true }
 )
 
 watch(
   () => props.reviewConfig,
   (newConfig) => {
-    if (newConfig && newConfig.contractReviewRules) {
-      // review 配置使用 contractReviewRules 字段，转换为组件内部格式
+    if (newConfig && newConfig.contractReviewRules && currentMode.value === 'aiLawyer') {
       configForm.reviewKeywordList = newConfig.contractReviewRules.map(rule => ({
         keyword: rule.reviewRules,
         comment: rule.reviewRequirements,
@@ -672,7 +769,7 @@ watch(
       }))
     }
   },
-  { immediate: true, deep: true }
+  { deep: true }
 )
 
 defineExpose({
@@ -724,5 +821,9 @@ defineExpose({
 
 .mode-buttons :deep(.n-space) {
   flex-wrap: nowrap !important;
+}
+
+.config-form-wrapper {
+  margin-top: 12px;
 }
 </style>

@@ -30,8 +30,10 @@ class AppConfigManager {
         webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL || '',
         token: import.meta.env.VITE_KDOCS_TOKEN || '',
         sheetId: Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
-        cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
-        workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '',  // 用于金山文档操作的工作流ID
+        cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
+
+        workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '',  // 用于金山文档操作的工作流ID
+
         companyInfoWorkflowId: import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034'  // 用于获取企业信息的工作流ID
       },
       
@@ -40,23 +42,49 @@ class AppConfigManager {
         extractTags: ['合同名称', '甲方', '乙方', '其他方', '合同金额']
       },
       
-      // 关键词批注配置
+      // 关键词批注配置（保留兼容性）
       keyword: {
         keywordList: [
-          { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注' },
-          { keyword: '付款方式', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注' },
-          { keyword: '费用', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注' },
-          { keyword: '验收', comment: '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。', actionType: '批注' },
-          { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误', actionType: '批注' },
-          { keyword: '仲裁', comment: '建议约定统一约定法院管辖', actionType: '修订' },
-          { keyword: '"广东特支计划"', comment: '提醒确认项目名称以及期数是否准确无误', actionType: '批注' },
-          { keyword: '培养期为', comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！', actionType: '批注' },
-          { keyword: '资金发放安排', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注' },
-          { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注' }
+          { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' },
+          { keyword: '付款方式', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
+          { keyword: '费用', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
+          { keyword: '验收', comment: '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。', actionType: '批注', suggestedText: '' },
+          { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误', actionType: '批注', suggestedText: '' },
+          { keyword: '仲裁', comment: '建议约定统一约定法院管辖', actionType: '修订', suggestedText: '' },
+          { keyword: '"广东特支计划"', comment: '提醒确认项目名称以及期数是否准确无误', actionType: '批注', suggestedText: '' },
+          { keyword: '培养期为', comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！', actionType: '批注', suggestedText: '' },
+          { keyword: '资金发放安排', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
+          { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' }
         ]
       },
       
-      // 合同审查配置
+      // 关键词方案管理（新增）
+      keywordSchemes: {
+        schemes: [
+          {
+            id: 'default_keyword',
+            name: '默认方案',
+            type: 'keyword',
+            rules: [
+              { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' },
+              { keyword: '付款方式', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
+              { keyword: '费用', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
+              { keyword: '验收', comment: '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。', actionType: '批注', suggestedText: '' },
+              { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误', actionType: '批注', suggestedText: '' },
+              { keyword: '仲裁', comment: '建议约定统一约定法院管辖', actionType: '修订', suggestedText: '' },
+              { keyword: '"广东特支计划"', comment: '提醒确认项目名称以及期数是否准确无误', actionType: '批注', suggestedText: '' },
+              { keyword: '培养期为', comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！', actionType: '批注', suggestedText: '' },
+              { keyword: '资金发放安排', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
+              { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' }
+            ],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ],
+        activeSchemeId: 'default_keyword'
+      },
+      
+      // 合同审查配置（保留兼容性）
       review: {
         contractReviewRules: [
           {
@@ -85,6 +113,47 @@ class AppConfigManager {
             actionType: '批注'
           }
         ]
+      },
+      
+      // 审查方案管理（新增）
+      reviewSchemes: {
+        schemes: [
+          {
+            id: 'default_review',
+            name: '默认审查方案',
+            type: 'review',
+            rules: [
+              {
+                reviewRules: '争议解决',
+                reviewRequirements: '请AI审查合同中的争议解决条款，检查是否约定了明确的纠纷处理方式（仲裁或法院管辖），并评估条款的有效性和合理性',
+                actionType: '批注'
+              },
+              {
+                reviewRules: '违约责任',
+                reviewRequirements: '请AI分析违约责任条款的完整性，检查违约金标准是否合理，免责条款是否过于宽泛，并提出改进建议',
+                actionType: '批注'
+              },
+              {
+                reviewRules: '付款条件',
+                reviewRequirements: '请AI审查并优化付款条款，确保付款方式、期限、条件表述清晰，识别潜在的付款风险并提出修订建议',
+                actionType: '修订'
+              },
+              {
+                reviewRules: '合同期限',
+                reviewRequirements: '请AI检查合同期限条款的明确性，包括起止时间、续约机制、提前终止条件，并评估是否存在歧义',
+                actionType: '批注'
+              },
+              {
+                reviewRules: '知识产权',
+                reviewRequirements: '请AI全面审查知识产权相关条款，包括权利归属、使用范围、侵权责任分担、保密义务等，确保权责清晰',
+                actionType: '批注'
+              }
+            ],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ],
+        activeSchemeId: 'default_review'
       },
       
       // 系统配置
@@ -350,6 +419,144 @@ class AppConfigManager {
    */
   getDefaultConfig() {
     return { ...this.defaultConfig }
+  }
+
+  /**
+   * 获取方案列表
+   * @param {string} type - 'keyword' | 'review'
+   */
+  getSchemes(type) {
+    const config = this.getConfig()
+    const schemeKey = type === 'keyword' ? 'keywordSchemes' : 'reviewSchemes'
+    
+    // 如果没有方案配置，从旧配置迁移
+    if (!config[schemeKey] || !config[schemeKey].schemes) {
+      return this.migrateToSchemes(type)
+    }
+    
+    return config[schemeKey]
+  }
+
+  /**
+   * 保存方案列表
+   * @param {string} type - 'keyword' | 'review'
+   * @param {Object} schemesData - { schemes: [], activeSchemeId: '' }
+   */
+  saveSchemes(type, schemesData) {
+    const config = this.getConfig()
+    const schemeKey = type === 'keyword' ? 'keywordSchemes' : 'reviewSchemes'
+    config[schemeKey] = schemesData
+    return this.saveConfig(config)
+  }
+
+  /**
+   * 获取当前激活的方案
+   * @param {string} type - 'keyword' | 'review'
+   */
+  getActiveScheme(type) {
+    const schemesData = this.getSchemes(type)
+    const activeScheme = schemesData.schemes.find(s => s.id === schemesData.activeSchemeId)
+    return activeScheme || schemesData.schemes[0]
+  }
+
+  /**
+   * 设置激活的方案
+   * @param {string} type - 'keyword' | 'review'
+   * @param {string} schemeId - 方案ID
+   */
+  setActiveScheme(type, schemeId) {
+    const schemesData = this.getSchemes(type)
+    schemesData.activeSchemeId = schemeId
+    return this.saveSchemes(type, schemesData)
+  }
+
+  /**
+   * 创建新方案
+   * @param {string} type - 'keyword' | 'review'
+   * @param {Object} scheme - 方案对象
+   */
+  createScheme(type, scheme) {
+    const schemesData = this.getSchemes(type)
+    schemesData.schemes.push(scheme)
+    schemesData.activeSchemeId = scheme.id
+    return this.saveSchemes(type, schemesData)
+  }
+
+  /**
+   * 更新方案
+   * @param {string} type - 'keyword' | 'review'
+   * @param {string} schemeId - 方案ID
+   * @param {Object} updates - 更新内容
+   */
+  updateScheme(type, schemeId, updates) {
+    const schemesData = this.getSchemes(type)
+    const scheme = schemesData.schemes.find(s => s.id === schemeId)
+    if (scheme) {
+      Object.assign(scheme, updates)
+      scheme.updatedAt = new Date().toISOString()
+      return this.saveSchemes(type, schemesData)
+    }
+    return false
+  }
+
+  /**
+   * 删除方案
+   * @param {string} type - 'keyword' | 'review'
+   * @param {string} schemeId - 方案ID
+   */
+  deleteScheme(type, schemeId) {
+    const schemesData = this.getSchemes(type)
+    
+    // 不能删除最后一个方案
+    if (schemesData.schemes.length <= 1) {
+      return false
+    }
+    
+    const index = schemesData.schemes.findIndex(s => s.id === schemeId)
+    if (index !== -1) {
+      schemesData.schemes.splice(index, 1)
+      
+      // 如果删除的是当前激活方案，切换到第一个方案
+      if (schemesData.activeSchemeId === schemeId) {
+        schemesData.activeSchemeId = schemesData.schemes[0].id
+      }
+      
+      return this.saveSchemes(type, schemesData)
+    }
+    return false
+  }
+
+  /**
+   * 从旧配置迁移到方案系统
+   * @param {string} type - 'keyword' | 'review'
+   */
+  migrateToSchemes(type) {
+    const config = this.getConfig()
+    const schemeKey = type === 'keyword' ? 'keywordSchemes' : 'reviewSchemes'
+    const oldKey = type === 'keyword' ? 'keyword' : 'review'
+    
+    // 从旧配置创建默认方案
+    const defaultScheme = {
+      id: `default_${type}`,
+      name: '默认方案',
+      type: type,
+      rules: type === 'keyword' 
+        ? (config[oldKey]?.keywordList || [])
+        : (config[oldKey]?.contractReviewRules || []),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+    
+    const schemesData = {
+      schemes: [defaultScheme],
+      activeSchemeId: defaultScheme.id
+    }
+    
+    // 保存迁移后的配置
+    config[schemeKey] = schemesData
+    this.saveConfig(config)
+    
+    return schemesData
   }
 }
 
