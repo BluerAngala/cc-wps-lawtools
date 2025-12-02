@@ -47,7 +47,7 @@ function OnAction(control) {
     // AI助理
     case 'btnShowAI':
       {
-        const url = 'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn?from=share'
+        const url = 'https://yuanqi.tencent.com/webim/#/chat/tigQTg?appid=1995670616961503232&experience=true'
         console.log('url', url)
         Util.wpsService.createExternalTaskPane(
           url,
