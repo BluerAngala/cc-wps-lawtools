@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2.5 h-screen overflow-y-auto scrollbar-none">
+  <PageLayout>
     <!-- 主控制面板 -->
     <div class="wps-card wps-section">
       <!-- 操作按钮 -->
@@ -157,12 +157,13 @@
         </div>
       </n-collapse-item>
     </n-collapse>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NInput } from 'naive-ui'
+import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NInput } from '../components/naive-components.js'
+import { PageLayout } from '../components/common'
 import {
   DocumentOutline as DocumentIcon,
   Refresh as RefreshIcon,

@@ -1,25 +1,20 @@
 <template>
-  <n-config-provider>
-    <div class="p-2.5 h-screen overflow-y-auto scrollbar-none">
-      <!-- 标题卡片 -->
-      <div class="wps-card wps-section">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span class="text-lg font-semibold">📄 文档模板管理</span>
-            <n-tag type="info" size="small">{{ currentCategory }}</n-tag>
-          </div>
-          <n-button type="primary" size="small" @click="showSaveTemplateDialog">
-            保存为模板
-          </n-button>
-        </div>
-
-        <n-alert type="info" :closable="false" show-icon class="mb-4">
-          <template #header>功能说明</template>
-          <template #default>
-            管理常用法律文书模板，支持快速应用模板到当前文档或新建文档。
-          </template>
-        </n-alert>
-      </div>
+  <PageLayout>
+    <!-- 标题卡片 -->
+    <PageHeader
+      title="文档模板管理"
+      icon="📄"
+      description="管理常用法律文书模板，支持快速应用模板到当前文档或新建文档。"
+    >
+      <template #tag>
+        <n-tag type="info" size="small">{{ currentCategory }}</n-tag>
+      </template>
+      <template #actions>
+        <n-button type="primary" size="small" @click="showSaveTemplateDialog">
+          保存为模板
+        </n-button>
+      </template>
+    </PageHeader>
 
       <!-- 分类标签 -->
       <div class="wps-card wps-section mt-4">
@@ -213,28 +208,13 @@
           </n-space>
         </template>
       </n-modal>
-    </div>
-  </n-config-provider>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import {
-  NConfigProvider,
-  NButton,
-  NSpace,
-  NTag,
-  NAlert,
-  NTabs,
-  NTabPane,
-  NModal,
-  NFormItem,
-  NInput,
-  NSelect,
-  NCard,
-  NEmpty,
-  NPopconfirm
-} from 'naive-ui'
+import { NButton, NSpace, NTag, NAlert, NTabs, NTabPane, NModal, NFormItem, NInput, NSelect, NCard, NEmpty, NPopconfirm } from '../components/naive-components.js'
+import { PageLayout, PageHeader } from '../components/common'
 import { templateManager } from '../utils/templateManager.js'
 import { pathManager } from '../utils/pathManager.js'
 import unifiedLogger from '../utils/unifiedLogger.js'

@@ -218,10 +218,12 @@
 
                 </n-form-item>
 
-                <n-form-item label="企业信息查询工作流ID">
-
-                  <n-input v-model:value="config.kdocs.companyInfoWorkflowId" @update:value="autoSave" placeholder="请输入企业信息查询工作流ID"/>
-
+                <n-form-item label="企业信息工作流ID">
+
+
+
+                  <n-input v-model:value="config.kdocs.companyInfoWorkflowId" @update:value="autoSave" placeholder="请输入企业信息查询工作流ID"/>
+
                 </n-form-item>
 
               </n-form>
