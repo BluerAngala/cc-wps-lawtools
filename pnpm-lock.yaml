@@ -60,6 +60,9 @@ importers:
       vite:
         specifier: ^6.2.0
         version: 6.4.1(@types/node@24.10.1)(jiti@2.6.1)
+      wps-jsapi:
+        specifier: ^1.0.5
+        version: 1.0.5
       wps-jsapi-declare:
         specifier: latest
         version: 2.1.0
@@ -1959,6 +1962,9 @@ packages:
 
   wps-jsapi-declare@2.1.0:
     resolution: {integrity: sha512-HgX7efYNLbwplHi1YgtA6KXk85lExIx/Wiq4J7E7oTLQtkK8hzT2+x+041BXhreM7U9Tp2tFrYosBrtH+mVGng==}
+
+  wps-jsapi@1.0.5:
+    resolution: {integrity: sha512-xybl4akK2pwpJsZs5dqron5sRZdO33B+F8qSspvJpJgordggSmke5rfx8qyY2R70R0eArZIv7CKehFw91AHefg==}
 
   wpsjs-rpc-sdk-new@1.1.0:
     resolution: {integrity: sha512-Cs3rbKKF9OQ93Qnl0bex4dHLgVW45gmoAxQ1/2OJzAJBiUHUAuwIDh1nD14nOLrGEnfwOwiaHgrpbC+z4TT7yA==}
@@ -3911,6 +3917,8 @@ snapshots:
   word-wrap@1.2.5: {}
 
   wps-jsapi-declare@2.1.0: {}
+
+  wps-jsapi@1.0.5: {}
 
   wpsjs-rpc-sdk-new@1.1.0: {}
 

@@ -35,6 +35,13 @@ export class DataSubmitter {
       return null
     }
 
+    // 检测是否是无效的原始数据（解析失败的结果）
+    if (rawResult._isRaw || rawResult.content || rawResult._rawContent) {
+      console.warn('提取结果是未解析的原始数据，请重试:', rawResult)
+      window.$message?.error('AI返回的数据格式不正确，请清除缓存后重试')
+      return null
+    }
+
     // 过滤非数据字段
     const filteredData = this.filterDataFields(rawResult)
     let finalData = Object.keys(filteredData).length > 0 ? filteredData : rawResult

@@ -288,8 +288,13 @@ export class TaskScheduler {
     const contentHash = this.documentParser.generateContentHash(content)
     const cached = this.cacheManager.get(contentHash, analysisType, options)
     if (cached) {
-      console.log(`✅ 缓存命中: ${analysisType}，直接返回缓存结果`)
-      return cached
+      // 验证缓存结果是否有效（不是原始文本或错误结果）
+      if (cached._isRaw || cached.error || cached.content) {
+        console.log(`⚠️ 缓存结果无效，重新调用AI: ${analysisType}`)
+      } else {
+        console.log(`✅ 缓存命中: ${analysisType}，直接返回缓存结果`)
+        return cached
+      }
     }
 
     console.log(`缓存未命中，准备调用AI`)
@@ -302,14 +307,18 @@ export class TaskScheduler {
     // 调用AI服务
     const response = await this.callAI(prompt, options)
 
-    // 解析响应
+    // 解析响应（如果解析失败会抛出错误，不会被缓存）
     console.log(`解析AI响应 - 类型: ${analysisType}`)
     const result = this.parseAIResponse(response, analysisType)
     console.log(`响应解析完成`)
 
-    // 保存到缓存
-    this.cacheManager.set(contentHash, analysisType, result, options)
-    console.log(`✅ 结果已缓存`)
+    // 只有成功解析的结构化结果才缓存
+    if (result && !result._isRaw && !result.error) {
+      this.cacheManager.set(contentHash, analysisType, result, options)
+      console.log(`✅ 结果已缓存`)
+    } else {
+      console.log(`⚠️ 结果未缓存（非结构化数据）`)
+    }
 
     return result
   }
@@ -425,19 +434,38 @@ export class TaskScheduler {
    */
   parseAIResponse(response, analysisType) {
     try {
-      // 尝试解析JSON
-      const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/) || response.match(/{[\s\S]*}/)
+      // 检查响应是否为空或无效
+      if (!response || typeof response !== 'string') {
+        throw new Error('AI响应为空或格式无效')
+      }
 
+      // 尝试解析JSON - 先尝试 markdown 代码块格式
+      let jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/)
       if (jsonMatch) {
-        const jsonStr = jsonMatch[1] || jsonMatch[0]
+        const jsonStr = jsonMatch[1].trim()
         return JSON.parse(jsonStr)
       }
 
-      // 如果不是JSON格式，返回原始文本
-      return { content: response, type: analysisType }
+      // 尝试直接匹配 JSON 对象
+      jsonMatch = response.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[0].trim()
+        return JSON.parse(jsonStr)
+      }
+
+      // 如果不是JSON格式，对于 extractText 类型抛出错误
+      if (analysisType === 'extractText') {
+        console.error('AI响应不是有效的JSON格式:', response.substring(0, 200))
+        throw new Error('AI返回的数据格式不正确，请重试')
+      }
+
+      // 其他类型返回原始文本（但标记为非结构化数据）
+      return { _rawContent: response, _type: analysisType, _isRaw: true }
     } catch (error) {
-      console.error('解析AI响应失败:', error)
-      return { content: response, type: analysisType, error: '解析失败' }
+      console.error('解析AI响应失败:', error.message)
+      console.error('原始响应前200字符:', response?.substring?.(0, 200))
+      // 抛出错误而不是返回错误对象，这样不会被缓存
+      throw new Error(`AI响应解析失败: ${error.message}`)
     }
   }
 

@@ -89,9 +89,40 @@ export class CacheManager {
       const content = fs.ReadFile(cacheFilePath)
       if (!content || content.trim() === '') return null
 
-      return JSON.parse(content)
+      // 验证内容是否为有效的 JSON 格式（防止编码损坏）
+      if (!content.startsWith('{') && !content.startsWith('[')) {
+        console.warn('缓存文件内容格式异常，可能已损坏:', cacheFilePath)
+        this.deleteCacheFile(cacheFilePath)
+        return null
+      }
+
+      const parsed = JSON.parse(content)
+      
+      // 验证缓存结果是否有效（不是解析失败的结果）
+      if (parsed.result && parsed.result.error === '解析失败') {
+        console.warn('缓存的结果是解析失败的数据，删除缓存:', cacheFilePath)
+        this.deleteCacheFile(cacheFilePath)
+        return null
+      }
+      
+      // 验证缓存结果是否包含乱码（检测非法字符）
+      if (parsed.result && parsed.result.content) {
+        const contentStr = parsed.result.content
+        // 检测是否包含大量非中文、非英文、非常见标点的字符
+        // eslint-disable-next-line no-useless-escape
+        const abnormalChars = contentStr.match(/[^\u4e00-\u9fa5a-zA-Z0-9\s.,;:!?'"()\[\]{}<>@#$%^&*+=\-_/\\|`~，。；：！？""''（）【】《》、\n\r\t]/g)
+        if (abnormalChars && abnormalChars.length > contentStr.length * 0.3) {
+          console.warn('缓存内容包含大量异常字符，可能已损坏:', cacheFilePath)
+          this.deleteCacheFile(cacheFilePath)
+          return null
+        }
+      }
+
+      return parsed
     } catch (error) {
       console.warn('读取缓存文件失败:', error)
+      // 解析失败时删除损坏的缓存文件
+      this.deleteCacheFile(cacheFilePath)
       return null
     }
   }
