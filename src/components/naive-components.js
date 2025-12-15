@@ -10,16 +10,17 @@ export { NConfigProvider, NMessageProvider } from 'naive-ui'
 export { NCard, NSpace, NGrid, NGridItem, NDivider } from 'naive-ui'
 
 // 表单组件
-export { 
-  NForm, 
-  NFormItem, 
-  NInput, 
-  NInputNumber, 
-  NSelect, 
-  NSwitch, 
-  NCheckbox, 
-  NRadio, 
-  NRadioGroup 
+export {
+  NForm,
+  NFormItem,
+  NInput,
+  NInputNumber,
+  NSelect,
+  NSwitch,
+  NCheckbox,
+  NCheckboxGroup,
+  NRadio,
+  NRadioGroup
 } from 'naive-ui'
 
 // 按钮和交互组件

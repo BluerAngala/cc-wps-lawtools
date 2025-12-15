@@ -15,7 +15,7 @@ export class ContractReviewEngine {
     this.segmenter = documentSegmenter
     this.wpsService = wpsDocumentService
     this.aiService = reviewAIService
-    this._appliedComments = new Set() // 记录已应用的批注，避免重复
+    this._appliedComments = new Map() // 记录已应用的批注，避免重复
   }
 
   /**
@@ -23,7 +23,7 @@ export class ContractReviewEngine {
    */
   async review(options = {}) {
     // 重置已应用批注记录（每次审查开始时清空）
-    this._appliedComments = new Set()
+    this._appliedComments = new Map()
     
     // 1. 获取文档文本和段落信息
     const fullText = this.wpsService.getFullText()

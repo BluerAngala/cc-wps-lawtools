@@ -27,10 +27,16 @@ export class IdentifyContractAction extends AIBaseAction {
     try {
       this.emitProgress(params, '正在识别合同类型...')
 
+      // 构建增强 prompt
+      const enhancedPrompt = this.buildEnhancedPrompt('', {
+        customPrompt: params.customPrompt
+      })
+
       // 调用 AI 服务识别合同类型
       const result = await reviewAIService.identifyContractType(
         context.documentText,
-        (progress) => this.emitProgress(params, progress.stage, progress.content)
+        (progress) => this.emitProgress(params, progress.stage, progress.content),
+        { enhancedPrompt }
       )
 
       // 存储到上下文
@@ -54,6 +60,14 @@ export class IdentifyContractAction extends AIBaseAction {
     return {
       type: 'object',
       properties: {
+        customPrompt: {
+          type: 'string',
+          title: '自定义指令',
+          description: '用自然语言补充说明合同类型',
+          inputType: 'textarea',
+          placeholder: '例如：这是一份建设工程类合同',
+          default: ''
+        },
         onProgress: {
           type: 'function',
           title: '进度回调',

@@ -59,7 +59,10 @@
 
     <!-- 预设工作流选择 -->
     <div class="wps-card wps-section mt-2">
-      <div class="text-sm font-semibold mb-3">预设工作流</div>
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-sm font-semibold">预设工作流</div>
+        <n-button size="tiny" type="error" @click="clearSteps">清空</n-button>
+      </div>
       
       <!-- AI 工作流预设 -->
       <div class="mb-3">
@@ -90,7 +93,6 @@
           >
             {{ preset.name }}
           </n-button>
-          <n-button size="small" @click="clearSteps">清空</n-button>
         </n-space>
       </div>
     </div>
@@ -176,9 +178,23 @@
           <n-select
             v-if="prop.enum"
             v-model:value="editingStep.params[key]"
-            :options="prop.enum.map(v => ({ label: getEnumLabel(v), value: v }))"
+            :options="getEnumOptions(prop)"
             :placeholder="prop.description"
           />
+          <!-- 数组类型 + options：多选框组 -->
+          <n-checkbox-group
+            v-else-if="prop.type === 'array' && prop.options"
+            v-model:value="editingStep.params[key]"
+          >
+            <n-space>
+              <n-checkbox
+                v-for="opt in prop.options"
+                :key="opt.value"
+                :value="opt.value"
+                :label="opt.label"
+              />
+            </n-space>
+          </n-checkbox-group>
           <!-- 布尔开关 -->
           <div v-else-if="prop.type === 'boolean'" class="flex items-center gap-2">
             <n-switch v-model:value="editingStep.params[key]" />
@@ -191,11 +207,19 @@
             :placeholder="prop.description"
             class="w-full"
           />
+          <!-- 多行文本输入 -->
+          <n-input
+            v-else-if="prop.inputType === 'textarea'"
+            v-model:value="editingStep.params[key]"
+            type="textarea"
+            :placeholder="prop.placeholder || prop.description"
+            :rows="3"
+          />
           <!-- 字符串输入（默认） -->
           <n-input
             v-else
             v-model:value="editingStep.params[key]"
-            :placeholder="prop.description"
+            :placeholder="prop.placeholder || prop.description"
           />
         </n-form-item>
       </n-form>
@@ -245,7 +269,9 @@ import {
   NInputNumber,
   NSwitch,
   NSelect,
-  NTag
+  NTag,
+  NCheckboxGroup,
+  NCheckbox
 } from '../components/naive-components.js'
 import { PageLayout, PageHeader } from '../components/common'
 import ResultModal from '../components/ResultModal.vue'
@@ -319,21 +345,47 @@ const getActionName = (type) => {
 const getStepSchema = (step) => {
   const action = actionRegistry.get(step.actionType)
   const properties = action?.getSchema()?.properties || {}
-  // 过滤掉 function 类型和 array 类型（不可在简单表单中编辑）
+  // 过滤掉 function 类型（不可在表单中编辑）
+  // 保留 array 类型（如果有 options 则显示为多选框）
   const editableProps = {}
   Object.entries(properties).forEach(([key, prop]) => {
-    if (prop.type !== 'function' && prop.type !== 'array') {
+    if (prop.type !== 'function') {
+      // array 类型只有在有 options 时才可编辑
+      if (prop.type === 'array' && !prop.options) {
+        return
+      }
       editableProps[key] = prop
     }
   })
   return editableProps
 }
 
+// 获取枚举选项（支持 enumLabels）
+const getEnumOptions = (prop) => {
+  if (!prop.enum) return []
+  return prop.enum.map((value, index) => ({
+    label: prop.enumLabels?.[index] || getEnumLabel(value),
+    value
+  }))
+}
+
 // 获取枚举值的友好标签
 const getEnumLabel = (value) => {
   const labels = {
+    // 审查策略
     full: '全文审查',
-    segment: '分段审查'
+    segment: '分段审查',
+    // 审查视角
+    partyA: '甲方视角',
+    partyB: '乙方视角',
+    neutral: '中立视角',
+    // 审查深度
+    quick: '快速',
+    standard: '标准',
+    deep: '深度',
+    // 提取模式
+    basic: '基础要素',
+    // full 已在上面定义
   }
   return labels[value] || value
 }
@@ -385,7 +437,12 @@ const removeStep = (index) => {
 
 const editStep = (index) => {
   editingIndex.value = index
-  editingStep.value = JSON.parse(JSON.stringify(currentSteps.value[index]))
+  const step = JSON.parse(JSON.stringify(currentSteps.value[index]))
+  // 确保 params 存在
+  if (!step.params) {
+    step.params = {}
+  }
+  editingStep.value = step
   showEditModal.value = true
 }
 

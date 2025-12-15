@@ -27,10 +27,23 @@ export class ExtractContractAction extends AIBaseAction {
     try {
       this.emitProgress(params, '正在提取合同要素...')
 
+      // 构建增强 prompt
+      const enhancedPrompt = this.buildEnhancedPrompt('', {
+        extractMode: params.extractMode,
+        customPrompt: params.customPrompt
+      })
+
+      // 根据提取模式设置提取标签
+      const extractTags =
+        params.extractMode === 'basic'
+          ? ['甲方', '乙方', '合同金额', '签订日期', '合同期限']
+          : null // full 模式提取所有
+
       // 调用 AI 服务提取合同要素
       const rawResponse = await processContractElements({
         content: context.documentText,
-        extractTags: params.extractTags || null
+        extractTags,
+        enhancedPrompt
       })
 
       // 解析响应
@@ -92,10 +105,21 @@ export class ExtractContractAction extends AIBaseAction {
     return {
       type: 'object',
       properties: {
-        extractTags: {
-          type: 'array',
-          title: '提取标签',
-          description: '要提取的信息标签列表，如 ["甲方", "乙方", "合同金额"]'
+        extractMode: {
+          type: 'string',
+          title: '提取模式',
+          description: '选择提取的详细程度',
+          enum: ['basic', 'full'],
+          enumLabels: ['基础要素（甲乙方、金额、日期）', '完整要素（所有可识别信息）'],
+          default: 'basic'
+        },
+        customPrompt: {
+          type: 'string',
+          title: '自定义指令',
+          description: '用自然语言补充说明特殊需求',
+          inputType: 'textarea',
+          placeholder: '例如：额外提取担保人信息',
+          default: ''
         },
         onProgress: {
           type: 'function',

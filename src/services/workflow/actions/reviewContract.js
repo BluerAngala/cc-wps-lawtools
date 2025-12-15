@@ -27,11 +27,20 @@ export class ReviewContractAction extends AIBaseAction {
     try {
       this.emitProgress(params, '正在审查合同...')
 
+      // 构建增强 prompt
+      const enhancedPrompt = this.buildEnhancedPrompt('', {
+        perspective: params.perspective,
+        depth: params.depth,
+        focusAreas: params.focusAreas,
+        customPrompt: params.customPrompt
+      })
+
       // 构建审查选项
       const reviewOptions = {
-        strategy: params.strategy || 'full',
+        strategy: params.depth === 'deep' ? 'segment' : 'full',
         useCustomRules: params.useCustomRules || false,
-        autoApply: params.autoApply || false,
+        autoApply: params.autoApply !== false,
+        enhancedPrompt, // 传递增强 prompt
         onProgress: (progress) => {
           if (typeof progress === 'object') {
             this.emitProgress(params, progress.stage, progress.content)
@@ -74,24 +83,50 @@ export class ReviewContractAction extends AIBaseAction {
     return {
       type: 'object',
       properties: {
-        strategy: {
+        perspective: {
           type: 'string',
-          title: '审查策略',
-          description: '审查策略：full（全文审查）或 segment（分段审查）',
-          enum: ['full', 'segment'],
-          default: 'full'
+          title: '审查视角',
+          description: '选择从哪方视角进行审查',
+          enum: ['partyA', 'partyB', 'neutral'],
+          enumLabels: ['甲方视角', '乙方视角', '中立视角'],
+          default: 'neutral'
         },
-        useCustomRules: {
-          type: 'boolean',
-          title: '使用自定义规则',
-          description: '是否使用用户自定义的审查规则',
-          default: false
+        depth: {
+          type: 'string',
+          title: '审查深度',
+          description: '选择审查的详细程度',
+          enum: ['quick', 'standard', 'deep'],
+          enumLabels: ['快速（识别重大风险）', '标准（全面审查）', '深度（逐条分析）'],
+          default: 'standard'
+        },
+        focusAreas: {
+          type: 'array',
+          title: '关注领域',
+          description: '选择重点关注的条款类型',
+          items: { type: 'string' },
+          options: [
+            { value: 'liability', label: '违约责任' },
+            { value: 'payment', label: '付款条款' },
+            { value: 'confidential', label: '保密条款' },
+            { value: 'ip', label: '知识产权' },
+            { value: 'dispute', label: '争议解决' },
+            { value: 'forceMajeure', label: '不可抗力' }
+          ],
+          default: []
         },
         autoApply: {
           type: 'boolean',
           title: '自动应用批注',
           description: '是否自动将审查结果作为批注添加到文档',
-          default: false
+          default: true
+        },
+        customPrompt: {
+          type: 'string',
+          title: '自定义指令',
+          description: '用自然语言补充说明特殊需求',
+          inputType: 'textarea',
+          placeholder: '例如：特别关注合同期限是否合理',
+          default: ''
         },
         onProgress: {
           type: 'function',

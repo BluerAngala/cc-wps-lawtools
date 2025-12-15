@@ -27,10 +27,17 @@ export class GlobalAnalysisAction extends AIBaseAction {
     try {
       this.emitProgress(params, '正在进行全局分析...')
 
+      // 构建增强 prompt
+      const enhancedPrompt = this.buildEnhancedPrompt('', {
+        depth: params.depth,
+        customPrompt: params.customPrompt
+      })
+
       // 调用 AI 服务进行全局分析
       const result = await reviewAIService.analyzeGlobal(
         context.documentText,
-        (progress) => this.emitProgress(params, progress.stage, progress.content)
+        (progress) => this.emitProgress(params, progress.stage, progress.content),
+        { enhancedPrompt, depth: params.depth }
       )
 
       // 存储到上下文
@@ -88,6 +95,22 @@ export class GlobalAnalysisAction extends AIBaseAction {
     return {
       type: 'object',
       properties: {
+        depth: {
+          type: 'string',
+          title: '分析深度',
+          description: '选择分析的详细程度',
+          enum: ['quick', 'standard', 'deep'],
+          enumLabels: ['快速', '标准', '深度'],
+          default: 'standard'
+        },
+        customPrompt: {
+          type: 'string',
+          title: '自定义指令',
+          description: '用自然语言补充说明特殊需求',
+          inputType: 'textarea',
+          placeholder: '例如：重点分析合同的合规性',
+          default: ''
+        },
         onProgress: {
           type: 'function',
           title: '进度回调',
