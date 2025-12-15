@@ -74,6 +74,8 @@ export const ActionTypes = {
   READ_DOCUMENT: 'readDocument',
   SAVE_DOCUMENT: 'saveDocument',
   ADD_HEADER: 'addHeader',
+  ADD_PAGE_NUMBER: 'addPageNumber',
+  ADD_WATERMARK: 'addWatermark',
   ADD_COMMENT: 'addComment',
   ADD_REVISION: 'addRevision',
   RENAME_DOCUMENT: 'renameDocument',
@@ -84,7 +86,10 @@ export const ActionTypes = {
   IDENTIFY_CONTRACT: 'identifyContract',
   EXTRACT_CONTRACT: 'extractContract',
   REVIEW_CONTRACT: 'reviewContract',
-  GLOBAL_ANALYSIS: 'globalAnalysis'
+  GLOBAL_ANALYSIS: 'globalAnalysis',
+
+  // 脱敏操作
+  DESENSITIZE: 'desensitize'
 }
 
 /**

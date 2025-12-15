@@ -261,6 +261,102 @@ export const documentWorkflowPresets = {
         }
       }
     ]
+  },
+
+  // 信息脱敏
+  desensitizeDocument: {
+    id: 'desensitize-document',
+    name: '信息脱敏',
+    description: '对文档中的敏感信息（身份证、手机号、银行卡等）进行脱敏处理',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.DESENSITIZE,
+        name: '信息脱敏',
+        params: { autoApply: true }
+      },
+      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
+    ]
+  },
+
+  // 脱敏并另存
+  desensitizeAndSaveAs: {
+    id: 'desensitize-save-as',
+    name: '脱敏并另存',
+    description: '对文档进行脱敏处理后另存为新文件',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.DESENSITIZE,
+        name: '信息脱敏',
+        params: { autoApply: true }
+      },
+      {
+        actionType: ActionTypes.RENAME_DOCUMENT,
+        name: '另存为脱敏版',
+        params: {
+          prefix: '「脱敏版」',
+          deleteOriginal: false
+        }
+      }
+    ]
+  },
+
+  // 添加页码
+  addPageNumber: {
+    id: 'add-page-number',
+    name: '添加页码',
+    description: '在文档页脚添加「第X页/共Y页」格式的页码',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.ADD_PAGE_NUMBER,
+        name: '添加页码',
+        params: {
+          format: 'pageOfTotal',
+          position: 'bottom',
+          alignment: '居中'
+        }
+      },
+      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
+    ]
+  },
+
+  // 添加草稿水印
+  addDraftWatermark: {
+    id: 'add-draft-watermark',
+    name: '添加草稿水印',
+    description: '在文档中添加「草稿」水印',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.ADD_WATERMARK,
+        name: '添加草稿水印',
+        params: { text: '草稿', color: 'light' }
+      },
+      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
+    ]
+  },
+
+  // 添加机密水印
+  addConfidentialWatermark: {
+    id: 'add-confidential-watermark',
+    name: '添加机密水印',
+    description: '在文档中添加「机密」水印',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.ADD_WATERMARK,
+        name: '添加机密水印',
+        params: { text: '机密', color: 'medium' }
+      },
+      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
+    ]
   }
 }
 

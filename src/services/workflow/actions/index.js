@@ -9,6 +9,8 @@ import { actionRegistry } from '../actionRegistry.js'
 import { readDocumentAction } from './readDocument.js'
 import { saveDocumentAction } from './saveDocument.js'
 import { addHeaderAction } from './addHeader.js'
+import { addPageNumberAction } from './addPageNumber.js'
+import { addWatermarkAction } from './addWatermark.js'
 import { addCommentAction } from './addComment.js'
 import { addRevisionAction } from './addRevision.js'
 import { renameDocumentAction } from './renameDocument.js'
@@ -21,16 +23,22 @@ import { extractContractAction } from './extractContract.js'
 import { reviewContractAction } from './reviewContract.js'
 import { globalAnalysisAction } from './globalAnalysis.js'
 
+// 导入脱敏操作
+import { desensitizeAction } from './desensitize.js'
+
 // 文档操作列表
 export const documentActions = [
   readDocumentAction,
   saveDocumentAction,
   addHeaderAction,
+  addPageNumberAction,
+  addWatermarkAction,
   addCommentAction,
   addRevisionAction,
   renameDocumentAction,
   exportPDFAction,
-  deleteFileAction
+  deleteFileAction,
+  desensitizeAction
 ]
 
 // AI 操作列表
@@ -59,11 +67,14 @@ export {
   readDocumentAction,
   saveDocumentAction,
   addHeaderAction,
+  addPageNumberAction,
+  addWatermarkAction,
   addCommentAction,
   addRevisionAction,
   renameDocumentAction,
   exportPDFAction,
-  deleteFileAction
+  deleteFileAction,
+  desensitizeAction
 }
 
 // 导出 AI 操作

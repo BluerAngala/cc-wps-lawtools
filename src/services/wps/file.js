@@ -55,6 +55,9 @@ class WPSFileService {
       const alignmentMap = { 左对齐: 0, 居中: 1, 右对齐: 2 }
       range.Paragraphs.Alignment = alignmentMap[alignment] ?? 2
 
+      // 退出页眉编辑模式
+      this.closeHeaderFooter()
+
       return { success: true, message: '页眉添加成功' }
     } catch (error) {
       return { success: false, message: error.message || '页眉添加失败' }
@@ -169,6 +172,163 @@ class WPSFileService {
       return { success: true, message: '文档保存成功' }
     } catch (error) {
       return { success: false, message: error.message || '文档保存失败' }
+    }
+  }
+
+  /**
+   * 退出页眉页脚编辑模式，返回正文编辑
+   */
+  closeHeaderFooter() {
+    try {
+      const doc = this.checkEnvironment()
+      const view = doc.ActiveWindow?.View
+      // 如果当前在页眉页脚视图，切换回正文
+      if (view?.SeekView !== 0) {
+        // wdSeekMainDocument = 0
+        view.SeekView = 0
+      }
+      // 将光标移到文档开头
+      doc.Range(0, 0).Select()
+    } catch {
+      // 忽略错误，不影响主流程
+    }
+  }
+
+  /**
+   * 添加页码
+   * @param {Object} options - 配置选项
+   * @param {string} options.format - 页码格式：'page' | 'pageOfTotal'，默认 'pageOfTotal'
+   * @param {string} options.position - 位置：'bottom' | 'top'，默认 'bottom'
+   * @param {string} options.alignment - 对齐方式：'左对齐' | '居中' | '右对齐'，默认 '居中'
+   * @param {number} options.fontSize - 字体大小，默认 10
+   */
+  async addPageNumber({ format = 'pageOfTotal', position = 'bottom', alignment = '居中', fontSize = 10 } = {}) {
+    const doc = this.checkEnvironment()
+
+    try {
+      const sections = doc.Sections
+      if (sections.Count === 0) {
+        return { success: false, message: '文档没有节' }
+      }
+
+      // 获取页脚或页眉
+      const section = sections.Item(1)
+      const headerFooter = position === 'top' ? section.Headers.Item(1) : section.Footers.Item(1)
+      const range = headerFooter.Range
+
+      // 清空现有内容
+      range.Text = ''
+
+      // 对齐方式映射
+      const alignmentMap = { 左对齐: 0, 居中: 1, 右对齐: 2 }
+      range.Paragraphs.Alignment = alignmentMap[alignment] ?? 1
+
+      // 插入页码
+      if (format === 'pageOfTotal') {
+        // 格式：第 X 页 / 共 Y 页
+        range.InsertAfter('第 ')
+        range.Collapse(0) // wdCollapseEnd
+        headerFooter.PageNumbers.Add(alignmentMap[alignment] ?? 1)
+        range.InsertAfter(' 页 / 共 ')
+        // 插入总页数域
+        const endRange = headerFooter.Range
+        endRange.Collapse(0)
+        endRange.Fields.Add(endRange, -1, 'NUMPAGES', false)
+        const finalRange = headerFooter.Range
+        finalRange.Collapse(0)
+        finalRange.InsertAfter(' 页')
+      } else {
+        // 简单页码
+        headerFooter.PageNumbers.Add(alignmentMap[alignment] ?? 1)
+      }
+
+      // 设置字体
+      headerFooter.Range.Font.Name = '宋体'
+      headerFooter.Range.Font.Size = fontSize
+
+      // 退出页眉页脚编辑模式
+      this.closeHeaderFooter()
+
+      return { success: true, message: '页码添加成功' }
+    } catch (error) {
+      return { success: false, message: error.message || '页码添加失败' }
+    }
+  }
+
+  /**
+   * 添加水印
+   * @param {Object} options - 配置选项
+   * @param {string} options.text - 水印文本，默认 '草稿'
+   * @param {string} options.fontName - 字体名称，默认 '宋体'
+   * @param {number} options.fontSize - 字体大小，默认 48
+   * @param {string} options.color - 颜色（灰色深度），默认 'light'：'light' | 'medium' | 'dark'
+   * @param {boolean} options.diagonal - 是否斜向，默认 true
+   */
+  async addWatermark({ text = '草稿', fontName = '宋体', fontSize = 48, color = 'light', diagonal = true } = {}) {
+    const doc = this.checkEnvironment()
+
+    try {
+      const sections = doc.Sections
+      if (sections.Count === 0) {
+        return { success: false, message: '文档没有节' }
+      }
+
+      // 颜色映射（灰色深度）
+      const colorMap = {
+        light: 0xc0c0c0, // 浅灰
+        medium: 0x808080, // 中灰
+        dark: 0x404040 // 深灰
+      }
+      const watermarkColor = colorMap[color] || colorMap.light
+
+      // 遍历所有节添加水印
+      for (let i = 1; i <= sections.Count; i++) {
+        const section = sections.Item(i)
+        const header = section.Headers.Item(1)
+
+        // 激活页眉编辑
+        header.Range.Select()
+
+        // 添加艺术字作为水印
+        const shapes = header.Shapes
+        const shape = shapes.AddTextEffect(
+          0, // msoTextEffect1
+          text,
+          fontName,
+          fontSize,
+          false, // Bold
+          false, // Italic
+          0, // Left
+          0 // Top
+        )
+
+        // 设置水印属性
+        shape.Fill.Visible = true
+        shape.Fill.Solid()
+        shape.Fill.ForeColor.RGB = watermarkColor
+        shape.Line.Visible = false
+
+        // 设置位置和旋转
+        shape.RelativeHorizontalPosition = 1 // wdRelativeHorizontalPositionPage
+        shape.RelativeVerticalPosition = 1 // wdRelativeVerticalPositionPage
+        shape.Left = -999995 // wdShapeCenter
+        shape.Top = -999995 // wdShapeCenter
+
+        if (diagonal) {
+          shape.Rotation = -45
+        }
+
+        // 设置为衬于文字下方
+        shape.WrapFormat.Type = 3 // wdWrapBehind
+        shape.WrapFormat.AllowOverlap = true
+      }
+
+      // 退出页眉编辑模式
+      this.closeHeaderFooter()
+
+      return { success: true, message: '水印添加成功' }
+    } catch (error) {
+      return { success: false, message: error.message || '水印添加失败' }
     }
   }
 }
