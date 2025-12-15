@@ -70,6 +70,7 @@
  * 操作类型枚举
  */
 export const ActionTypes = {
+  // 文档操作
   READ_DOCUMENT: 'readDocument',
   SAVE_DOCUMENT: 'saveDocument',
   ADD_HEADER: 'addHeader',
@@ -77,7 +78,13 @@ export const ActionTypes = {
   ADD_REVISION: 'addRevision',
   RENAME_DOCUMENT: 'renameDocument',
   EXPORT_PDF: 'exportPDF',
-  DELETE_FILE: 'deleteFile'
+  DELETE_FILE: 'deleteFile',
+
+  // AI 操作
+  IDENTIFY_CONTRACT: 'identifyContract',
+  EXTRACT_CONTRACT: 'extractContract',
+  REVIEW_CONTRACT: 'reviewContract',
+  GLOBAL_ANALYSIS: 'globalAnalysis'
 }
 
 /**

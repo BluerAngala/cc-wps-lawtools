@@ -23,7 +23,14 @@ export {
   quickCommentWorkflow,
   revisionWorkflow,
   getPresetWorkflow,
-  cloneWorkflow
+  cloneWorkflow,
+  // 新增导出
+  aiWorkflowPresets,
+  documentWorkflowPresets,
+  allPresets,
+  getPresetList,
+  getPresetById,
+  createWorkflowFromPreset
 } from './presets.js'
 
 // 导出存储服务
@@ -32,8 +39,12 @@ export { workflowStorage } from './workflowStorage.js'
 // 导出操作
 export {
   allActions,
+  documentActions,
+  aiActions,
   registerAllActions,
   BaseAction,
+  AIBaseAction,
+  // 文档操作
   readDocumentAction,
   saveDocumentAction,
   addHeaderAction,
@@ -41,5 +52,10 @@ export {
   addRevisionAction,
   renameDocumentAction,
   exportPDFAction,
-  deleteFileAction
+  deleteFileAction,
+  // AI 操作
+  identifyContractAction,
+  extractContractAction,
+  reviewContractAction,
+  globalAnalysisAction
 } from './actions/index.js'

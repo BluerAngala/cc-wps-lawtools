@@ -29,6 +29,16 @@
       </template>
     </PageHeader>
 
+    <!-- 执行进度（顶部显示） -->
+    <div v-if="isExecuting" class="wps-card wps-section mt-2">
+      <n-progress
+        type="line"
+        :percentage="progressPercent"
+        :status="progressStatus"
+      />
+      <div class="text-sm text-gray-500 mt-2">{{ progressText }}</div>
+    </div>
+
     <!-- 我的工作流 -->
     <div v-if="userWorkflows.length > 0" class="wps-card wps-section mt-2">
       <div class="text-sm font-semibold mb-3">我的工作流</div>
@@ -50,18 +60,39 @@
     <!-- 预设工作流选择 -->
     <div class="wps-card wps-section mt-2">
       <div class="text-sm font-semibold mb-3">预设工作流</div>
-      <n-space>
-        <n-button
-          v-for="preset in presetWorkflows"
-          :key="preset.id"
-          :type="selectedPreset === preset.id ? 'primary' : 'default'"
-          size="small"
-          @click="selectPreset(preset)"
-        >
-          {{ preset.name }}
-        </n-button>
-        <n-button size="small" @click="clearSteps">清空</n-button>
-      </n-space>
+      
+      <!-- AI 工作流预设 -->
+      <div class="mb-3">
+        <div class="text-xs text-gray-500 mb-2">🤖 AI 工作流</div>
+        <n-space>
+          <n-button
+            v-for="preset in aiPresets"
+            :key="preset.id"
+            :type="selectedPreset === preset.id ? 'primary' : 'default'"
+            size="small"
+            @click="selectPreset(preset)"
+          >
+            {{ preset.name }}
+          </n-button>
+        </n-space>
+      </div>
+      
+      <!-- 文档工作流预设 -->
+      <div class="mb-3">
+        <div class="text-xs text-gray-500 mb-2">📄 文档工作流</div>
+        <n-space>
+          <n-button
+            v-for="preset in documentPresets"
+            :key="preset.id"
+            :type="selectedPreset === preset.id ? 'primary' : 'default'"
+            size="small"
+            @click="selectPreset(preset)"
+          >
+            {{ preset.name }}
+          </n-button>
+          <n-button size="small" @click="clearSteps">清空</n-button>
+        </n-space>
+      </div>
     </div>
 
     <!-- 当前工作流步骤 -->
@@ -92,28 +123,38 @@
     <!-- 可用操作列表 -->
     <div class="wps-card wps-section mt-2">
       <div class="text-sm font-semibold mb-3">添加操作</div>
-      <div class="grid grid-cols-4 gap-2">
-        <div
-          v-for="action in availableActions"
-          :key="action.type"
-          class="flex flex-col items-center gap-1 p-2 bg-gray-50 rounded cursor-pointer hover:bg-blue-50 transition-colors"
-          @click="addAction(action)"
-        >
-          <span class="text-lg">{{ action.icon }}</span>
-          <span class="text-xs text-center">{{ action.name }}</span>
+      
+      <!-- AI 操作 -->
+      <div class="mb-3">
+        <div class="text-xs text-gray-500 mb-2">🤖 AI 操作</div>
+        <div class="grid grid-cols-4 gap-2">
+          <div
+            v-for="action in aiActionList"
+            :key="action.type"
+            class="flex flex-col items-center gap-1 p-2 bg-blue-50 rounded cursor-pointer hover:bg-blue-100 transition-colors"
+            @click="addAction(action)"
+          >
+            <span class="text-lg">{{ action.icon }}</span>
+            <span class="text-xs text-center">{{ action.name }}</span>
+          </div>
         </div>
       </div>
-    </div>
-
-    <!-- 执行进度 -->
-    <div v-if="isExecuting" class="wps-card wps-section mt-2">
-      <div class="text-sm font-semibold mb-3">执行进度</div>
-      <n-progress
-        type="line"
-        :percentage="progressPercent"
-        :status="progressStatus"
-      />
-      <div class="text-sm text-gray-500 mt-2">{{ progressText }}</div>
+      
+      <!-- 文档操作 -->
+      <div>
+        <div class="text-xs text-gray-500 mb-2">📄 文档操作</div>
+        <div class="grid grid-cols-4 gap-2">
+          <div
+            v-for="action in documentActionList"
+            :key="action.type"
+            class="flex flex-col items-center gap-1 p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100 transition-colors"
+            @click="addAction(action)"
+          >
+            <span class="text-lg">{{ action.icon }}</span>
+            <span class="text-xs text-center">{{ action.name }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 执行结果弹窗 -->
@@ -122,29 +163,39 @@
     <!-- 步骤编辑弹窗 -->
     <n-modal v-model:show="showEditModal" preset="card" title="编辑步骤参数" style="width: 80%; max-width: 400px">
       <n-form v-if="editingStep" label-placement="top" size="small">
+        <!-- 无可编辑参数时的提示 -->
+        <div v-if="Object.keys(getStepSchema(editingStep)).length === 0" class="text-gray-400 text-sm py-4 text-center">
+          此操作没有可配置的参数
+        </div>
         <n-form-item
           v-for="(prop, key) in getStepSchema(editingStep)"
           :key="key"
           :label="prop.title || key"
         >
-          <n-input
-            v-if="prop.type === 'string'"
+          <!-- 有枚举值的选择器（优先判断） -->
+          <n-select
+            v-if="prop.enum"
             v-model:value="editingStep.params[key]"
+            :options="prop.enum.map(v => ({ label: getEnumLabel(v), value: v }))"
             :placeholder="prop.description"
           />
+          <!-- 布尔开关 -->
+          <div v-else-if="prop.type === 'boolean'" class="flex items-center gap-2">
+            <n-switch v-model:value="editingStep.params[key]" />
+            <span class="text-xs text-gray-500">{{ prop.description }}</span>
+          </div>
+          <!-- 数字输入 -->
           <n-input-number
             v-else-if="prop.type === 'number'"
             v-model:value="editingStep.params[key]"
             :placeholder="prop.description"
+            class="w-full"
           />
-          <n-switch
-            v-else-if="prop.type === 'boolean'"
+          <!-- 字符串输入（默认） -->
+          <n-input
+            v-else
             v-model:value="editingStep.params[key]"
-          />
-          <n-select
-            v-else-if="prop.enum"
-            v-model:value="editingStep.params[key]"
-            :options="prop.enum.map(v => ({ label: v, value: v }))"
+            :placeholder="prop.description"
           />
         </n-form-item>
       </n-form>
@@ -202,9 +253,9 @@ import {
   workflowEngine,
   actionRegistry,
   registerAllActions,
-  presetWorkflows,
   cloneWorkflow,
-  workflowStorage
+  workflowStorage,
+  getPresetList
 } from '../services/workflow/index.js'
 
 // 响应式数据
@@ -217,14 +268,23 @@ const showEditModal = ref(false)
 const editingStep = ref(null)
 const editingIndex = ref(-1)
 const availableActions = ref([])
+const aiActionList = ref([])
+const documentActionList = ref([])
+const aiPresets = ref([])
+const documentPresets = ref([])
 const userWorkflows = ref([])
 const showSaveModal = ref(false)
 const showResultModal = ref(false)
 const saveForm = ref({ name: '', description: '' })
 
 const progressPercent = computed(() => {
-  if (progressInfo.value.total === 0) return 0
-  return Math.round(((progressInfo.value.current + 1) / progressInfo.value.total) * 100)
+  const { current, total, stage } = progressInfo.value
+  if (total === 0) return 0
+  // 步骤开始时显示该步骤的起始进度，完成后才增加
+  if (stage === 'start') {
+    return Math.round((current / total) * 100)
+  }
+  return Math.round(((current + 1) / total) * 100)
 })
 
 const progressStatus = computed(() => {
@@ -258,7 +318,24 @@ const getActionName = (type) => {
 
 const getStepSchema = (step) => {
   const action = actionRegistry.get(step.actionType)
-  return action?.getSchema()?.properties || {}
+  const properties = action?.getSchema()?.properties || {}
+  // 过滤掉 function 类型和 array 类型（不可在简单表单中编辑）
+  const editableProps = {}
+  Object.entries(properties).forEach(([key, prop]) => {
+    if (prop.type !== 'function' && prop.type !== 'array') {
+      editableProps[key] = prop
+    }
+  })
+  return editableProps
+}
+
+// 获取枚举值的友好标签
+const getEnumLabel = (value) => {
+  const labels = {
+    full: '全文审查',
+    segment: '分段审查'
+  }
+  return labels[value] || value
 }
 
 const selectPreset = (preset) => {
@@ -402,6 +479,12 @@ const executeWorkflow = async () => {
 onMounted(() => {
   registerAllActions()
   availableActions.value = actionRegistry.list()
+  // 分类操作列表
+  aiActionList.value = availableActions.value.filter(a => a.category === 'ai')
+  documentActionList.value = availableActions.value.filter(a => a.category !== 'ai')
+  // 分类预设工作流
+  aiPresets.value = getPresetList('ai')
+  documentPresets.value = getPresetList('document')
   loadUserWorkflows()
 })
 </script>
