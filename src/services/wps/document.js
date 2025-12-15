@@ -145,7 +145,7 @@ class WPSDocumentService {
 
     try {
       const cleanKeyword = keyword.trim().replace(/\s+/g, ' ')
-      if (!cleanKeyword || cleanKeyword.length < 3) {
+      if (!cleanKeyword || cleanKeyword.length < 2) {
         console.warn(`[定位] 关键词太短: ${cleanKeyword}`)
         return null
       }

@@ -10,5 +10,9 @@ module.exports = {
   ],
   parserOptions: {
     ecmaVersion: 'latest'
+  },
+  rules: {
+    // 允许下划线前缀的未使用变量（用于表示有意忽略的参数）
+    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
   }
 }

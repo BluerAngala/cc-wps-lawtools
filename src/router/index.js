@@ -8,6 +8,7 @@ import TemplateManager from '../views/TemplateManager.vue'
 import ContractRiskScan from '../views/ContractRiskScan.vue'
 import DesensitizePage from '../views/DesensitizePage.vue'
 import PathDiagnostics from '../views/PathDiagnostics.vue'
+import WorkflowPage from '../views/WorkflowPage.vue'
 
 const router = createRouter({
   history: createWebHashHistory(''),
@@ -50,6 +51,11 @@ const router = createRouter({
       path: '/pathdiag',
       name: '路径诊断',
       component: PathDiagnostics
+    },
+    {
+      path: '/workflow',
+      name: '工作流',
+      component: WorkflowPage
     }
   ]
 })

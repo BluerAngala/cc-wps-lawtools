@@ -44,6 +44,13 @@ function OnAction(control) {
       }
       break
 
+    // 工作流
+    case 'btnWorkflow':
+      {
+        Util.wpsService.createTaskPane('workflow', { width: 850 })
+      }
+      break
+
     // AI助理
     case 'btnShowAI':
       {
@@ -104,6 +111,8 @@ function GetImage(control) {
       return './images/扫描.svg'
     case 'btnDesensitize':
       return './images/脱敏.svg'
+    case 'btnWorkflow':
+      return './images/工作流.svg'
     case 'btnShowAI':
       return './images/logo_card.png'
     case 'btnCommonNav':

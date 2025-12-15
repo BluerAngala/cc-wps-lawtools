@@ -7,6 +7,7 @@
                     <button id="btnDesensitize" label="信息脱敏" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnRiskScan" label="风险扫描" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnContractReview" label="合同审查" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnWorkflow" label="工作流" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnCommonNav" label="常用导航" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnTemplateManager" label="模板管理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnSettings" label="设置" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>

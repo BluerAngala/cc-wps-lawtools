@@ -152,6 +152,51 @@ npm update --save-dev wps-jsapi #更新
 - 验证 WPS API 的可用性：`typeof window.Application`
 - 参考 #[[file:WPS开发最佳实践.md]] 中的调试技巧和日志记录方案
 
+## 添加新页面和导航
+
+当需要添加新页面时，需要修改以下 3 个文件：
+
+### 1. 创建页面组件
+在 `src/views/` 目录下创建新的 Vue 页面组件，如 `NewPage.vue`
+
+### 2. 添加路由配置
+在 `src/router/index.js` 中添加路由：
+```javascript
+import NewPage from '../views/NewPage.vue'
+
+// 在 routes 数组中添加
+{
+  path: '/newpage',
+  name: '新页面',
+  component: NewPage
+}
+```
+
+### 3. 添加工具栏按钮
+修改 `public/ribbon.xml`，在 `<group>` 中添加按钮：
+```xml
+<button id="btnNewPage" label="新页面" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+```
+
+修改 `src/ribbon.js`，添加按钮点击处理：
+```javascript
+// 在 OnAction 函数的 switch 中添加
+case 'btnNewPage':
+  {
+    Util.wpsService.createTaskPane('newpage', { width: 850 })
+  }
+  break
+
+// 在 GetImage 函数的 switch 中添加图标
+case 'btnNewPage':
+  return './images/新页面.svg'
+```
+
+### 4. 添加图标（可选）
+在 `public/images/` 目录下添加对应的 SVG 图标文件
+
+> ⚠️ **注意**：修改 ribbon.xml 后需要重新加载 WPS 插件才能看到新按钮
+
 ## 核心原则
 1. **简洁高效**：用最少的代码实现最大的功能价值
 2. **用户体验**：优先考虑用户的使用体验和界面友好性
