@@ -89,6 +89,7 @@ export const ActionTypes = {
   GLOBAL_ANALYSIS: 'globalAnalysis',
 
   // 脱敏操作
+  SCAN_SENSITIVE: 'scanSensitive',
   DESENSITIZE: 'desensitize'
 }
 

@@ -263,17 +263,34 @@ export const documentWorkflowPresets = {
     ]
   },
 
-  // 信息脱敏
-  desensitizeDocument: {
-    id: 'desensitize-document',
-    name: '信息脱敏',
-    description: '对文档中的敏感信息（身份证、手机号、银行卡等）进行脱敏处理',
+  // 扫描敏感信息
+  scanSensitive: {
+    id: 'scan-sensitive',
+    name: '扫描敏感信息',
+    description: '扫描文档中的敏感信息（身份证、手机号、银行卡等），仅检测不处理',
     category: 'document',
     steps: [
       { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
       {
+        actionType: ActionTypes.SCAN_SENSITIVE,
+        name: '扫描敏感信息',
+        params: {}
+      }
+    ]
+  },
+
+  // 信息脱敏
+  desensitizeDocument: {
+    id: 'desensitize-document',
+    name: '信息脱敏',
+    description: '扫描并脱敏文档中的敏感信息',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      { actionType: ActionTypes.SCAN_SENSITIVE, name: '扫描敏感信息' },
+      {
         actionType: ActionTypes.DESENSITIZE,
-        name: '信息脱敏',
+        name: '执行脱敏',
         params: { autoApply: true }
       },
       { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
@@ -284,13 +301,14 @@ export const documentWorkflowPresets = {
   desensitizeAndSaveAs: {
     id: 'desensitize-save-as',
     name: '脱敏并另存',
-    description: '对文档进行脱敏处理后另存为新文件',
+    description: '扫描并脱敏文档后另存为新文件',
     category: 'document',
     steps: [
       { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      { actionType: ActionTypes.SCAN_SENSITIVE, name: '扫描敏感信息' },
       {
         actionType: ActionTypes.DESENSITIZE,
-        name: '信息脱敏',
+        name: '执行脱敏',
         params: { autoApply: true }
       },
       {

@@ -24,6 +24,7 @@ import { reviewContractAction } from './reviewContract.js'
 import { globalAnalysisAction } from './globalAnalysis.js'
 
 // 导入脱敏操作
+import { scanSensitiveAction } from './scanSensitive.js'
 import { desensitizeAction } from './desensitize.js'
 
 // 文档操作列表
@@ -38,6 +39,7 @@ export const documentActions = [
   renameDocumentAction,
   exportPDFAction,
   deleteFileAction,
+  scanSensitiveAction,
   desensitizeAction
 ]
 
@@ -74,6 +76,7 @@ export {
   renameDocumentAction,
   exportPDFAction,
   deleteFileAction,
+  scanSensitiveAction,
   desensitizeAction
 }
 
