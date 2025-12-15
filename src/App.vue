@@ -6,7 +6,7 @@
 import { onMounted, onUnmounted } from 'vue'
 
 // 引入文档监听器
-import DocumentWatcher from './services/wps/DocumentWatcher.js'
+import { DocumentWatcher } from './services/wps'
 // 引入缓存管理器
 import { CacheManager } from './services/ai/CacheManager.js'
 // 引入模板管理器

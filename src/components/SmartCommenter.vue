@@ -288,7 +288,7 @@ import SchemeSelector from './SchemeSelector.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { reviewAIService } from '../services/contract/reviewAIService.js'
 import { reviewChecklistGenerator } from '../services/contract/reviewChecklistGenerator.js'
-import { wpsDocumentService } from '../services/wps/wpsDocumentService.js'
+import { wpsDocumentService } from '../services/wps'
 import { appConfig } from '../utils/appConfig.js'
 
 // Props

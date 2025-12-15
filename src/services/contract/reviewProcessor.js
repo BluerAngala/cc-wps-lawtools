@@ -2,20 +2,16 @@
  * AI合同预审处理器 - 负责AI预审的批注和修订功能
  */
 
-import Util from '../wps/wpsUtils.js'
+import { wpsCore } from '../wps'
 
 export class ReviewProcessor {
-  constructor() {
-    this.wpsService = Util.wpsService
-  }
-
   /**
    * 添加预审批注
    * @param {Object} reviewData - AI预审结果数据
    * @returns {Promise<Object>} 处理结果（返回原始数据供后续使用）
    */
   async addReviewComments(reviewData) {
-    const doc = this.wpsService.getActiveDoc()
+    const doc = wpsCore.getActiveDocument()
     if (!doc) {
       throw new Error('未找到活动文档')
     }
@@ -56,7 +52,7 @@ export class ReviewProcessor {
    * @returns {Promise<Object>} 处理结果（返回原始数据供后续使用）
    */
   async addReviewRevisions(reviewData) {
-    const doc = this.wpsService.getActiveDoc()
+    const doc = wpsCore.getActiveDocument()
     if (!doc) {
       throw new Error('未找到活动文档')
     }
@@ -65,7 +61,7 @@ export class ReviewProcessor {
       throw new Error('没有发现需要修订的内容')
     }
 
-    this.wpsService.enableRevisionMode(doc)
+    wpsCore.enableRevisionMode(doc)
     let revisedCount = 0
 
     reviewData.revisions.forEach((revision) => {

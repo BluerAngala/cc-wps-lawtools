@@ -2,20 +2,16 @@
  * 关键词处理器 - 负责关键词批注和修订功能
  */
 
-import Util from '../wps/wpsUtils.js'
+import { wpsCore } from '../wps'
 
 export class KeywordProcessor {
-  constructor() {
-    this.wpsService = Util.wpsService
-  }
-
   /**
    * 处理关键词批注和修订
    * @param {Array} keywordList - 关键词列表
    * @returns {Promise<Object>} 处理结果（返回统计数据）
    */
   async processKeywords(keywordList) {
-    const doc = this.wpsService.getActiveDoc()
+    const doc = wpsCore.getActiveDocument()
     if (!doc) {
       throw new Error('未找到活动文档')
     }
@@ -24,7 +20,7 @@ export class KeywordProcessor {
       throw new Error('关键词列表为空')
     }
 
-    this.wpsService.enableRevisionMode(doc)
+    wpsCore.enableRevisionMode(doc)
     let commentCount = 0
     let revisionCount = 0
 

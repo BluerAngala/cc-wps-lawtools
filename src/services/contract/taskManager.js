@@ -4,7 +4,7 @@
 
 // 使用全局消息提示
 import TaskScheduler from '../ai/TaskScheduler.js'
-import taskPane from '../wps/wpsTestHelper.js'
+import { taskPane } from '../wps'
 import { keywordProcessor } from './keywordProcessor.js'
 import { reviewProcessor } from './reviewProcessor.js'
 

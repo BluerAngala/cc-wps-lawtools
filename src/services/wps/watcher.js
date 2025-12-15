@@ -1,16 +1,18 @@
 /**
- * 文档监听器 - 监听WPS文档切换事件
- * 当打开新文档时自动清除旧的缓存
+ * 文档监听器
+ * 监听 WPS 文档切换事件，自动清除旧缓存
  */
 
+/**
+ * 文档监听器类
+ */
 export class DocumentWatcher {
   constructor(cacheManager) {
     this.cacheManager = cacheManager
     this.currentDocumentName = null
     this.currentDocumentId = null
-    this.checkInterval = 1000 // 每秒检查一次
+    this.checkInterval = 1000
     this.intervalId = null
-
     console.log('文档监听器已初始化')
   }
 
@@ -23,14 +25,8 @@ export class DocumentWatcher {
       return
     }
 
-    // 获取初始文档信息
     this.updateCurrentDocument()
-
-    // 定期检查文档变化
-    this.intervalId = setInterval(() => {
-      this.checkDocumentChange()
-    }, this.checkInterval)
-
+    this.intervalId = setInterval(() => this.checkDocumentChange(), this.checkInterval)
     console.log('开始监听文档变化')
   }
 
@@ -53,7 +49,6 @@ export class DocumentWatcher {
       const currentDoc = this.getCurrentDocument()
 
       if (!currentDoc) {
-        // 没有打开的文档
         if (this.currentDocumentName !== null) {
           console.log('所有文档已关闭')
           this.currentDocumentName = null
@@ -62,23 +57,17 @@ export class DocumentWatcher {
         return
       }
 
-      const newDocName = currentDoc.name
-      const newDocId = currentDoc.id
+      const { name: newDocName, id: newDocId } = currentDoc
 
-      // 检查是否切换了文档
       if (this.currentDocumentName !== newDocName || this.currentDocumentId !== newDocId) {
         console.log(`文档已切换: ${this.currentDocumentName || '无'} -> ${newDocName}`)
 
-        // 清除旧文档的缓存
         if (this.currentDocumentName && this.cacheManager) {
-          this.clearDocumentCache(this.currentDocumentName, this.currentDocumentId)
+          this.clearDocumentCache(this.currentDocumentName)
         }
 
-        // 更新当前文档信息
         this.currentDocumentName = newDocName
         this.currentDocumentId = newDocId
-
-        // 触发文档切换事件
         this.onDocumentChanged(newDocName, newDocId)
       }
     } catch (error) {
@@ -88,18 +77,15 @@ export class DocumentWatcher {
 
   /**
    * 获取当前活动文档信息
-   * @returns {Object|null} 文档信息
    */
   getCurrentDocument() {
     try {
-      if (!window.Application || !window.Application.ActiveDocument) {
-        return null
-      }
+      if (!window.Application?.ActiveDocument) return null
 
       const doc = window.Application.ActiveDocument
       return {
         name: doc.Name || 'Unknown',
-        id: doc.FullName || doc.Name || Date.now().toString(), // 使用完整路径作为ID
+        id: doc.FullName || doc.Name || Date.now().toString(),
         path: doc.FullName || ''
       }
     } catch (error) {
@@ -122,17 +108,14 @@ export class DocumentWatcher {
 
   /**
    * 清除指定文档的缓存
-   * @param {string} docName - 文档名称
-   * @param {string} docId - 文档ID
    */
   clearDocumentCache(docName) {
     if (!this.cacheManager) {
-      console.warn('缓存管理器不可用，无法清除缓存')
+      console.warn('缓存管理器不可用')
       return
     }
 
     try {
-      // 清除所有缓存（因为缓存是基于内容哈希的，无法精确匹配文档）
       this.cacheManager.clear()
       console.log(`已清除文档 "${docName}" 的相关缓存`)
     } catch (error) {
@@ -142,21 +125,14 @@ export class DocumentWatcher {
 
   /**
    * 文档切换事件处理
-   * @param {string} docName - 新文档名称
-   * @param {string} docId - 新文档ID
    */
   onDocumentChanged(docName, docId) {
     console.log(`文档切换事件: ${docName}`)
 
-    // 可以在这里添加其他文档切换时需要执行的逻辑
-    // 比如重置UI状态、清除临时数据等
-
-    // 触发自定义事件
     if (typeof window !== 'undefined' && window.dispatchEvent) {
-      const event = new CustomEvent('documentChanged', {
+      window.dispatchEvent(new CustomEvent('documentChanged', {
         detail: { docName, docId }
-      })
-      window.dispatchEvent(event)
+      }))
     }
   }
 
@@ -172,7 +148,6 @@ export class DocumentWatcher {
 
   /**
    * 获取当前文档信息
-   * @returns {Object} 当前文档信息
    */
   getCurrentDocumentInfo() {
     return {

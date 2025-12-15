@@ -3,7 +3,7 @@
  */
 
 import { kdocsHandler } from '../kdocs/kdocs.js'
-import taskPane from '../wps/wpsTestHelper.js'
+import { taskPane } from '../wps'
 import { fetchCompanyInfo } from '../ai/coze.js'
 
 // 特定主体信息映射

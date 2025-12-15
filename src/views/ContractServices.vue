@@ -135,31 +135,53 @@
             </n-form-item>
           </n-form>
 
-          <div v-if="batchResult" class="mt-4">
-            <n-divider>处理结果</n-divider>
-            <n-alert :type="batchResult.success ? 'success' : 'error'" :closable="false" show-icon>
-              <template #header>{{ batchResult.success ? '处理完成' : '处理失败' }}</template>
-              <template #default>
-                <div class="whitespace-pre-line text-sm">{{ batchResult.message }}</div>
-              </template>
-            </n-alert>
-          </div>
         </div>
       </n-collapse-item>
     </n-collapse>
+
+    <!-- 工作流结果弹窗 -->
+    <n-modal
+      v-model:show="showBatchResultModal"
+      preset="card"
+      :title="batchResult?.success ? '工作流执行完成' : '工作流执行结果'"
+      style="width: 80%; max-width: 500px; max-height: 80vh;"
+      :bordered="false"
+    >
+      <div class="space-y-3">
+        <div class="text-sm text-gray-600 mb-3">{{ batchResult?.summary }}</div>
+        <div v-for="(step, index) in batchResult?.steps" :key="index" class="flex items-start gap-2 py-2 border-b border-gray-100 last:border-0">
+          <span :class="step.success ? 'text-green-500' : 'text-red-500'">{{ step.success ? '✓' : '✗' }}</span>
+          <div class="flex-1">
+            <div class="font-medium text-sm">{{ step.name }}</div>
+            <div class="text-xs text-gray-500">{{ step.message }}</div>
+            <div 
+              v-if="step.path" 
+              class="text-xs text-blue-500 mt-1 cursor-pointer hover:underline break-all"
+              @dblclick="copyToClipboard(step.path)"
+              title="双击复制路径"
+            >
+              📁 {{ step.path }}
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end mt-4">
+          <n-button type="primary" size="small" @click="showBatchResultModal = false">确定</n-button>
+        </div>
+      </div>
+    </n-modal>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NInput } from '../components/naive-components.js'
+import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NForm, NFormItem, NSwitch, NSpace, NInput, NModal } from '../components/naive-components.js'
 import { PageLayout } from '../components/common'
 
 import ContractExtractor from '../components/ContractExtractor.vue'
 import SmartCommenter from '../components/SmartCommenter.vue'
 import { contractService } from '../services/contract/contractService.js'
 import { appConfig } from '../utils/appConfig.js'
-import taskPane from '../services/wps/wpsTestHelper.js'
+import { wpsFileService } from '../services/wps'
 
 
 
@@ -168,6 +190,7 @@ const extractedData = ref(null) // 存储提取的合同信息
 const submitting = ref(false) // 提交状态
 const batchProcessing = ref(false) // 一键处理状态
 const batchResult = ref(null) // 一键处理结果
+const showBatchResultModal = ref(false) // 工作流结果弹窗
 const configs = ref({
   extractor: {},
   keyword: {},
@@ -292,282 +315,102 @@ const updateSmartConfig = (configForm) => {
 const handleBatchProcess = async () => {
   if (batchProcessing.value) return
 
-  if (!batchOptions.value.addContractNumber && !batchOptions.value.rename && !batchOptions.value.exportPdf) {
+  const { addContractNumber, contractNumber, rename, exportPdf, deleteOriginal } = batchOptions.value
+
+  if (!addContractNumber && !rename && !exportPdf) {
     window.$message?.warning('请至少选择一个操作')
     return
   }
 
-  // 验证合同编号
-  if (batchOptions.value.addContractNumber && !batchOptions.value.contractNumber?.trim()) {
+  if (addContractNumber && !contractNumber?.trim()) {
     window.$message?.warning('请输入合同编号')
-    return
-  }
-
-  // 检查WPS环境
-  if (typeof window.Application === 'undefined') {
-    window.$message?.error('请在 WPS 环境中使用此功能')
-    return
-  }
-
-  const doc = window.Application.ActiveDocument
-  if (!doc) {
-    window.$message?.error('未找到活动文档')
-    return
-  }
-
-  // 确保文档有名称属性
-  if (!doc.Name) {
-    window.$message?.error('文档信息不完整，无法处理')
     return
   }
 
   batchProcessing.value = true
   batchResult.value = null
-
-  const shouldAddContractNumber = batchOptions.value.addContractNumber
-  const shouldRename = batchOptions.value.rename
-  const shouldExport = batchOptions.value.exportPdf
-  const shouldDeleteOriginal = batchOptions.value.deleteOriginal && shouldRename
-
-  let contractNumberAttempted = false
-  let contractNumberSuccess = false
-  let renameAttempted = false
-  let renameSuccess = false
-  let deleteAttempted = false
-  let deleteSuccess = false
-  let deleteUnsupported = false
-  let pdfAttempted = false
-  let pdfSuccess = false
-  let newFileName = doc.Name
-  let pdfFullPath = ''
+  const steps = [] // 记录每个步骤的执行结果
 
   try {
-    const directory = doc.Path || ''
-    const originalName = doc.Name
-    const pathSeparator = directory.includes('/') ? '/' : '\\'
-    const originalFullPath = directory ? `${directory}${pathSeparator}${originalName}` : originalName
-
-    let currentFileName = originalName
-
     // 1. 添加合同编号到页眉
-    if (shouldAddContractNumber) {
-      contractNumberAttempted = true
-      try {
-        const headerResult = await taskPane.onbuttonclick('addHeader', {
-          headerText: `文件编号：${batchOptions.value.contractNumber.trim()}`,
-          fontSize: '12',
-          alignment: '右对齐'
-        })
-        
-        if (headerResult?.success) {
-          contractNumberSuccess = true
-        } else {
-          throw new Error(headerResult?.message || '页眉添加失败')
-        }
-      } catch (headerError) {
-        throw new Error(`添加合同编号失败: ${headerError.message || '未知错误'}`)
-      }
+    if (addContractNumber) {
+      const result = await wpsFileService.addHeader({
+        text: `文件编号：${contractNumber.trim()}`,
+        fontSize: 12,
+        alignment: '右对齐'
+      })
+      steps.push({
+        name: '添加合同编号',
+        success: result.success,
+        message: result.success ? `编号"${contractNumber.trim()}"已添加到页眉` : result.message
+      })
     }
 
     // 2. 文档重命名
-    if (shouldRename) {
-      renameAttempted = true
-      
-      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
-      const extension = originalName.match(/\.[^/.]+$/)?.[0] || ''
-      newFileName = `「已修订」${nameWithoutExt}${extension}`
-      const newFullPath = directory ? `${directory}${pathSeparator}${newFileName}` : newFileName
-
-      doc.SaveAs2(newFullPath)
-      renameSuccess = true
-      currentFileName = newFileName
-
-      if (shouldDeleteOriginal) {
-        const fs = window.Application?.FileSystem
-        if (fs && typeof fs.unlinkSync === 'function') {
-          deleteAttempted = true
-          try {
-            fs.unlinkSync(originalFullPath)
-            deleteSuccess = true
-            
-          } catch (deleteError) {
-            
-            throw new Error(`删除原文件失败: ${deleteError.message || '未知错误'}`)
-          }
-        } else {
-          deleteUnsupported = true
-          
-        }
+    if (rename) {
+      const result = await wpsFileService.renameDocument({
+        prefix: '「已修订」',
+        deleteOriginal: deleteOriginal
+      })
+      steps.push({
+        name: '文档重命名',
+        success: result.success,
+        message: result.success ? `已重命名为"${result.newFileName}"` : result.message
+      })
+      // 删除原文件结果
+      if (result.success && deleteOriginal && result.deleteResult) {
+        steps.push({
+          name: '删除原文件',
+          success: result.deleteResult.success,
+          message: result.deleteResult.success ? '原文件已删除' : 
+            (result.deleteResult.unsupported ? '当前环境不支持自动删除' : '删除失败')
+        })
       }
     }
 
     // 3. 导出PDF
-    if (shouldExport) {
-      pdfAttempted = true
-      
-      const pdfFileName = currentFileName.replace(/\.[^/.]+$/, '.pdf')
-      pdfFullPath = directory ? `${directory}${pathSeparator}${pdfFileName}` : pdfFileName
-
-      
-      
-
-      try {
-        doc.ExportAsFixedFormat(
-          pdfFullPath,
-          17,
-          false,
-          0,
-          0,
-          1,
-          1,
-          7,
-          true,
-          true,
-          0,
-          true,
-          true,
-          false
-        )
-        pdfSuccess = true
-        
-
-        
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        if (window.Application?.FileSystem) {
-          const fs = window.Application.FileSystem
-          let fileExists = false
-          let checkCount = 0
-          const maxChecks = 5
-
-          while (checkCount < maxChecks && !fileExists) {
-            fileExists = fs.Exists(pdfFullPath)
-            if (fileExists) {
-              
-              break
-            }
-            checkCount++
-            if (checkCount < maxChecks) {
-              
-              await new Promise(resolve => setTimeout(resolve, 500))
-            }
-          }
-          
-        }
-      } catch (pdfError) {
-        
-        // 处理WPS特定的错误码
-        let errorMessage = 'PDF导出失败'
-        if (pdfError.number) {
-          switch (pdfError.number) {
-            case -2146827284: // 文件路径不存在
-              errorMessage = 'PDF导出失败：文件路径不存在或无访问权限'
-              break
-            case -2146827850: // 磁盘空间不足
-              errorMessage = 'PDF导出失败：磁盘空间不足'
-              break
-            case -2147467259: // 未指定的错误
-              errorMessage = 'PDF导出失败：未指定的错误，请检查文档内容'
-              break
-            default:
-              errorMessage = `PDF导出失败：错误代码 ${pdfError.number}`
-          }
-        } else {
-          errorMessage = `PDF导出失败: ${pdfError.message || '未知错误'}`
-        }
-        
-        throw new Error(errorMessage)
-      }
+    if (exportPdf) {
+      const result = await wpsFileService.exportPDF()
+      steps.push({
+        name: '导出PDF',
+        success: result.success,
+        message: result.success ? `已导出: ${result.pdfFileName}` : result.message,
+        path: result.success ? result.pdfFullPath : null
+      })
     }
 
-    const messages = []
-    if (contractNumberAttempted && contractNumberSuccess) {
-      messages.push(`合同编号"${batchOptions.value.contractNumber.trim()}"已添加到页眉`)
+    const successCount = steps.filter(s => s.success).length
+    const failCount = steps.filter(s => !s.success).length
+    batchResult.value = { 
+      success: failCount === 0, 
+      steps,
+      summary: `共执行 ${steps.length} 个操作，成功 ${successCount} 个${failCount > 0 ? `，失败 ${failCount} 个` : ''}`
     }
-    if (renameAttempted && renameSuccess) {
-      messages.push(`文档已重命名为"${newFileName}"`)
-    }
-    if (deleteAttempted) {
-      messages.push(deleteSuccess ? '原文件已删除' : '原文件删除失败')
-    } else if (shouldDeleteOriginal && deleteUnsupported) {
-      messages.push('当前环境不支持自动删除原文件，请手动删除原文件')
-    } else if (shouldRename) {
-      messages.push('保留了原始文件副本')
-    } else if (!contractNumberAttempted) {
-      messages.push('已跳过文档重命名')
-    }
-    if (pdfAttempted && pdfSuccess) {
-      const pdfFileName = pdfFullPath.split(pathSeparator).pop() || pdfFullPath
-      messages.push(`PDF已导出为"${pdfFileName}"`)
-      messages.push(`PDF保存路径: ${pdfFullPath}`)
-    }
-    if (!pdfAttempted && !contractNumberAttempted) {
-      messages.push('已跳过导出PDF')
-    }
-
-    const successFlags = []
-    if (contractNumberAttempted) successFlags.push(contractNumberSuccess)
-    if (renameAttempted) successFlags.push(renameSuccess && (!deleteAttempted || deleteSuccess))
-    if (pdfAttempted) successFlags.push(pdfSuccess)
-    const overallSuccess = successFlags.length > 0 && successFlags.every(Boolean)
-
-    batchResult.value = {
-      success: overallSuccess,
-      message: messages.join('\n')
-    }
-
-    if (overallSuccess) {
-      window.$message?.success('一键处理完成')
-    } else {
-      window.$message?.warning('部分操作未成功，请查看详情')
-    }
+    showBatchResultModal.value = true
   } catch (error) {
-    
-    const errorMessages = []
-    if (contractNumberAttempted) {
-      if (contractNumberSuccess) {
-        errorMessages.push(`合同编号"${batchOptions.value.contractNumber.trim()}"已添加到页眉`)
-      } else {
-        errorMessages.push(`添加合同编号失败: ${error.message || '未知错误'}`)
-      }
+    batchResult.value = { 
+      success: false, 
+      steps: [{ name: '执行工作流', success: false, message: error.message || '处理失败' }],
+      summary: '工作流执行出错'
     }
-    if (renameAttempted) {
-      if (renameSuccess) {
-        errorMessages.push(`文档已重命名为"${newFileName}"`)
-      } else {
-        errorMessages.push('文档重命名失败')
-      }
-      if (deleteAttempted) {
-        errorMessages.push(deleteSuccess ? '原文件已删除' : '原文件删除失败')
-      } else if (shouldDeleteOriginal && deleteUnsupported) {
-        errorMessages.push('当前环境不支持自动删除原文件，请手动删除原文件')
-      }
-    } else if (!contractNumberAttempted) {
-      errorMessages.push('已跳过文档重命名')
-    }
-    if (pdfAttempted) {
-      if (pdfSuccess) {
-        errorMessages.push(`PDF已导出为"${pdfFullPath}"`)
-      } else {
-        errorMessages.push(`PDF导出失败: ${error.message || '未知错误'}`)
-      }
-    } else if (!contractNumberAttempted) {
-      errorMessages.push('已跳过导出PDF')
-    }
-
-    batchResult.value = {
-      success: false,
-      message: errorMessages.join('\n')
-    }
-    window.$message?.error('处理失败：' + (error.message || '未知错误'))
+    showBatchResultModal.value = true
   } finally {
     batchProcessing.value = false
-    
   }
 }
 
 const loadConfig = () => {
   configs.value = contractService.loadConfig()
+}
+
+// 复制路径到剪贴板
+const copyToClipboard = async (text) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    window.$message?.success('路径已复制到剪贴板')
+  } catch {
+    window.$message?.error('复制失败')
+  }
 }
 
 // 提交提取的数据（简化）

@@ -1,6 +1,6 @@
 // ribbon.js 初始化 wps 加载项
 
-import Util from './services/wps/wpsUtils.js'
+import { Util } from './services/wps'
 
 console.log('ribbon.js 已加载并初始化')
 

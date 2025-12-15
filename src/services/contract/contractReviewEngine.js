@@ -4,7 +4,7 @@
  */
 
 import { documentSegmenter } from './documentSegmenter.js'
-import { wpsDocumentService } from '../wps/wpsDocumentService.js'
+import { wpsDocumentService } from '../wps'
 import { reviewAIService } from './reviewAIService.js'
 import { reviewChecklistGenerator } from './reviewChecklistGenerator.js'
 import { appConfig } from '../../utils/appConfig.js'

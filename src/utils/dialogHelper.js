@@ -1,6 +1,6 @@
 // WPS 弹窗工具函数 - 通用对话框创建方法
 
-import Util from '../services/wps/wpsUtils.js'
+import { Util } from '../services/wps'
 import unifiedLogger from './unifiedLogger.js'
 
 /**
