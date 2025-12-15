@@ -146,6 +146,27 @@ export const aiWorkflowPresets = {
         params: { depth: 'quick' }
       }
     ]
+  },
+
+  // 合同风险扫描（中立视角，仅扫描不修改）
+  contractRiskScan: {
+    id: 'contract-risk-scan',
+    name: '合同风险扫描',
+    description: '读取文档 → 识别合同类型 → 审查风险（不修改文档）',
+    category: 'ai',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      { actionType: ActionTypes.IDENTIFY_CONTRACT, name: '识别合同类型' },
+      {
+        actionType: ActionTypes.REVIEW_CONTRACT,
+        name: '风险扫描',
+        params: {
+          perspective: 'neutral',
+          depth: 'standard',
+          autoApply: false
+        }
+      }
+    ]
   }
 }
 

@@ -4,19 +4,19 @@
     <PageHeader
       title="敏感信息脱敏"
       icon="🔒"
-      :loading="isScanning"
+      :loading="isExecuting"
       loading-text="扫描中"
       description="自动检测文档中的敏感信息（身份证号、手机号、邮箱、银行卡号等），支持选择性脱敏处理。"
     >
       <template #actions>
         <n-space>
-          <n-button type="primary" @click="scanDocument" :loading="isScanning" :disabled="isScanning">
-            {{ isScanning ? '扫描中...' : '扫描文档' }}
+          <n-button type="primary" @click="scanDocument" :loading="isExecuting" :disabled="isExecuting">
+            {{ isExecuting ? '扫描中...' : '扫描文档' }}
           </n-button>
           <n-button 
             type="success" 
-            @click="applyAllDesensitization" 
-            :disabled="!hasSelectedItems"
+            @click="applyDesensitization" 
+            :disabled="!hasSelectedItems || isExecuting"
             v-if="sensitiveInfoList.length > 0"
           >
             一键脱敏 ({{ selectedCount }})
@@ -24,6 +24,15 @@
         </n-space>
       </template>
     </PageHeader>
+
+    <!-- 扫描进度 -->
+    <ProcessingStatus
+      v-if="isExecuting"
+      class="mt-4"
+      :stage="progress.stepName || progress.stage"
+      :current="progress.current"
+      :total="progress.total"
+    />
 
     <!-- 检测结果列表 -->
     <div v-if="sensitiveInfoList.length > 0" class="wps-card wps-section mt-4">
@@ -67,7 +76,7 @@
 
     <!-- 空状态 -->
     <EmptyState
-      v-else-if="!isScanning && scanned"
+      v-else-if="!isExecuting && scanned"
       class="mt-4"
       description="未检测到敏感信息"
       icon="✅"
@@ -110,15 +119,18 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { NButton, NSpace, NTag, NAlert, NList, NListItem, NThing, NCheckbox, NCollapse, NCollapseItem, NFormItem, NInput } from '../components/naive-components.js'
-import { PageLayout, PageHeader, EmptyState } from '../components/common'
+import { PageLayout, PageHeader, EmptyState, ProcessingStatus } from '../components/common'
+import { useWorkflowExecution } from '../composables/useWorkflowExecution.js'
 import { useWpsEnvironment } from '../composables/useWpsEnvironment.js'
-import { desensitizeText } from '../services/document/desensitize.js'
+import { ActionTypes } from '../services/workflow'
+
+// 使用工作流执行 composable
+const { isExecuting, progress, executePreset, getResultData, reset: resetWorkflow } = useWorkflowExecution()
 
 // 使用 WPS 环境 composable
-const { getDocument, getFullText } = useWpsEnvironment()
+const { getDocument } = useWpsEnvironment()
 
 // 响应式数据
-const isScanning = ref(false)
 const scanned = ref(false)
 const sensitiveInfoList = ref([])
 const whitelist = ref('')
@@ -143,56 +155,50 @@ const getTypeColor = (type) => {
   return colorMap[type] || 'default'
 }
 
+// 解析自定义敏感词
+const parseCustomSensitiveWords = () => {
+  return customSensitiveWords.value
+    .split('\n')
+    .map(line => {
+      const parts = line.split('|')
+      if (parts.length === 2) {
+        return { word: parts[0].trim(), replacement: parts[1].trim() }
+      }
+      return null
+    })
+    .filter(item => item !== null)
+    .map(item => item.word)
+    .join(',')
+}
+
 // 扫描文档
 const scanDocument = async () => {
-  const fullText = getFullText()
-  if (!fullText) {
-    scanned.value = true
-    return
-  }
-
-  isScanning.value = true
   scanned.value = false
   resultMessage.value = ''
+  sensitiveInfoList.value = []
 
-  try {
-    // 解析白名单
-    const whitelistArray = whitelist.value
-      .split('\n')
-      .map(item => item.trim())
-      .filter(item => item.length > 0)
+  // 执行扫描工作流
+  const result = await executePreset('scan-sensitive', {
+    stepParams: {
+      [ActionTypes.SCAN_SENSITIVE]: {
+        whitelist: whitelist.value,
+        blacklist: parseCustomSensitiveWords()
+      }
+    }
+  })
 
-    // 解析自定义敏感词
-    const customSensitiveWordsArray = customSensitiveWords.value
-      .split('\n')
-      .map(line => {
-        const parts = line.split('|')
-        if (parts.length === 2) {
-          return { word: parts[0].trim(), replacement: parts[1].trim() }
-        }
-        return null
-      })
-      .filter(item => item !== null)
+  scanned.value = true
 
-    // 调用脱敏检测
-    const { sensitiveInfoList: detectedList } = desensitizeText(fullText, {
-      whitelist: whitelistArray,
-      customSensitiveWords: customSensitiveWordsArray
-    })
-
-    // 为每个检测项添加选中状态
+  if (result.success) {
+    // 从工作流结果中获取敏感信息列表
+    const detectedList = getResultData('sensitiveInfoList') || []
     sensitiveInfoList.value = detectedList.map(item => ({ ...item, selected: true }))
-    scanned.value = true
 
     if (sensitiveInfoList.value.length === 0) {
       window.$message?.success('未检测到敏感信息')
     } else {
       window.$message?.success(`检测到 ${sensitiveInfoList.value.length} 个敏感信息`)
     }
-  } catch (error) {
-    window.$message?.error('扫描失败: ' + error.message)
-  } finally {
-    isScanning.value = false
   }
 }
 
@@ -205,10 +211,11 @@ const clearResults = () => {
   sensitiveInfoList.value = []
   scanned.value = false
   resultMessage.value = ''
+  resetWorkflow()
 }
 
 // 应用脱敏
-const applyAllDesensitization = async () => {
+const applyDesensitization = async () => {
   if (!hasSelectedItems.value) {
     window.$message?.warning('请至少选择一个敏感信息')
     return
@@ -222,6 +229,7 @@ const applyAllDesensitization = async () => {
     let replacedCount = 0
     const selection = doc.Application.Selection
     
+    // 逐个替换敏感信息
     selectedItems.forEach(item => {
       selection.HomeKey(6)
       const findObj = selection.Find

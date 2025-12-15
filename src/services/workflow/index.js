@@ -59,3 +59,10 @@ export {
   reviewContractAction,
   globalAnalysisAction
 } from './actions/index.js'
+
+// 自动注册所有 Action（模块加载时执行）
+import { registerAllActions as _registerAllActions } from './actions/index.js'
+import { actionRegistry as _actionRegistry } from './actionRegistry.js'
+if (_actionRegistry.size === 0) {
+  _registerAllActions()
+}

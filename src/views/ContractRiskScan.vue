@@ -4,13 +4,13 @@
     <PageHeader
       title="合同风险扫描"
       icon="⚠️"
-      :loading="isScanning"
+      :loading="isExecuting"
       loading-text="扫描中"
       description="使用 AI 智能分析合同内容，识别潜在风险点和问题条款。本功能仅进行预审分析，不会修改文档内容。"
     >
       <template #actions>
-        <n-button type="primary" @click="startScan" :loading="isScanning" :disabled="isScanning">
-          {{ isScanning ? '扫描中...' : '开始扫描' }}
+        <n-button type="primary" @click="startScan" :loading="isExecuting" :disabled="isExecuting">
+          {{ isExecuting ? '扫描中...' : '开始扫描' }}
         </n-button>
       </template>
     </PageHeader>
@@ -44,13 +44,57 @@
     </div>
 
     <!-- 扫描进度 -->
-    <ProcessingStatus
-      v-if="isScanning"
-      class="mt-2"
-      :stage="scanProgress.stage || '正在扫描...'"
-      :current="scanProgress.current"
-      :total="scanProgress.total"
-    />
+    <div v-if="isExecuting" class="wps-card wps-section mt-2">
+      <n-space vertical>
+        <div class="flex items-center gap-2">
+          <n-spin size="small" />
+          <span class="text-sm font-semibold">{{ scanStage }}</span>
+        </div>
+        <n-progress 
+          type="line" 
+          status="info"
+          :percentage="100"
+          :show-indicator="false"
+          :processing="true"
+        />
+      </n-space>
+    </div>
+
+    <!-- 审查清单（扫描过程中先显示） -->
+    <div v-if="checklist.length > 0" class="wps-card wps-section mt-2">
+      <n-collapse :default-expanded-names="isExecuting ? ['checklist'] : []">
+        <n-collapse-item name="checklist">
+          <template #header>
+            <n-space align="center">
+              <span class="text-base font-semibold">📋 审查清单</span>
+              <n-tag size="small" type="info">{{ checklist.length }} 项</n-tag>
+              <n-tag v-if="isExecuting" size="tiny" type="warning">审查中...</n-tag>
+            </n-space>
+          </template>
+          <n-list bordered>
+            <n-list-item v-for="(item, index) in checklist" :key="index">
+              <n-thing>
+                <template #header>
+                  <n-space align="center">
+                    <n-tag :type="isChecklistItemMatched(item.id) ? 'success' : 'default'" size="small">
+                      {{ isChecklistItemMatched(item.id) ? '✓' : '○' }}
+                    </n-tag>
+                    <span>{{ item.name }}</span>
+                    <n-tag v-if="item.required" type="error" size="tiny">必需</n-tag>
+                  </n-space>
+                </template>
+                <template #description>
+                  <div class="text-sm text-gray-600 mt-1">{{ item.reviewRequirements }}</div>
+                  <div v-if="isChecklistItemMatched(item.id)" class="text-xs text-green-600 mt-1">
+                    ✓ 已检测到相关内容 ({{ getChecklistMatchCount(item.id) }} 个问题)
+                  </div>
+                </template>
+              </n-thing>
+            </n-list-item>
+          </n-list>
+        </n-collapse-item>
+      </n-collapse>
+    </div>
 
     <!-- 扫描结果 -->
     <div v-if="scanResult" class="mt-2">
@@ -64,45 +108,10 @@
           <n-statistic label="风险提示" :value="scanResult.summary?.totalRisks || 0">
             <template #suffix>个</template>
           </n-statistic>
-          <n-statistic label="审查清单" :value="scanResult.summary?.checklistCount || 0">
+          <n-statistic label="审查清单" :value="checklist.length">
             <template #suffix>项</template>
           </n-statistic>
         </div>
-      </div>
-
-      <!-- 审查清单 -->
-      <div v-if="scanResult.checklist && scanResult.checklist.length > 0" class="wps-card wps-section mt-2">
-        <n-collapse accordion>
-          <n-collapse-item>
-            <template #header>
-              <n-space align="center">
-                <span class="text-base font-semibold">📋 审查清单</span>
-                <n-tag size="small" type="info">{{ scanResult.checklist.length }} 项</n-tag>
-              </n-space>
-            </template>
-            <n-list bordered>
-              <n-list-item v-for="(item, index) in scanResult.checklist" :key="index">
-                <n-thing>
-                  <template #header>
-                    <n-space align="center">
-                      <n-tag :type="isChecklistItemMatched(item.id) ? 'success' : 'default'" size="small">
-                        {{ isChecklistItemMatched(item.id) ? '✓' : '○' }}
-                      </n-tag>
-                      <span>{{ item.name }}</span>
-                      <n-tag v-if="item.required" type="error" size="tiny">必需</n-tag>
-                    </n-space>
-                  </template>
-                  <template #description>
-                    <div class="text-sm text-gray-600 mt-1">{{ item.reviewRequirements }}</div>
-                    <div v-if="isChecklistItemMatched(item.id)" class="text-xs text-green-600 mt-1">
-                      ✓ 已检测到相关内容 ({{ getChecklistMatchCount(item.id) }} 个问题)
-                    </div>
-                  </template>
-                </n-thing>
-              </n-list-item>
-            </n-list>
-          </n-collapse-item>
-        </n-collapse>
       </div>
 
       <!-- 检测到的问题 -->
@@ -177,7 +186,7 @@
 
     <!-- 空状态 -->
     <EmptyState
-      v-else-if="!isScanning && scanned"
+      v-else-if="!isExecuting && scanned"
       class="mt-2"
       description="未检测到风险"
       icon="✅"
@@ -187,27 +196,27 @@
 
 <script setup>
 import { ref } from 'vue'
-import { NButton, NSpace, NTag, NAlert, NRadioGroup, NRadio, NStatistic, NList, NListItem, NThing, NCollapse, NCollapseItem } from '../components/naive-components.js'
-import { PageLayout, PageHeader, EmptyState, ProcessingStatus } from '../components/common'
+import { NButton, NSpace, NTag, NAlert, NRadioGroup, NRadio, NStatistic, NList, NListItem, NThing, NCollapse, NCollapseItem, NSpin, NProgress } from '../components/naive-components.js'
+import { PageLayout, PageHeader, EmptyState } from '../components/common'
+import { useWorkflowExecution } from '../composables/useWorkflowExecution.js'
 import { useWpsEnvironment } from '../composables/useWpsEnvironment.js'
-import { ContractReviewEngine } from '../services/contract/contractReviewEngine.js'
-import { ReviewAIService } from '../services/contract/reviewAIService.js'
+import { ActionTypes } from '../services/workflow'
+import { reviewChecklistGenerator } from '../services/contract/reviewChecklistGenerator.js'
+
+// 使用工作流执行 composable
+const { isExecuting, executePreset, getResultData, reset: resetWorkflow } = useWorkflowExecution()
 
 // 使用 WPS 环境 composable
 const { getFullText } = useWpsEnvironment()
 
 // 响应式数据
-const isScanning = ref(false)
 const scanned = ref(false)
 const scanStrategy = ref('full')
-const scanProgress = ref({ current: 0, total: 0, stage: '' })
 const contractType = ref('')
 const contractTypeObj = ref(null)
 const scanResult = ref(null)
-
-// 创建审查引擎实例
-const reviewEngine = new ContractReviewEngine()
-const reviewAIService = new ReviewAIService()
+const scanStage = ref('正在扫描...')
+const checklist = ref([]) // 审查清单（扫描过程中先显示）
 
 // 获取风险等级颜色
 const getRiskLevelColor = (level) => {
@@ -239,6 +248,7 @@ const getChecklistMatchCount = (checklistId) => {
   return scanResult.value.issues.filter(issue => issue.checklistId === checklistId).length
 }
 
+
 // 开始扫描
 const startScan = async () => {
   const fullText = getFullText()
@@ -247,69 +257,83 @@ const startScan = async () => {
     return
   }
 
-  isScanning.value = true
   scanned.value = false
   scanResult.value = null
   contractType.value = ''
-  scanProgress.value = { current: 0, total: 0, stage: '正在读取文档...' }
 
-  try {
-    // 计算预计时间
-    const wordCount = fullText.length
-    let timeRange = ''
-    if (scanStrategy.value === 'full') {
-      const minTime = Math.ceil(wordCount / 600) * 10
-      const maxTime = Math.ceil(wordCount / 400) * 15
-      timeRange = maxTime <= 60 ? `${minTime}-${maxTime} 秒` : `${Math.ceil(minTime / 60)}-${Math.ceil(maxTime / 60)} 分钟`
-    } else {
-      const minTime = Math.ceil(wordCount / 1200) * 8
-      const maxTime = Math.ceil(wordCount / 800) * 12
-      timeRange = maxTime <= 60 ? `${minTime}-${maxTime} 秒` : `${Math.ceil(minTime / 60)}-${Math.ceil(maxTime / 60)} 分钟`
-    }
-    window.$message?.info(`文档字数: ${wordCount} 字 | 预计用时: ${timeRange}`, { duration: 6000 })
+  // 计算预计时间并提示
+  const wordCount = fullText.length
+  let timeRange = ''
+  if (scanStrategy.value === 'full') {
+    const minTime = Math.ceil(wordCount / 600) * 10
+    const maxTime = Math.ceil(wordCount / 400) * 15
+    timeRange = maxTime <= 60 ? `${minTime}-${maxTime} 秒` : `${Math.ceil(minTime / 60)}-${Math.ceil(maxTime / 60)} 分钟`
+  } else {
+    const minTime = Math.ceil(wordCount / 1200) * 8
+    const maxTime = Math.ceil(wordCount / 800) * 12
+    timeRange = maxTime <= 60 ? `${minTime}-${maxTime} 秒` : `${Math.ceil(minTime / 60)}-${Math.ceil(maxTime / 60)} 分钟`
+  }
+  window.$message?.info(`文档字数: ${wordCount} 字 | 预计用时: ${timeRange}`, { duration: 6000 })
 
-    // 识别合同类型
-    scanProgress.value.stage = '正在识别合同类型...'
-    const identifiedType = await reviewAIService.identifyContractType(fullText)
-    contractTypeObj.value = identifiedType
-    contractType.value = identifiedType.subtype || identifiedType.type || '未知'
-
-    // 执行审查
-    scanProgress.value.stage = '正在分析合同内容...'
-    const options = {
-      autoApply: false,
-      useCustomRules: false,
-      onProgress: (progress) => {
-        scanProgress.value = {
-          current: progress.current || 0,
-          total: progress.total || 0,
-          stage: progress.stage || '正在审查...'
+  // 更新扫描阶段的回调
+  const updateStage = (progressInfo) => {
+    if (progressInfo.stepName) {
+      scanStage.value = progressInfo.stepName
+      
+      // 当识别合同类型步骤完成后，立即获取并显示审查清单
+      if (progressInfo.stage === 'complete' && progressInfo.stepName === '识别合同类型') {
+        // 使用 progressInfo.getStepData 获取当前步骤的数据
+        const identifiedType = progressInfo.getStepData?.('contractType')
+        if (identifiedType) {
+          contractTypeObj.value = identifiedType
+          contractType.value = identifiedType.subtype || identifiedType.type || '未知'
+          // 生成审查清单
+          checklist.value = reviewChecklistGenerator.generateChecklist(identifiedType)
+          scanStage.value = '正在审查合同...'
         }
       }
     }
+  }
 
-    let result
-    if (scanStrategy.value === 'full') {
-      result = await reviewEngine.reviewByFullText(fullText, contractTypeObj.value, options)
-    } else {
-      const segments = await reviewEngine.segmenter.segmentDocument(fullText)
-      result = await reviewEngine.reviewBySegments(segments, fullText, contractTypeObj.value, options)
+  // 执行风险扫描工作流
+  scanStage.value = '正在读取文档...'
+  const result = await executePreset('contract-risk-scan', {
+    stepParams: {
+      [ActionTypes.REVIEW_CONTRACT]: {
+        depth: scanStrategy.value === 'full' ? 'standard' : 'deep',
+        autoApply: false
+      }
+    },
+    onProgress: updateStage
+  })
+
+  scanned.value = true
+
+  if (result.success) {
+    // 从工作流结果中获取合同类型（如果还没获取）
+    if (!contractType.value) {
+      const identifiedType = getResultData('contractType')
+      if (identifiedType) {
+        contractTypeObj.value = identifiedType
+        contractType.value = identifiedType.subtype || identifiedType.type || '未知'
+      }
     }
 
-    scanResult.value = result
-    scanned.value = true
+    // 从工作流结果中获取审查结果
+    const reviewResult = getResultData('reviewResult')
+    if (reviewResult) {
+      scanResult.value = reviewResult
+      // 更新审查清单（使用审查结果中的清单，包含匹配信息）
+      if (reviewResult.checklist) {
+        checklist.value = reviewResult.checklist
+      }
+    }
 
-    if (result.summary?.totalIssues > 0 || result.summary?.totalRisks > 0) {
-      window.$message?.success(`扫描完成！检测到 ${result.summary.totalIssues} 个问题，${result.summary.totalRisks} 个风险提示`)
+    if (scanResult.value?.summary?.totalIssues > 0 || scanResult.value?.summary?.totalRisks > 0) {
+      window.$message?.success(`扫描完成！检测到 ${scanResult.value.summary.totalIssues} 个问题，${scanResult.value.summary.totalRisks} 个风险提示`)
     } else {
       window.$message?.success('扫描完成，未发现明显风险')
     }
-  } catch (error) {
-    window.$message?.error(error.message || '未知错误', { duration: 8000, closable: true })
-    scanned.value = true
-  } finally {
-    isScanning.value = false
-    scanProgress.value = { current: 0, total: 0, stage: '' }
   }
 }
 
@@ -318,7 +342,9 @@ const clearResults = () => {
   scanResult.value = null
   contractType.value = ''
   contractTypeObj.value = null
+  checklist.value = []
   scanned.value = false
+  resetWorkflow()
 }
 
 // 导出报告
