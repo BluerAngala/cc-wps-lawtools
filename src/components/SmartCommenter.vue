@@ -304,6 +304,15 @@ const props = defineProps({
   reviewConfig: {
     type: Object,
     default: () => ({})
+  },
+  // 模式描述配置
+  modeDescriptions: {
+    type: Object,
+    default: () => ({
+      keyword: '匹配关键词并添加固定的批注或修订内容',
+      aiReview: 'AI根据合同类型的通用审查清单自动完成审查，添加批注',
+      aiLawyer: '在AI预审模式基础上，加上自定义的审查规则，完成审查并且添加批注'
+    })
   }
 })
 
@@ -346,14 +355,7 @@ const isAIMode = () => {
 }
 
 const getModeDescription = () => {
-  if (currentMode.value === 'keyword') {
-    return '匹配关键词并添加固定的批注或修订内容'
-  } else if (currentMode.value === 'aiReview') {
-    return 'AI根据合同类型的通用审查清单自动完成审查，添加批注'
-  } else if (currentMode.value === 'aiLawyer') {
-    return '在AI预审模式基础上，加上自定义的审查规则，完成审查并且添加批注'
-  }
-  return ''
+  return props.modeDescriptions[currentMode.value] || ''
 }
 
 const getConfigForm = () => {

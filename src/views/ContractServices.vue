@@ -1,25 +1,14 @@
 <template>
   <PageLayout>
-    <!-- 主控制面板 -->
-    <div class="wps-card wps-section">
-      <!-- 操作按钮 -->
-      <div class="flex-center">
-        <div class="flex gap-4">
-          <n-button type="success" @click="saveConfig">
-            <template #icon><DocumentIcon /></template>
-            保存配置
-          </n-button>
-          <n-button type="warning" @click="resetConfig">
-            <template #icon><RefreshIcon /></template>
-            重置配置
-          </n-button>
-          <n-button type="error" @click="clearCache">
-            <template #icon><DeleteIcon /></template>
-            清除缓存
-          </n-button>
-        </div>
+    <!-- 页面说明 -->
+    <n-alert type="info" :closable="false" show-icon class="mb-4">
+      <div class="text-sm leading-relaxed">
+        <p class="mb-2">本页面提供以下功能：</p>
+        <p>• <strong>AI提取合同信息</strong>：智能识别合同名称、甲乙方、金额等关键要素</p>
+        <p>• <strong>智能文档处理</strong>：支持关键词批注、AI合同审查等多种模式</p>
+        <p>• <strong>执行工作流</strong>：一键完成添加编号、重命名、导出PDF等操作</p>
       </div>
-    </div>
+    </n-alert>
 
     <!-- 折叠面板（手风琴模式） -->
     <n-collapse :default-expanded-names="['extractor']" accordion class="mt-4">
@@ -79,6 +68,7 @@
           :processing="contractService.isTaskProcessing('keywordComment') || contractService.isTaskProcessing('contractReview') || contractService.isTaskProcessing('contractReviewNew')"
           :keyword-config="configs.keyword"
           :review-config="configs.review"
+          :mode-descriptions="smartModeDescriptions"
           @execute="executeSmartComment"
           @update-config="updateSmartConfig"
         />
@@ -164,11 +154,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { NButton, NCollapse, NCollapseItem, NTag, NAlert, NDivider, NForm, NFormItem, NSwitch, NSpace, NInput } from '../components/naive-components.js'
 import { PageLayout } from '../components/common'
-import {
-  DocumentOutline as DocumentIcon,
-  Refresh as RefreshIcon,
-  TrashOutline as DeleteIcon
-} from '@vicons/ionicons5'
+
 import ContractExtractor from '../components/ContractExtractor.vue'
 import SmartCommenter from '../components/SmartCommenter.vue'
 import { contractService } from '../services/contract/contractService.js'
@@ -208,6 +194,13 @@ const batchActionEnabled = computed(() =>
   batchOptions.value.rename || 
   batchOptions.value.exportPdf
 )
+
+// 智能文档处理模式描述配置
+const smartModeDescriptions = {
+  keyword: '匹配关键词并添加固定的批注修订',
+  aiReview: 'AI根据合同类型的通用审查清单自动完成审查，添加批注',
+  aiLawyer: '在AI预审模式基础上，加上自定义的审查规则，完成审查并且添加批注'
+}
 
 const triggerSmartProcess = () => {
   if (smartCommenterRef.value?.triggerExecute) {
@@ -293,19 +286,7 @@ const updateSmartConfig = (configForm) => {
   }
 }
 
-// 配置管理方法（简化）
-const saveConfig = () => {
-  // 显式保存，显示提示消息
-  saveConfigToAppConfig(true)
-}
 
-const resetConfig = () => {
-  appConfig.reset()
-  // 重新加载配置
-  loadConfig()
-  window.$message?.success('配置已重置为默认值')
-}
-const clearCache = () => contractService.clearCache()
 
 // 一键处理：添加合同编号 + 重命名 + 导出PDF
 const handleBatchProcess = async () => {
