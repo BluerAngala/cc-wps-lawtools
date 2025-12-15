@@ -19,12 +19,22 @@ export class ContractReviewEngine {
   }
 
   /**
-   * 审查流程
+   * 审查流程（支持流式和非流式模式）
+   * @param {Object} options - 审查选项
+   * @param {boolean} options.stream - 是否使用流式模式，默认 true
+   * @param {boolean} options.autoApply - 是否自动应用批注，默认 true
+   * @param {Function} options.onIssueFound - 发现问题时的回调
+   * @param {Function} options.onRiskFound - 发现风险时的回调
+   * @param {Function} options.onProgress - 进度回调
+   * @param {string} options.strategy - 审查策略：'full' 全文审查，'segment' 分段审查
    */
   async review(options = {}) {
     // 重置已应用批注记录（每次审查开始时清空）
     this._appliedComments = new Map()
     
+    // 是否使用流式模式（默认启用）
+    const useStream = options.stream !== false
+
     // 1. 获取文档文本和段落信息
     const fullText = this.wpsService.getFullText()
     if (!fullText) {
@@ -32,6 +42,7 @@ export class ContractReviewEngine {
     }
 
     unifiedLogger.info('文档长度', { length: fullText.length, type: 'document_analysis' })
+    unifiedLogger.info('审查模式', { stream: useStream, type: 'document_analysis' })
 
     // 2. 获取段落信息（用于改进分段）
     const paragraphs = this.wpsService.getParagraphs() || []
@@ -41,17 +52,41 @@ export class ContractReviewEngine {
     const segments = this.segmenter.segmentDocument(fullText, paragraphs)
     unifiedLogger.info('文档分段完成', { count: segments.length, type: 'document_analysis' })
 
-    // 3. 合同类型识别（基于全文）
-    unifiedLogger.info('开始识别合同类型', { type: 'contract_analysis' })
-    const contractType = await this.aiService.identifyContractType(fullText)
-    unifiedLogger.info('识别到合同类型', { contractCategory: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
-
-    // 4. 审查策略选择
-    if (options.strategy === 'full') {
-      // 全文审查
-      return await this.reviewByFullText(fullText, contractType, options)
+    // 4. 合同类型识别（如果已指定则跳过识别）
+    let contractType
+    if (options.contractType && options.contractType.type && options.contractType.type !== '未知') {
+      // 已指定合同类型，直接使用（跳过 AI 识别，节省时间）
+      contractType = options.contractType
+      unifiedLogger.info('使用指定的合同类型', { contractCategory: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
     } else {
-      // 分段审查（推荐）
+      // 未指定，进行 AI 识别
+      unifiedLogger.info('开始识别合同类型', { type: 'contract_analysis' })
+      contractType = await this.aiService.identifyContractType(fullText)
+      unifiedLogger.info('识别到合同类型', { contractCategory: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
+    }
+
+    // 5. 审查策略选择
+    if (options.strategy === 'full') {
+      // 全文审查（暂不支持流式，因为全文审查本身就是单次请求）
+      return await this.reviewByFullText(fullText, contractType, options)
+    }
+
+    // 分段审查
+    if (useStream) {
+      // 流式分段审查（边审查边批注）
+      try {
+        unifiedLogger.info('使用流式分段审查', { type: 'contract_analysis' })
+        return await this.reviewBySegmentsStreaming(segments, fullText, contractType, options)
+      } catch (error) {
+        // 流式失败，自动降级到非流式
+        unifiedLogger.warn('流式审查失败，降级到非流式', { 
+          error: error.message, 
+          type: 'contract_analysis' 
+        })
+        return await this.reviewBySegments(segments, fullText, contractType, options)
+      }
+    } else {
+      // 非流式分段审查（原有逻辑）
       return await this.reviewBySegments(segments, fullText, contractType, options)
     }
   }
@@ -931,6 +966,253 @@ export class ContractReviewEngine {
           results.checklistSummary[checklistId].issues.push(...stat.issues)
         }
       })
+    }
+  }
+
+  /**
+   * 生成问题的唯一键（用于去重）
+   * @private
+   */
+  _generateIssueKey(issue) {
+    const keywordCore = (issue.searchKeyword || issue.keyword || '').trim()
+      .replace(/[：:]/g, '')
+      .replace(/\s+/g, '')
+      .substring(0, 30)
+    const commentCore = (issue.comment || '').trim().substring(0, 50)
+    return `${keywordCore}_${commentCore}`
+  }
+
+  /**
+   * 准备审查清单
+   * @private
+   */
+  _prepareChecklist(contractType, options) {
+    const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType)
+    const userRules = options.useCustomRules ? this.getUserReviewRules() : []
+    return reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
+  }
+
+  /**
+   * 匹配单个问题到审查清单
+   * @private
+   */
+  _matchIssueToChecklist(issue, checklist) {
+    if (!checklist || checklist.length === 0) {
+      return { ...issue, checklistId: null }
+    }
+    return this.matchIssuesToChecklist([issue], checklist)[0]
+  }
+
+  /**
+   * 流式分段审查（边审查边批注，实时反馈）
+   * @param {Array} segments - 分段数组
+   * @param {string} fullText - 完整文档文本
+   * @param {Object} contractType - 合同类型
+   * @param {Object} options - 审查选项
+   * @returns {Promise<Object>} 审查结果
+   */
+  async reviewBySegmentsStreaming(segments, fullText, contractType, options) {
+    const checklist = this._prepareChecklist(contractType, options)
+
+    const results = {
+      issues: [],
+      risks: [],
+      segments: [],
+      contractType,
+      checklistSummary: {},
+      checklist
+    }
+
+    const reviewedItems = new Set()
+    let completedSegments = 0
+    const totalSegments = segments.length
+
+    unifiedLogger.info('开始流式分段审查', { 
+      segmentCount: totalSegments, 
+      type: 'streaming_review' 
+    })
+
+    // 并行处理分段，限制并发数为 2
+    const concurrency = 2
+
+    for (let i = 0; i < segments.length; i += concurrency) {
+      const batch = segments.slice(i, i + concurrency)
+
+      await Promise.all(batch.map(async (segment, batchIndex) => {
+        const segmentIndex = i + batchIndex
+
+        // 通知开始审查该分段
+        options.onProgress?.({
+          stage: 'reviewing',
+          segmentName: segment.section.title,
+          current: segmentIndex,
+          total: totalSegments,
+          percent: Math.round((segmentIndex / totalSegments) * 100)
+        })
+
+        try {
+          const segmentResult = await this.reviewSegmentStreaming(
+            segment,
+            fullText,
+            contractType,
+            reviewedItems,
+            {
+              ...options,
+              checklist,
+              // 每发现一个问题就立即处理
+              onIssue: async (issue) => {
+                // 去重检查
+                const key = this._generateIssueKey(issue)
+                if (reviewedItems.has(key)) {
+                  unifiedLogger.info('跳过重复问题（流式）', { 
+                    keyword: issue.searchKeyword?.substring(0, 20),
+                    type: 'streaming_review' 
+                  })
+                  return
+                }
+                reviewedItems.add(key)
+
+                // 匹配审查清单
+                const matchedIssue = this._matchIssueToChecklist(issue, checklist)
+                results.issues.push(matchedIssue)
+
+                // 立即应用批注
+                if (options.autoApply !== false) {
+                  await this.applyCommentImmediately(segment, matchedIssue)
+                }
+
+                // 通知上层发现了新问题
+                options.onIssueFound?.({
+                  issue: matchedIssue,
+                  totalIssues: results.issues.length,
+                  segment: segment.section.title
+                })
+              },
+              onRisk: (risk) => {
+                results.risks.push(risk)
+                options.onRiskFound?.({
+                  risk,
+                  totalRisks: results.risks.length
+                })
+              }
+            }
+          )
+
+          completedSegments++
+          results.segments.push(segmentResult)
+
+          // 通知分段完成
+          options.onProgress?.({
+            stage: 'segment_complete',
+            segmentName: segment.section.title,
+            current: completedSegments,
+            total: totalSegments,
+            percent: Math.round((completedSegments / totalSegments) * 100)
+          })
+        } catch (error) {
+          unifiedLogger.error('流式分段审查失败', { 
+            segment: segment.section.title,
+            error: error.message,
+            type: 'streaming_review' 
+          })
+          results.segments.push({ error: error.message })
+          completedSegments++
+        }
+      }))
+    }
+
+    // 生成总结
+    results.summary = {
+      totalIssues: results.issues.length,
+      totalRisks: results.risks.length,
+      segmentCount: segments.length,
+      checklistCount: checklist.length
+    }
+    results.checklistSummary = this.buildChecklistStats(results.issues)
+
+    unifiedLogger.info('流式分段审查完成', { 
+      totalIssues: results.issues.length,
+      totalRisks: results.risks.length,
+      type: 'streaming_review' 
+    })
+
+    return results
+  }
+
+  /**
+   * 流式审查单个分段
+   * @param {Object} segment - 分段对象
+   * @param {string} fullText - 完整文档文本
+   * @param {Object} contractType - 合同类型
+   * @param {Set} reviewedItems - 已审查项集合（用于去重）
+   * @param {Object} options - 审查选项
+   * @returns {Promise<Object>} 分段审查结果
+   */
+  async reviewSegmentStreaming(segment, fullText, contractType, reviewedItems, options) {
+    const context = {
+      currentSegment: segment.content,
+      fullDocument: fullText,
+      segmentPosition: {
+        section: segment.section.title,
+        index: segment.section.number
+      }
+    }
+
+    unifiedLogger.info('开始流式审查分段', { 
+      section: segment.section.title,
+      type: 'streaming_review' 
+    })
+
+    const result = await this.aiService.reviewClauseStreaming(
+      context,
+      contractType,
+      {
+        onIssue: options.onIssue,
+        onRisk: options.onRisk,
+        onProgress: options.onProgress
+      }
+    )
+
+    return {
+      issues: result.issues?.length || 0,
+      risks: result.risks?.length || 0
+    }
+  }
+
+  /**
+   * 立即应用单个批注（流式模式专用）
+   * @param {Object} segment - 分段对象
+   * @param {Object} issue - 问题对象
+   * @returns {Promise<boolean>} 是否成功
+   */
+  async applyCommentImmediately(segment, issue) {
+    try {
+      const range = this.locateIssue(segment, issue)
+      if (range) {
+        const positionKey = `${range.Start}_${range.End}`
+        if (!this._appliedComments.has(positionKey)) {
+          const success = this.wpsService.addComment(range, issue.comment)
+          if (success) {
+            this._appliedComments.set(positionKey, {
+              keyword: issue.searchKeyword || issue.keyword,
+              comment: issue.comment,
+              timestamp: Date.now()
+            })
+            unifiedLogger.info('实时批注已添加', { 
+              keyword: (issue.searchKeyword || issue.keyword || '').substring(0, 20),
+              type: 'streaming_review' 
+            })
+            return true
+          }
+        }
+      }
+      return false
+    } catch (error) {
+      unifiedLogger.warn('实时批注失败', { 
+        error: error.message,
+        type: 'streaming_review' 
+      })
+      return false
     }
   }
 }

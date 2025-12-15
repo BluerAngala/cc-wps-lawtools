@@ -27,29 +27,39 @@ export class ReviewContractAction extends AIBaseAction {
     try {
       this.emitProgress(params, '正在审查合同...')
 
-      // 构建增强 prompt
-      const enhancedPrompt = this.buildEnhancedPrompt('', {
-        perspective: params.perspective,
-        depth: params.depth,
-        focusAreas: params.focusAreas,
-        customPrompt: params.customPrompt
-      })
-
       // 构建审查选项
       const reviewOptions = {
         strategy: params.depth === 'deep' ? 'segment' : 'full',
         useCustomRules: params.useCustomRules || false,
         autoApply: params.autoApply !== false,
-        enhancedPrompt, // 传递增强 prompt
+        stream: true, // 默认启用流式审查
+        perspective: params.perspective, // 传递审查视角
+        customPrompt: params.customPrompt, // 传递自定义指令
+        // 进度回调
         onProgress: (progress) => {
           if (typeof progress === 'object') {
-            this.emitProgress(params, progress.stage, progress.content)
+            const stageText = progress.stage === 'reviewing' 
+              ? `正在审查: ${progress.segmentName || ''}` 
+              : progress.stage === 'segment_complete'
+                ? `已完成: ${progress.segmentName || ''} (${progress.percent || 0}%)`
+                : progress.stage
+            this.emitProgress(params, stageText, progress.content)
           }
+        },
+        // 发现问题时的回调（流式模式）
+        onIssueFound: (info) => {
+          this.emitProgress(params, `发现问题 #${info.totalIssues}: ${info.segment}`, info.issue?.comment?.substring(0, 50))
+        },
+        // 发现风险时的回调（流式模式）
+        onRiskFound: (info) => {
+          this.emitProgress(params, `发现风险 #${info.totalRisks}`, info.risk?.description?.substring(0, 50))
         }
       }
 
-      // 如果上下文中有合同类型，传递给审查引擎
-      if (context.data.contractType) {
+      // 合同类型：优先使用参数中指定的，其次使用上下文中的
+      if (params.contractType && params.contractType.type) {
+        reviewOptions.contractType = params.contractType
+      } else if (context.data.contractType) {
         reviewOptions.contractType = context.data.contractType
       }
 

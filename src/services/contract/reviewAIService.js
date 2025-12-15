@@ -7,6 +7,7 @@ import { streamChatCompletions, nonStreamChatCompletions } from '../ai/siliconfl
 import { appConfig } from '../../utils/appConfig.js'
 import { PromptBuilder } from '../../config/prompts.js'
 import unifiedLogger from '../../utils/unifiedLogger.js'
+import { JSONLParser } from './jsonlParser.js'
 
 export class ReviewAIService {
   constructor() {
@@ -104,7 +105,10 @@ export class ReviewAIService {
    */
   async reviewClause(context, contractType, options = {}) {
     const config = this.getAIConfig()
-    const messages = this.buildReviewMessages(context, contractType, options)
+    const messages = this.buildReviewMessages(context, contractType, {
+      perspective: options.perspective,
+      customPrompt: options.customPrompt
+    })
     
     // 合同审查必须返回 JSON 格式，因此默认使用非流式
     // 只有明确设置 stream=true 且不需要 JSON 时才使用流式
@@ -210,8 +214,11 @@ export class ReviewAIService {
   /**
    * 构建审查消息（三层提示词结构：系统级 + 角色级 + 任务级）
    * 使用统一的提示词配置管理
+   * @param {Object} context - 审查上下文
+   * @param {Object} contractType - 合同类型
+   * @param {Object} options - 选项（包含 perspective、customPrompt 等）
    */
-  buildReviewMessages(context, contractType) {
+  buildReviewMessages(context, contractType, options = {}) {
     // 生成文档摘要（用于上下文）
     const summary = context.fullDocument && context.fullDocument.length > 0
       ? this.generateDocumentSummary(context.fullDocument, context.currentSegment)
@@ -229,8 +236,11 @@ export class ReviewAIService {
       checklistText
     }
 
-    // 使用 PromptBuilder 构建消息
-    return PromptBuilder.forContractReview(enhancedContext, contractType, checklistText)
+    // 使用 PromptBuilder 构建消息，传递视角和自定义指令
+    return PromptBuilder.forContractReview(enhancedContext, contractType, checklistText, {
+      perspective: options.perspective,
+      customPrompt: options.customPrompt
+    })
   }
 
   /**
@@ -461,6 +471,107 @@ export class ReviewAIService {
         
         return {}
       }
+    }
+  }
+
+  /**
+   * 流式审查条款（边接收边解析，实时触发回调）
+   * @param {Object} context - 审查上下文
+   * @param {Object} contractType - 合同类型
+   * @param {Object} options - 选项
+   * @param {Function} options.onIssue - 发现问题时的回调
+   * @param {Function} options.onRisk - 发现风险时的回调
+   * @param {Function} options.onProgress - 进度回调
+   * @returns {Promise<Object>} 审查结果 { issues, risks }
+   */
+  async reviewClauseStreaming(context, contractType, options = {}) {
+    const config = this.getAIConfig()
+    const messages = PromptBuilder.forContractReviewStreaming(context, contractType)
+
+    const issues = []
+    const risks = []
+
+    // 创建增量解析器
+    const parser = new JSONLParser({
+      onLine: (obj) => {
+        if (obj.type === 'issue') {
+          // 转换为标准格式
+          const issue = {
+            severity: obj.severity || 'medium',
+            position: obj.position || '',
+            searchKeyword: obj.searchKeyword || obj.keyword || '',
+            comment: obj.comment || '',
+            checklistId: obj.checklistId || null
+          }
+          issues.push(issue)
+          options.onIssue?.(issue)
+          unifiedLogger.info('流式解析到问题', { 
+            keyword: issue.searchKeyword?.substring(0, 20),
+            type: 'streaming_review' 
+          })
+        } else if (obj.type === 'risk') {
+          const risk = {
+            severity: obj.severity || 'medium',
+            description: obj.description || '',
+            suggestion: obj.suggestion || ''
+          }
+          risks.push(risk)
+          options.onRisk?.(risk)
+          unifiedLogger.info('流式解析到风险', { 
+            description: risk.description?.substring(0, 20),
+            type: 'streaming_review' 
+          })
+        }
+      },
+      onError: (msg) => {
+        unifiedLogger.warn('JSONL解析警告', { message: msg, type: 'streaming_review' })
+      }
+    })
+
+    try {
+      unifiedLogger.info('开始流式审查', { 
+        section: context.segmentPosition?.section || '未知',
+        type: 'streaming_review' 
+      })
+
+      if (options.onProgress) {
+        options.onProgress({ stage: '正在流式审查...', content: '' })
+      }
+
+      // 使用流式请求
+      await streamChatCompletions({
+        messages,
+        model: config.model,
+        onChunk: (chunk) => {
+          // 将数据块喂给解析器
+          parser.feed(chunk)
+        },
+        options: {
+          temperature: config.temperature,
+          maxTokens: config.maxTokens
+        }
+      })
+
+      // 处理剩余缓冲区
+      parser.flush()
+
+      unifiedLogger.info('流式审查完成', { 
+        issueCount: issues.length,
+        riskCount: risks.length,
+        type: 'streaming_review' 
+      })
+
+      if (options.onProgress) {
+        options.onProgress({ stage: '流式审查完成', content: '' })
+      }
+
+      return { issues, risks }
+    } catch (error) {
+      unifiedLogger.error('流式审查失败', { 
+        error: error.message,
+        type: 'streaming_review' 
+      })
+      throw error
     }
   }
 }

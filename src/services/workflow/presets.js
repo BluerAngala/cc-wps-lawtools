@@ -9,21 +9,21 @@ import { ActionTypes } from './types.js'
  * AI 工作流预设
  */
 export const aiWorkflowPresets = {
-  // 甲方快速审查
-  partyAQuickReview: {
-    id: 'party-a-quick-review',
-    name: '甲方快速审查',
-    description: '从甲方视角快速识别重大风险',
+  // 甲方立场审查
+  partyAReview: {
+    id: 'party-a-review',
+    name: '甲方立场审查',
+    description: '从甲方立场审查合同，分析可能对甲方不利的内容',
     category: 'ai',
     steps: [
       { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
       { actionType: ActionTypes.IDENTIFY_CONTRACT, name: '识别合同类型' },
       {
         actionType: ActionTypes.REVIEW_CONTRACT,
-        name: '甲方视角审查',
+        name: '甲方立场审查',
         params: {
           perspective: 'partyA',
-          depth: 'quick',
+          depth: 'standard',
           focusAreas: ['liability', 'payment'],
           autoApply: true
         }
@@ -32,88 +32,22 @@ export const aiWorkflowPresets = {
     ]
   },
 
-  // 乙方深度审查
-  partyBDeepReview: {
-    id: 'party-b-deep-review',
-    name: '乙方深度审查',
-    description: '从乙方视角逐条详细分析',
+  // 乙方立场审查
+  partyBReview: {
+    id: 'party-b-review',
+    name: '乙方立场审查',
+    description: '从乙方立场审查合同，分析可能对乙方不利的内容',
     category: 'ai',
     steps: [
       { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
       { actionType: ActionTypes.IDENTIFY_CONTRACT, name: '识别合同类型' },
       {
-        actionType: ActionTypes.EXTRACT_CONTRACT,
-        name: '提取要素',
-        params: { extractMode: 'full' }
-      },
-      {
-        actionType: ActionTypes.GLOBAL_ANALYSIS,
-        name: '全局分析',
-        params: { depth: 'deep' }
-      },
-      {
         actionType: ActionTypes.REVIEW_CONTRACT,
-        name: '乙方深度审查',
+        name: '乙方立场审查',
         params: {
           perspective: 'partyB',
-          depth: 'deep',
-          focusAreas: ['liability', 'payment', 'ip'],
-          autoApply: true
-        }
-      },
-      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
-    ]
-  },
-
-  // 签约前风险扫描
-  preSignRiskScan: {
-    id: 'pre-sign-risk-scan',
-    name: '签约前风险扫描',
-    description: '签约前快速识别潜在风险',
-    category: 'ai',
-    steps: [
-      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
-      { actionType: ActionTypes.IDENTIFY_CONTRACT, name: '识别合同类型' },
-      {
-        actionType: ActionTypes.GLOBAL_ANALYSIS,
-        name: '风险扫描',
-        params: { depth: 'quick' }
-      },
-      {
-        actionType: ActionTypes.REVIEW_CONTRACT,
-        name: '风险审查',
-        params: {
-          perspective: 'neutral',
-          depth: 'quick',
-          focusAreas: ['liability', 'dispute'],
-          autoApply: false
-        }
-      }
-    ]
-  },
-
-  // 续签合同审查
-  renewalReview: {
-    id: 'renewal-review',
-    name: '续签合同审查',
-    description: '续签时重点关注变更条款',
-    category: 'ai',
-    steps: [
-      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
-      { actionType: ActionTypes.IDENTIFY_CONTRACT, name: '识别合同类型' },
-      {
-        actionType: ActionTypes.EXTRACT_CONTRACT,
-        name: '提取要素',
-        params: { extractMode: 'basic' }
-      },
-      {
-        actionType: ActionTypes.REVIEW_CONTRACT,
-        name: '续签审查',
-        params: {
-          perspective: 'neutral',
           depth: 'standard',
-          focusAreas: ['payment', 'liability'],
-          customPrompt: '重点关注与原合同相比的变更条款',
+          focusAreas: ['liability', 'payment', 'ip'],
           autoApply: true
         }
       },
@@ -125,15 +59,10 @@ export const aiWorkflowPresets = {
   laborContractReview: {
     id: 'labor-contract-review',
     name: '劳动合同审查',
-    description: '专门针对劳动合同的审查',
+    description: '专门针对劳动合同的审查（乙方视角）',
     category: 'ai',
     steps: [
       { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
-      {
-        actionType: ActionTypes.IDENTIFY_CONTRACT,
-        name: '识别合同类型',
-        params: { customPrompt: '这是一份劳动合同' }
-      },
       {
         actionType: ActionTypes.EXTRACT_CONTRACT,
         name: '提取要素',
@@ -147,7 +76,9 @@ export const aiWorkflowPresets = {
           depth: 'standard',
           focusAreas: ['liability', 'confidential'],
           customPrompt: '重点关注试用期、竞业限制、加班规定等劳动法相关条款',
-          autoApply: true
+          autoApply: true,
+          // 直接指定合同类型，跳过 AI 识别
+          contractType: { type: '劳动合同', subtype: '', confidence: 'high' }
         }
       },
       { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
@@ -158,15 +89,10 @@ export const aiWorkflowPresets = {
   purchaseContractReview: {
     id: 'purchase-contract-review',
     name: '采购合同审查',
-    description: '专门针对采购合同的审查',
+    description: '专门针对采购合同的审查（甲方视角）',
     category: 'ai',
     steps: [
       { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
-      {
-        actionType: ActionTypes.IDENTIFY_CONTRACT,
-        name: '识别合同类型',
-        params: { customPrompt: '这是一份采购合同' }
-      },
       {
         actionType: ActionTypes.EXTRACT_CONTRACT,
         name: '提取要素',
@@ -180,7 +106,9 @@ export const aiWorkflowPresets = {
           depth: 'standard',
           focusAreas: ['payment', 'liability', 'ip'],
           customPrompt: '重点关注交付条款、质量标准、验收流程',
-          autoApply: true
+          autoApply: true,
+          // 直接指定合同类型，跳过 AI 识别
+          contractType: { type: '采购合同', subtype: '', confidence: 'high' }
         }
       },
       { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
@@ -228,42 +156,109 @@ export const documentWorkflowPresets = {
   // 添加页眉并保存
   addHeaderAndSave: {
     id: 'add-header-save',
-    name: '添加页眉并保存',
-    description: '读取文档 → 添加页眉 → 保存',
+    name: '添加页眉',
+    description: '为文档添加页眉并保存',
     category: 'document',
     steps: [
-      {
-        actionType: ActionTypes.READ_DOCUMENT,
-        name: '读取文档'
-      },
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
       {
         actionType: ActionTypes.ADD_HEADER,
         name: '添加页眉',
-        params: {
-          text: ''
-        }
+        params: { text: '' }
       },
-      {
-        actionType: ActionTypes.SAVE_DOCUMENT,
-        name: '保存文档'
-      }
+      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
     ]
   },
 
   // 导出 PDF
   exportToPDF: {
     id: 'export-pdf',
-    name: '导出为 PDF',
-    description: '读取文档 → 导出 PDF',
+    name: '导出 PDF',
+    description: '将当前文档导出为 PDF 格式',
     category: 'document',
     steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      { actionType: ActionTypes.EXPORT_PDF, name: '导出 PDF' }
+    ]
+  },
+
+  // 另存为修订版
+  saveAsRevision: {
+    id: 'save-as-revision',
+    name: '另存为修订版',
+    description: '将文档另存为带「已修订」前缀的新文件',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
       {
-        actionType: ActionTypes.READ_DOCUMENT,
-        name: '读取文档'
+        actionType: ActionTypes.RENAME_DOCUMENT,
+        name: '另存为修订版',
+        params: {
+          prefix: '「已修订」',
+          deleteOriginal: false
+        }
+      }
+    ]
+  },
+
+  // 另存为定稿
+  saveAsFinal: {
+    id: 'save-as-final',
+    name: '另存为定稿',
+    description: '将文档另存为带「定稿」前缀的新文件',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.RENAME_DOCUMENT,
+        name: '另存为定稿',
+        params: {
+          prefix: '「定稿」',
+          deleteOriginal: false
+        }
+      }
+    ]
+  },
+
+  // 添加保密标识
+  addConfidentialHeader: {
+    id: 'add-confidential-header',
+    name: '添加保密标识',
+    description: '在页眉添加「保密」标识并保存',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.ADD_HEADER,
+        name: '添加保密标识',
+        params: { text: '【保密】' }
       },
+      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' }
+    ]
+  },
+
+  // 归档文档（添加页眉 + 导出PDF + 另存）
+  archiveDocument: {
+    id: 'archive-document',
+    name: '归档文档',
+    description: '添加归档标识 → 导出PDF → 另存为归档版',
+    category: 'document',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
       {
-        actionType: ActionTypes.EXPORT_PDF,
-        name: '导出 PDF'
+        actionType: ActionTypes.ADD_HEADER,
+        name: '添加归档标识',
+        params: { text: '【归档】' }
+      },
+      { actionType: ActionTypes.SAVE_DOCUMENT, name: '保存文档' },
+      { actionType: ActionTypes.EXPORT_PDF, name: '导出 PDF' },
+      {
+        actionType: ActionTypes.RENAME_DOCUMENT,
+        name: '另存为归档版',
+        params: {
+          prefix: '「归档」',
+          deleteOriginal: false
+        }
       }
     ]
   }
