@@ -107,37 +107,6 @@ export class ContractService {
   }
 
   /**
-   * 清除缓存
-   */
-  async clearCache() {
-    try {
-      const cacheManager =
-        window.cacheManager ||
-        (this.taskManager.taskScheduler && this.taskManager.taskScheduler.cacheManager)
-
-      if (!cacheManager) {
-        window.$message?.warning('缓存管理器不可用')
-        return
-      }
-
-      await window.$messageBox.confirm(
-        '确定要清除所有AI分析缓存吗？此操作不可恢复。\n\n注意：现在每次打开新文档时会自动清除缓存，缓存时长已调整为30分钟。',
-        '清除缓存确认',
-        {
-          confirmButtonText: '确定清除',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      )
-
-      cacheManager.clear()
-      window.$message?.success('缓存已清除')
-    } catch {
-      // 用户取消操作
-    }
-  }
-
-  /**
    * 检查任务是否正在处理
    * @param {string} taskType - 任务类型
    * @returns {boolean}

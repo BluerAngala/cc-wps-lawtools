@@ -1,14 +1,13 @@
 /**
  * 文档监听器
- * 监听 WPS 文档切换事件，自动清除旧缓存
+ * 监听 WPS 文档切换事件
  */
 
 /**
  * 文档监听器类
  */
 export class DocumentWatcher {
-  constructor(cacheManager) {
-    this.cacheManager = cacheManager
+  constructor() {
     this.currentDocumentName = null
     this.currentDocumentId = null
     this.checkInterval = 1000
@@ -61,11 +60,6 @@ export class DocumentWatcher {
 
       if (this.currentDocumentName !== newDocName || this.currentDocumentId !== newDocId) {
         console.log(`文档已切换: ${this.currentDocumentName || '无'} -> ${newDocName}`)
-
-        if (this.currentDocumentName && this.cacheManager) {
-          this.clearDocumentCache(this.currentDocumentName)
-        }
-
         this.currentDocumentName = newDocName
         this.currentDocumentId = newDocId
         this.onDocumentChanged(newDocName, newDocId)
@@ -107,23 +101,6 @@ export class DocumentWatcher {
   }
 
   /**
-   * 清除指定文档的缓存
-   */
-  clearDocumentCache(docName) {
-    if (!this.cacheManager) {
-      console.warn('缓存管理器不可用')
-      return
-    }
-
-    try {
-      this.cacheManager.clear()
-      console.log(`已清除文档 "${docName}" 的相关缓存`)
-    } catch (error) {
-      console.error('清除文档缓存失败:', error)
-    }
-  }
-
-  /**
    * 文档切换事件处理
    */
   onDocumentChanged(docName, docId) {
@@ -133,16 +110,6 @@ export class DocumentWatcher {
       window.dispatchEvent(new CustomEvent('documentChanged', {
         detail: { docName, docId }
       }))
-    }
-  }
-
-  /**
-   * 手动触发缓存清除
-   */
-  forceClearCache() {
-    if (this.cacheManager) {
-      this.cacheManager.clear()
-      console.log('手动清除了所有缓存')
     }
   }
 

@@ -1,10 +1,9 @@
 /**
  * 任务调度器 - 简化的AI服务统一入口
- * 集成文档解析、缓存管理和AI调用功能
+ * 集成文档解析和AI调用功能（无缓存，每次请求都重新获取）
  */
 
 import { DocumentParser } from '../document/DocumentParser.js'
-import { CacheManager } from './CacheManager.js'
 import axios from 'axios'
 import { appConfig } from '../../utils/appConfig.js'
 import {
@@ -25,9 +24,6 @@ const getAIConfig = () => {
 export class TaskScheduler {
   constructor(options = {}) {
     this.documentParser = new DocumentParser()
-    // 优先使用传入的缓存管理器实例，否则使用全局实例，最后才创建新实例
-    this.cacheManager =
-      options.cacheManager || window.cacheManager || new CacheManager(options.cache)
 
     // AI服务配置
     this.aiConfig = {
@@ -284,20 +280,8 @@ export class TaskScheduler {
     console.log(`文档长度: ${content.length}字符`)
     console.log(`分析选项:`, options)
 
-    // 检查缓存
-    const contentHash = this.documentParser.generateContentHash(content)
-    const cached = this.cacheManager.get(contentHash, analysisType, options)
-    if (cached) {
-      // 验证缓存结果是否有效（不是原始文本或错误结果）
-      if (cached._isRaw || cached.error || cached.content) {
-        console.log(`⚠️ 缓存结果无效，重新调用AI: ${analysisType}`)
-      } else {
-        console.log(`✅ 缓存命中: ${analysisType}，直接返回缓存结果`)
-        return cached
-      }
-    }
-
-    console.log(`缓存未命中，准备调用AI`)
+    // 禁用缓存，每次都重新获取
+    console.log(`准备调用AI（缓存已禁用）`)
 
     // 生成提示词
     console.log(`生成提示词 - 类型: ${analysisType}`)
@@ -312,13 +296,8 @@ export class TaskScheduler {
     const result = this.parseAIResponse(response, analysisType)
     console.log(`响应解析完成`)
 
-    // 只有成功解析的结构化结果才缓存
-    if (result && !result._isRaw && !result.error) {
-      this.cacheManager.set(contentHash, analysisType, result, options)
-      console.log(`✅ 结果已缓存`)
-    } else {
-      console.log(`⚠️ 结果未缓存（非结构化数据）`)
-    }
+    // 缓存已禁用，不再保存结果
+    console.log(`✅ AI调用完成（缓存已禁用）`)
 
     return result
   }
@@ -330,7 +309,10 @@ export class TaskScheduler {
     switch (analysisType) {
       case 'extractText': {
         // extractTags 应该是第一个参数，content 是第二个参数
-        const extractTags = options.extractTags || ['甲方名称', '乙方名称', '合同金额']
+        const extractTags = options.extractTags || [
+          '合同名称', '对接客户', '甲方', '甲方主体信息', 
+          '乙方', '乙方主体信息', '其他方', '合同金额'
+        ]
         return generateContractExtractionPrompt(extractTags, content)
       }
       case 'contractReview': {
@@ -689,10 +671,6 @@ export class TaskScheduler {
       taskComplete: [],
       taskError: [],
       queueEmpty: []
-    }
-
-    if (this.cacheManager) {
-      this.cacheManager.cleanup()
     }
 
     console.log('任务调度器资源已清理')

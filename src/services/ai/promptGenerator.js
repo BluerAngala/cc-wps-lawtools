@@ -16,7 +16,7 @@ export function generateContractExtractionPrompt(extractTags, content) {
   // 构建字段提取规则
   const extractionRules = extractTags
     .map((tag) => {
-      return `- ${tag}：\n  - 从文档中准确提取与"${tag}"相关的信息；\n  - 如无法确定则填入 null，不使用空字符串或占位词。`
+      return `- ${tag}：\n  - 从文档中准确提取与"${tag}"相关的信息；\n  - 如文档中没有明确提及该信息，必须填入 null，绝对不要编造或推测内容。`
     })
     .join('\n')
 
@@ -48,7 +48,9 @@ ${extractionRules}
 - 日期类字段规范为标准格式：YYYY年MM月DD日
 - 去除括号中的说明性文字（如"模板""示例"等）
 - 多处不一致时，优先采用正文首次明确出现且上下文最清晰的信息
-- 不进行主观推断；无法确定即为 null
+- 【重要】不进行主观推断，不编造内容，文档中没有的信息必须填 null
+- 【重要】每个字段必须独立判断，不要因为某个字段有值就推测相关字段的值
+- 【重要】"主体信息"类字段只有在文档中明确出现完整主体信息时才填写，否则填 null
 
 【示例输出格式】
 ${JSON.stringify(exampleOutput, null, 2)}

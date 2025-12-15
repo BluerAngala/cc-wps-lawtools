@@ -23,95 +23,11 @@
         </div>
       </template>
 
-      <n-form v-if="extractedData" label-placement="top" size="small">
-        <!-- 第一行：合同名称 + 对接客户 -->
-        <n-grid :cols="2" :x-gap="12" :y-gap="6">
-          <n-grid-item>
-            <n-form-item label="合同名称" class="mb-2">
-              <n-input
-                :value="extractedData['合同名称']"
-                @update:value="updateExtractedItem('合同名称', $event)"
-                placeholder="请输入合同名称"
-                show-count
-                :maxlength="200"
-                size="small"
-              />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="对接客户" class="mb-2">
-              <n-input
-                :value="extractedData['对接客户']"
-                @update:value="updateExtractedItem('对接客户', $event)"
-                placeholder="请输入对接客户"
-                show-count
-                :maxlength="200"
-                size="small"
-              />
-            </n-form-item>
-          </n-grid-item>
-        </n-grid>
-
-        <!-- 第二行：甲方 + 甲方主体信息 -->
-        <n-grid :cols="2" :x-gap="12" :y-gap="6">
-          <n-grid-item>
-            <n-form-item label="甲方" class="mb-2">
-              <n-input
-                :value="extractedData['甲方']"
-                @update:value="updateExtractedItem('甲方', $event)"
-                placeholder="请输入甲方"
-                show-count
-                :maxlength="200"
-                size="small"
-              />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="甲方主体信息" class="mb-2">
-              <n-input
-                :value="extractedData['甲方主体信息']"
-                @update:value="updateExtractedItem('甲方主体信息', $event)"
-                placeholder="请输入甲方主体信息"
-                show-count
-                :maxlength="200"
-                size="small"
-              />
-            </n-form-item>
-          </n-grid-item>
-        </n-grid>
-
-        <!-- 第三行：乙方 + 乙方主体信息 -->
-        <n-grid :cols="2" :x-gap="12" :y-gap="6">
-          <n-grid-item>
-            <n-form-item label="乙方" class="mb-2">
-              <n-input
-                :value="extractedData['乙方']"
-                @update:value="updateExtractedItem('乙方', $event)"
-                placeholder="请输入乙方"
-                show-count
-                :maxlength="200"
-                size="small"
-              />
-            </n-form-item>
-          </n-grid-item>
-          <n-grid-item>
-            <n-form-item label="乙方主体信息" class="mb-2">
-              <n-input
-                :value="extractedData['乙方主体信息']"
-                @update:value="updateExtractedItem('乙方主体信息', $event)"
-                placeholder="请输入乙方主体信息"
-                show-count
-                :maxlength="200"
-                size="small"
-              />
-            </n-form-item>
-          </n-grid-item>
-        </n-grid>
-
-        <!-- 其他字段 -->
-        <n-grid :cols="2" :x-gap="12" :y-gap="6">
-          <n-grid-item v-for="key in otherFields" :key="key">
-            <n-form-item :label="key" class="mb-2">
+      <n-form v-if="extractedData" label-placement="top" size="small" class="compact-form">
+        <!-- 动态渲染所有提取的字段 -->
+        <n-grid :cols="2" :x-gap="12" :y-gap="0">
+          <n-grid-item v-for="key in extractedFields" :key="key">
+            <n-form-item :label="key" :show-feedback="false" class="compact-item">
               <n-input
                 :value="extractedData[key]"
                 @update:value="updateExtractedItem(key, $event)"
@@ -172,13 +88,17 @@ const props = defineProps({
   }
 })
 
-// 固定字段列表（按顺序排列）
-const fixedFields = ['合同名称', '对接客户', '甲方', '甲方主体信息', '乙方', '乙方主体信息']
+// 固定字段列表（按顺序排列：合同名称、对接客户、甲方、甲方主体信息、乙方、乙方主体信息、其他方、合同金额）
+const fixedFields = ['合同名称', '对接客户', '甲方', '甲方主体信息', '乙方', '乙方主体信息', '其他方', '合同金额']
 
-// 计算其他字段（排除固定字段）
-const otherFields = computed(() => {
+// 计算所有提取的字段（按固定顺序排列，其他字段放后面）
+const extractedFields = computed(() => {
   if (!props.extractedData) return []
-  return Object.keys(props.extractedData).filter(key => !fixedFields.includes(key))
+  const keys = Object.keys(props.extractedData)
+  // 先按固定顺序排列已有字段，再添加其他字段
+  const orderedKeys = fixedFields.filter(key => keys.includes(key))
+  const otherKeys = keys.filter(key => !fixedFields.includes(key))
+  return [...orderedKeys, ...otherKeys]
 })
 
 // 监听 extractedData 变化，有数据时自动打开弹窗
@@ -241,3 +161,16 @@ watch(
   { immediate: true, deep: true }
 )
 </script>
+
+<style scoped>
+/* 紧凑表单样式 */
+.compact-form :deep(.n-form-item) {
+  margin-bottom: 8px;
+}
+.compact-form :deep(.n-form-item-label) {
+  padding-bottom: 2px;
+}
+.compact-item {
+  margin-bottom: 8px !important;
+}
+</style>

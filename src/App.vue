@@ -7,23 +7,14 @@ import { onMounted, onUnmounted } from 'vue'
 
 // 引入文档监听器
 import { DocumentWatcher } from './services/wps'
-// 引入缓存管理器
-import { CacheManager } from './services/ai/CacheManager.js'
 // 引入模板管理器
 import { templateManager } from './utils/templateManager.js'
 
 let documentWatcher = null
 
 onMounted(() => {
-  // 初始化缓存管理器
-  const cacheManager = new CacheManager({
-    maxCacheSize: 500,
-    maxCacheAge: 30 * 60 * 1000,
-    storagePrefix: 'contract_ai_cache_'
-  })
-
-  // 初始化文档监听器
-  documentWatcher = new DocumentWatcher(cacheManager)
+  // 初始化文档监听器（无缓存）
+  documentWatcher = new DocumentWatcher()
 
   // 延迟启动监听，确保WPS完全加载
   setTimeout(() => {
@@ -41,7 +32,6 @@ onMounted(() => {
   }, 2000)
 
   // 将全局对象暴露到 window
-  window.cacheManager = cacheManager
   window.documentWatcher = documentWatcher
   window.templateManager = templateManager
 })

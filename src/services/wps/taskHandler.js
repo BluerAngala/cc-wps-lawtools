@@ -171,7 +171,10 @@ class TaskHandler {
         return extractedText
       }
 
-      const extractTags = param?.extractContent || ['甲方名称', '乙方名称', '合同金额']
+      const extractTags = param?.extractContent || [
+        '合同名称', '对接客户', '甲方', '甲方主体信息',
+        '乙方', '乙方主体信息', '其他方', '合同金额'
+      ]
       const taskId = await this.taskScheduler.addTask({
         type: 'extractText',
         content: extractedText,

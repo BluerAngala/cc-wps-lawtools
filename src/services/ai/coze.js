@@ -38,6 +38,12 @@ export async function fetchCompanyInfo(companyName) {
       timeout: 180000
     })
 
+    // 检查响应数据是否存在
+    if (!response.data || !response.data.data) {
+      console.error('Coze API 响应异常:', response.data)
+      throw new Error(response.data?.msg || 'Coze API 返回数据为空')
+    }
+
     const companyInfo = JSON.parse(response.data.data)
     console.log('companyInfo', companyInfo)
     const {
