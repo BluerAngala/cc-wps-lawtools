@@ -534,9 +534,19 @@ const triggerExecute = () => {
 
 const isProcessing = computed(() => pageState.value === 'generating' || pageState.value === 'reviewing')
 
+const buttonText = computed(() => {
+  const state = pageState.value
+  if (state === 'generating') return '生成中...'
+  if (state === 'reviewing') return '审查中...'
+  if (state === 'ready') return '开始审查'
+  if (state === 'complete') return '重新审查'
+  return '开始任务'
+})
+
 defineExpose({
   triggerExecute,
   isProcessing,
+  buttonText,
   pageState
 })
 </script>

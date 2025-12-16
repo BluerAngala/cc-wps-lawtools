@@ -143,7 +143,12 @@ onMounted(() => {
   loadSchemes()
 })
 
+const buttonText = '开始处理'
+const isProcessing = props.processing
+
 defineExpose({
-  triggerExecute
+  triggerExecute,
+  buttonText,
+  isProcessing
 })
 </script>
