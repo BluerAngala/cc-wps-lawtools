@@ -29,6 +29,9 @@ import { generateChecklistAction } from './generateChecklist.js'
 import { scanSensitiveAction } from './scanSensitive.js'
 import { desensitizeAction } from './desensitize.js'
 
+// 导入批量操作
+import { batchKeywordAction } from './batchKeyword.js'
+
 // 文档操作列表
 export const documentActions = [
   readDocumentAction,
@@ -43,7 +46,8 @@ export const documentActions = [
   exportPDFAction,
   deleteFileAction,
   scanSensitiveAction,
-  desensitizeAction
+  desensitizeAction,
+  batchKeywordAction
 ]
 
 // AI 操作列表
@@ -82,7 +86,8 @@ export {
   exportPDFAction,
   deleteFileAction,
   scanSensitiveAction,
-  desensitizeAction
+  desensitizeAction,
+  batchKeywordAction
 }
 
 // 导出 AI 操作

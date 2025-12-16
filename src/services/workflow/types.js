@@ -92,7 +92,10 @@ export const ActionTypes = {
 
   // 脱敏操作
   SCAN_SENSITIVE: 'scanSensitive',
-  DESENSITIZE: 'desensitize'
+  DESENSITIZE: 'desensitize',
+
+  // 批量操作
+  BATCH_KEYWORD: 'batchKeyword'
 }
 
 /**
