@@ -286,13 +286,6 @@
       <n-button @click="handleReset">重新审查</n-button>
     </div>
 
-    <!-- 测试按钮（开发用） -->
-    <div v-if="pageState === 'idle'" class="wps-card wps-section mt-2">
-      <n-button type="warning" size="small" @click="testGenerateReport">
-        🧪 测试生成报告（模拟数据）
-      </n-button>
-    </div>
-
     <!-- 空状态 -->
     <EmptyState
       v-if="pageState === 'complete' && (!reviewResult?.issues?.length && !reviewResult?.risks?.length)"
@@ -622,47 +615,4 @@ const exportReport = () => {
   }
 }
 
-// 测试生成报告（使用模拟数据）
-const testGenerateReport = () => {
-  try {
-    // 模拟清单数据
-    const mockChecklist = [
-      { id: '1', name: '合同主体信息', selected: true, required: true, reviewRequirements: '审查合同双方主体资格是否合法，包括：1. 企业名称、统一社会信用代码是否完整准确；2. 法定代表人信息是否明确；3. 授权代表是否有有效授权；4. 主体是否具备签约资质', reviewBasis: '《民法典》第四百六十九条、第四百七十条；《公司法》相关规定' },
-      { id: '2', name: '服务内容', selected: true, required: true, reviewRequirements: '审查服务内容是否明确具体：1. 服务项目、范围是否清晰；2. 服务标准、质量要求是否可量化；3. 服务交付物是否明确；4. 是否存在模糊表述', reviewBasis: '《民法典》第五百一十条、第五百一十一条' },
-      { id: '3', name: '服务标准', selected: true, required: false, reviewRequirements: '审查服务标准是否明确：1. 质量标准是否可量化；2. 验收标准是否清晰；3. 不合格服务的处理方式；4. 服务标准变更程序', reviewBasis: '《民法典》第五百一十条、第五百一十一条' },
-      { id: '4', name: '合同金额', selected: true, required: true, reviewRequirements: '审查合同金额条款：1. 金额是否明确（含税/不含税）；2. 计价方式是否清晰；3. 价格调整机制是否合理；4. 是否存在价格陷阱', reviewBasis: '《民法典》第五百一十条、第五百一十一条' },
-      { id: '5', name: '付款方式', selected: true, required: true, reviewRequirements: '审查付款条款：1. 付款时间节点是否明确；2. 付款比例是否合理；3. 付款条件是否清晰；4. 逾期付款责任是否明确', reviewBasis: '《民法典》第五百一十条、第五百七十七条' }
-    ]
-
-    // 模拟审查结果
-    const mockReviewResult = {
-      issues: [
-        { checklistId: '1', severity: 'high', position: '合同首部', keyword: '甲方主体信息缺失', comment: '甲方主体信息缺失 社会信用代码、法定代表人及授权代表信息，存在签约主体不明风险，建议补充完整。' },
-        { checklistId: '1', severity: 'high', position: '合同首部', keyword: '乙方主体信息不完整', comment: '乙方主体名称、统一社会信用代码、法定代表人及授权代表信息全部空白，无法确认签约主体合法性，必须补充。' },
-        { checklistId: '4', severity: 'medium', position: '第三条', keyword: '人数增加不调整费用', comment: '人数增加不调整费用，对乙方显失公平，建议设定人数上浮5%以内不调整，超出部分按实结算。' },
-        { checklistId: '5', severity: 'high', position: '第七条', keyword: '付款依赖甲方审核', comment: '付款依赖甲方审核，乙方收款时间不可控，建议增设30日宽限期并保留乙方催告权。' },
-        { checklistId: '5', severity: 'medium', position: '第十二条', keyword: '管辖法院仅约定甲方所在地', comment: '管辖法院仅约定甲方所在地，排除乙方选择，建议改为"被告住所地"以平衡双方权利。' }
-      ],
-      risks: [
-        { severity: 'high', description: '乙方主体信息空白导致合同无效或无法追责', suggestion: '签约前补填乙方全称、信用代码、法定代表人及授权文件' },
-        { severity: 'high', description: '付款依赖甲方审核且审核，乙方收款时间不可控', suggestion: '增设最迟付款日及逾期利息条款' },
-        { severity: 'medium', description: '违约金比例过高可能被法院调低，影响索赔效果', suggestion: '将30%违约金调整为实际损失+不超过逾期部分20%' }
-      ],
-      summary: { totalIssues: 5, totalRisks: 3 }
-    }
-
-    generateRiskScanReport({
-      documentType: { type: '合同', subtype: '培训服务合同' },
-      perspectiveLabel: '中立视角',
-      scanScope: 'full',
-      checklist: mockChecklist,
-      reviewResult: mockReviewResult,
-      statistics: { total: 5, passed: 2, failed: 3, issues: 5 }
-    })
-    window.$message?.success('测试报告已生成')
-  } catch (error) {
-    window.$message?.error('测试失败: ' + error.message)
-    console.error(error)
-  }
-}
 </script>
