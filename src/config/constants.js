@@ -35,12 +35,26 @@ export const REPORT_STYLE = {
   },
   // 页面边距（磅值）
   PAGE_MARGIN: 72,
-  // logo 配置
+  // 页眉 logo 配置
   LOGO: {
     FILE_NAME: 'logo_card.png',
-    WIDTH: 50, // logo 宽度（磅值），高度会按比例自动计算
+    WIDTH: 50, // logo 宽度（磅值）
     LEFT: 490, // 距页面左边距离
     TOP: 20 // 距页面顶部距离
+  },
+  // 封面配置
+  COVER: {
+    TOP_BLANK_LINES: 3, // 顶部空行数
+    LOGO_WIDTH: 200, // 封面 logo 宽度（磅值）
+    LOGO_BOTTOM_LINES: 1, // logo 下方空行数
+    TITLE_FONT_SIZE: 42, // 标题字号（初号）
+    TITLE_BOTTOM_LINES: 0, // 标题下方空行数
+    DIVIDER_FONT_SIZE: 12, // 装饰线字号
+    DIVIDER_BOTTOM_LINES: 3, // 装饰线下方空行数
+    INFO_FONT_SIZE: 14, // 文档信息字号
+    INFO_LINE_SPACING: 1, // 文档信息每项间隔空行数
+    INFO_BOTTOM_LINES: 2, // 文档信息下方空行数
+    BRAND_FONT_SIZE: 16 // 底部机构名称字号
   }
 }
 

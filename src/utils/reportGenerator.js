@@ -8,7 +8,7 @@ import { pathManager } from './pathManager.js'
 import { BRAND, DEV_CONFIG, REPORT_STYLE, CHINESE_NUMBERS } from '@/config/constants.js'
 
 // 解构常用常量
-const { COLORS, FONT_SIZE, LOGO } = REPORT_STYLE
+const { COLORS, FONT_SIZE, LOGO, COVER } = REPORT_STYLE
 
 /**
  * 设置正文段落格式
@@ -63,7 +63,7 @@ export function generateRiskScanReport(options) {
   const docTypeName = documentType?.subtype || documentType?.type || '法律文书'
 
   // 第一页：封面页（无页眉页脚）- 第1节
-  insertCoverPage(selection, { documentType, perspectiveLabel, scanScope })
+  insertCoverPage(selection, doc, { documentType, perspectiveLabel, scanScope })
 
   // 第二页：基本信息和统计（无页码）- 第2节
   selection.InsertBreak(2) // wdSectionBreakNextPage = 2，创建新节
@@ -78,8 +78,7 @@ export function generateRiskScanReport(options) {
   insertFooter(selection)
 
   // 所有内容插入完成后，设置页眉页脚
-  setupSection1And2Header(doc)
-  setupSection3HeaderFooter(doc)
+  setupAllHeadersFooters(doc)
 
   return doc
 }
@@ -195,143 +194,186 @@ function addHeaderLogo(header) {
   }
 }
 
-/**
- * 设置第1、2节的页眉（无页码）
- */
-function setupSection1And2Header(doc) {
-  try {
-    // 第1节（封面）
-    const section1 = doc.Sections.Item(1)
-    section1.Headers.Item(1).Range.Text = ''
+// WPS 页眉页脚常量
+const wdHeaderFooterPrimary = 1
 
-    // 第2节（基本信息）
-    if (doc.Sections.Count >= 2) {
+/**
+ * 设置所有节的页眉页脚
+ * 关键：必须从第1节开始，按顺序断开链接
+ */
+function setupAllHeadersFooters(doc) {
+  try {
+    const sectionsCount = doc.Sections.Count
+    console.log('文档共有节数:', sectionsCount)
+
+    // === 第1节（封面）- 无页眉无页脚 ===
+    const section1 = doc.Sections.Item(1)
+    const header1 = section1.Headers.Item(wdHeaderFooterPrimary)
+    const footer1 = section1.Footers.Item(wdHeaderFooterPrimary)
+    // 第1节不需要断开链接（它是第一节）
+    header1.Range.Text = ''
+    footer1.Range.Text = ''
+    console.log('第1节页眉页脚已清空')
+
+    // === 第2节（基本信息）- 有页眉无页码 ===
+    if (sectionsCount >= 2) {
       const section2 = doc.Sections.Item(2)
-      const header2 = section2.Headers.Item(1)
+      const header2 = section2.Headers.Item(wdHeaderFooterPrimary)
+      const footer2 = section2.Footers.Item(wdHeaderFooterPrimary)
+
+      // 断开与第1节的链接
       header2.LinkToPrevious = false
+      footer2.LinkToPrevious = false
+
+      // 设置页眉
       header2.Range.Text = BRAND.HEADER_TEXT
       header2.Range.Font.Name = '宋体'
       header2.Range.Font.Size = 9
       header2.Range.Font.Color = COLORS.BLACK
       header2.Range.ParagraphFormat.Alignment = 1
-
-      // 添加 logo
       addHeaderLogo(header2)
+
+      // 清空页脚（无页码）
+      footer2.Range.Text = ''
+      console.log('第2节页眉已设置，页脚已清空')
+    }
+
+    // === 第3节（正文）- 有页眉有页码 ===
+    if (sectionsCount >= 3) {
+      const section3 = doc.Sections.Item(3)
+      const header3 = section3.Headers.Item(wdHeaderFooterPrimary)
+      const footer3 = section3.Footers.Item(wdHeaderFooterPrimary)
+
+      // 断开与第2节的链接
+      header3.LinkToPrevious = false
+      footer3.LinkToPrevious = false
+
+      // 设置页眉
+      header3.Range.Text = BRAND.HEADER_TEXT
+      header3.Range.Font.Name = '宋体'
+      header3.Range.Font.Size = 9
+      header3.Range.Font.Color = COLORS.BLACK
+      header3.Range.ParagraphFormat.Alignment = 1
+      addHeaderLogo(header3)
+
+      // 设置页脚页码：从1开始，格式 - x -
+      footer3.PageNumbers.RestartNumberingAtSection = true
+      footer3.PageNumbers.StartingNumber = 1
+      footer3.Range.Text = ''
+      footer3.Range.InsertAfter('- ')
+      footer3.Range.Collapse(0) // wdCollapseEnd = 0
+      footer3.PageNumbers.Add(1) // wdAlignPageNumberCenter = 1
+      footer3.Range.InsertAfter(' -')
+      footer3.Range.Font.Name = '宋体'
+      footer3.Range.Font.Size = 12
+      footer3.Range.Font.Color = COLORS.BLACK
+      footer3.Range.ParagraphFormat.Alignment = 1
+      console.log('第3节页眉页脚已设置')
     }
   } catch (e) {
-    console.log('页眉设置失败:', e)
+    console.log('页眉页脚设置失败:', e)
   }
 }
 
 /**
- * 设置第3节的页眉和页脚（带页码）
+ * 在封面插入居中 logo
  */
-function setupSection3HeaderFooter(doc) {
+function insertCoverLogo(selection, width = 120) {
   try {
-    const section3 = doc.Sections.Item(3)
+    const logoPath = getLogoPath()
+    if (!logoPath) {
+      console.log('封面logo路径为空，跳过')
+      return
+    }
 
-    // 页眉
-    const header = section3.Headers.Item(1)
-    header.LinkToPrevious = false
-    header.Range.Text = BRAND.HEADER_TEXT
-    header.Range.Font.Name = '宋体'
-    header.Range.Font.Size = 9
-    header.Range.Font.Color = COLORS.BLACK
-    header.Range.ParagraphFormat.Alignment = 1
+    // 使用 InlineShapes 插入嵌入式图片（随文字流动）
+    const inlineShape = selection.InlineShapes.AddPicture(logoPath, false, true)
+    if (!inlineShape) {
+      console.log('封面logo插入失败')
+      return
+    }
 
-    // 添加 logo
-    addHeaderLogo(header)
+    // 设置图片大小
+    inlineShape.LockAspectRatio = true
+    inlineShape.Width = width
 
-    // 页脚 - 格式：- x -
-    const footer = section3.Footers.Item(1)
-    footer.LinkToPrevious = false
-    footer.Range.Text = ''
-    footer.Range.ParagraphFormat.Alignment = 1
-
-    // 设置页码从1开始
-    const pageNumbers = footer.PageNumbers
-    pageNumbers.RestartNumberingAtSection = true
-    pageNumbers.StartingNumber = 1
-
-    // 先插入前缀
-    footer.Range.InsertAfter('- ')
-
-    // 添加页码
-    pageNumbers.Add(1)
-
-    // 在页码后添加后缀
-    const range = footer.Range
-    range.Collapse(0)
-    range.InsertAfter(' -')
-
-    // 设置页码格式：宋体小四（12磅）
-    footer.Range.Font.Name = '宋体'
-    footer.Range.Font.Size = 12
-    footer.Range.Font.Color = COLORS.BLACK
+    console.log('封面logo插入成功')
   } catch (e) {
-    console.log('第3节页眉页脚设置失败:', e)
+    console.log('封面logo插入失败:', e)
   }
 }
 
 /**
  * 插入封面页
  */
-function insertCoverPage(selection, info) {
-  // 顶部留白（减少行数）
-  for (let i = 0; i < 4; i++) {
+function insertCoverPage(selection, doc, info) {
+  // 顶部留白
+  for (let i = 0; i < COVER.TOP_BLANK_LINES; i++) {
+    selection.TypeParagraph()
+  }
+
+  // 插入居中 logo
+  setTitleParagraphFormat(selection)
+  insertCoverLogo(selection, COVER.LOGO_WIDTH)
+  for (let i = 0; i < COVER.LOGO_BOTTOM_LINES; i++) {
     selection.TypeParagraph()
   }
 
   // 主标题
-  setTitleParagraphFormat(selection)
   selection.Font.Name = '黑体'
-  selection.Font.Size = FONT_SIZE.CHU_HAO
+  selection.Font.Size = COVER.TITLE_FONT_SIZE
   selection.Font.Bold = true
   selection.Font.Color = COLORS.BLACK
   selection.TypeText('文档风险扫描报告')
   selection.TypeParagraph()
-  selection.TypeParagraph()
+  for (let i = 0; i < COVER.TITLE_BOTTOM_LINES; i++) {
+    selection.TypeParagraph()
+  }
 
   // 装饰线
-  selection.Font.Size = 12
+  selection.Font.Size = COVER.DIVIDER_FONT_SIZE
   selection.Font.Bold = false
-  selection.TypeText('━━━━━━━━━━━━━━━━━━━━━━━━')
+  selection.Font.Color = COLORS.BLUE
+  selection.TypeText('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   selection.TypeParagraph()
-
-  // 留白
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < COVER.DIVIDER_BOTTOM_LINES; i++) {
     selection.TypeParagraph()
   }
 
   // 文档信息
   selection.Font.Name = '宋体'
-  selection.Font.Size = FONT_SIZE.SI_HAO
+  selection.Font.Size = COVER.INFO_FONT_SIZE
   selection.Font.Color = COLORS.BLACK
 
   const docTypeName = info.documentType?.subtype || info.documentType?.type || '法律文书'
   selection.TypeText(`文档类型：${docTypeName}`)
   selection.TypeParagraph()
-  selection.TypeParagraph()
+  for (let i = 0; i < COVER.INFO_LINE_SPACING; i++) {
+    selection.TypeParagraph()
+  }
 
   selection.TypeText(`审查视角：${info.perspectiveLabel}`)
   selection.TypeParagraph()
-  selection.TypeParagraph()
+  for (let i = 0; i < COVER.INFO_LINE_SPACING; i++) {
+    selection.TypeParagraph()
+  }
 
   selection.TypeText(`扫描范围：${info.scanScope === 'full' ? '全文扫描' : '选中内容扫描'}`)
   selection.TypeParagraph()
-  selection.TypeParagraph()
+  for (let i = 0; i < COVER.INFO_LINE_SPACING; i++) {
+    selection.TypeParagraph()
+  }
 
   selection.TypeText(`报告日期：${formatDate()}`)
   selection.TypeParagraph()
-
-  // 底部留白（减少）
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < COVER.INFO_BOTTOM_LINES; i++) {
     selection.TypeParagraph()
   }
 
   // 底部机构名称
   selection.Font.Name = '黑体'
-  selection.Font.Size = 18
+  selection.Font.Size = COVER.BRAND_FONT_SIZE
+  selection.Font.Bold = true
   selection.Font.Color = COLORS.BLUE
   selection.TypeText(BRAND.NAME)
   selection.TypeParagraph()
