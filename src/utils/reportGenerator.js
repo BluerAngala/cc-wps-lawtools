@@ -4,7 +4,6 @@
  * 遵循公文排版规范
  */
 
-import { pathManager } from './pathManager.js'
 import { BRAND, DEV_CONFIG, REPORT_STYLE, CHINESE_NUMBERS } from '@/config/constants.js'
 
 // 解构常用常量
@@ -84,62 +83,32 @@ export function generateRiskScanReport(options) {
 }
 
 /**
- * 获取插件实际运行目录（从页面 URL 解析）
- */
-function getPluginDir() {
-  const href = window.location.href
-  // 生产环境：file:///C:/path/to/plugin/index.html
-  if (href.startsWith('file:///')) {
-    return href.substring(8, href.lastIndexOf('/')).replace(/\//g, '\\')
-  }
-  // 开发环境：使用 wps-addon-build 目录
-  return DEV_CONFIG.PROJECT_ROOT + '\\' + DEV_CONFIG.BUILD_DIR
-}
-
-/**
- * 获取 logo 图片路径
- * 使用项目已有的 pathManager 管理路径
+ * 获取 logo 图片路径（简化版）
+ * 直接使用插件目录下的图片，无需复制
  */
 function getLogoPath() {
   try {
-    if (!pathManager.isWPSAvailable()) {
-      console.log('WPS 环境不可用')
-      return ''
+    const href = window.location.href
+    let pluginDir = ''
+
+    if (href.startsWith('file:///')) {
+      // 生产环境：file:///C:/path/to/plugin/index.html
+      pluginDir = href.substring(8, href.lastIndexOf('/')).replace(/\//g, '\\')
+    } else {
+      // 开发环境
+      pluginDir = DEV_CONFIG.PROJECT_ROOT + '\\' + DEV_CONFIG.BUILD_DIR
     }
 
-    const fs = window.Application.FileSystem
-    const configDir = pathManager.getConfigDir()
-    if (!configDir) {
-      console.log('无法获取配置目录')
-      return ''
-    }
+    const logoPath = pluginDir + '\\images\\' + LOGO.FILE_NAME
 
-    // logo 保存路径：配置目录/images/logo_card.png
-    const logoDir = configDir + '/images'
-    const logoPath = logoDir + '/' + LOGO.FILE_NAME
-
-    // 检查文件是否已存在
-    if (fs.Exists(logoPath)) {
-      console.log('logo已存在:', logoPath)
+    // 检查文件是否存在
+    const fs = window.Application?.FileSystem
+    if (fs && fs.Exists(logoPath)) {
       return logoPath
     }
 
-    // 获取插件目录的 logo 源文件路径（从页面 URL 解析）
-    const pluginDir = getPluginDir()
-    const srcLogoPath = pluginDir + '\\images\\' + LOGO.FILE_NAME
-    console.log('源logo路径:', srcLogoPath)
-
-    // 检查源文件是否存在
-    if (!fs.Exists(srcLogoPath)) {
-      console.log('源logo文件不存在:', srcLogoPath)
-      return ''
-    }
-
-    // 创建目录并复制文件
-    pathManager.ensureDir(logoDir)
-    fs.copyFileSync(srcLogoPath, logoPath)
-    console.log('logo已复制到:', logoPath)
-    return logoPath
+    console.log('logo文件不存在:', logoPath)
+    return ''
   } catch (e) {
     console.log('获取logo路径失败:', e)
     return ''
