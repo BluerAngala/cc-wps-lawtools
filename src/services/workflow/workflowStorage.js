@@ -96,6 +96,32 @@ class WorkflowStorage {
   }
 
   /**
+   * 验证工作流配置
+   * @param {Object} workflow - 工作流定义
+   * @returns {{ valid: boolean, errors: string[] }}
+   */
+  validate(workflow) {
+    const errors = []
+
+    if (!workflow) {
+      errors.push('工作流不能为空')
+      return { valid: false, errors }
+    }
+
+    if (!workflow.name || !workflow.name.trim()) {
+      errors.push('工作流名称不能为空')
+    }
+
+    if (!workflow.steps || !Array.isArray(workflow.steps)) {
+      errors.push('工作流步骤必须是数组')
+    } else if (workflow.steps.length === 0) {
+      errors.push('工作流至少需要一个步骤')
+    }
+
+    return { valid: errors.length === 0, errors }
+  }
+
+  /**
    * 持久化存储
    * @private
    */

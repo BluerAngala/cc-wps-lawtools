@@ -319,46 +319,75 @@ class WPSFileService {
         return { success: false, message: '文档没有节' }
       }
 
-      // 获取页脚或页眉
-      const section = sections.Item(1)
-      const headerFooter = position === 'top' ? section.Headers.Item(1) : section.Footers.Item(1)
-      const range = headerFooter.Range
-
-      // 清空现有内容
-      range.Text = ''
-
-      // 对齐方式映射
+      // 对齐方式映射：WPS 页码对齐常量
+      // wdAlignPageNumberLeft = 0, wdAlignPageNumberCenter = 1, wdAlignPageNumberRight = 2
       const alignmentMap = { 左对齐: 0, 居中: 1, 右对齐: 2 }
-      range.Paragraphs.Alignment = alignmentMap[alignment] ?? 1
+      const alignValue = alignmentMap[alignment] ?? 1
 
-      // 插入页码
-      if (format === 'pageOfTotal') {
-        // 格式：第 X 页 / 共 Y 页
-        range.InsertAfter('第 ')
-        range.Collapse(0) // wdCollapseEnd
-        headerFooter.PageNumbers.Add(alignmentMap[alignment] ?? 1)
-        range.InsertAfter(' 页 / 共 ')
-        // 插入总页数域
-        const endRange = headerFooter.Range
-        endRange.Collapse(0)
-        endRange.Fields.Add(endRange, -1, 'NUMPAGES', false)
-        const finalRange = headerFooter.Range
-        finalRange.Collapse(0)
-        finalRange.InsertAfter(' 页')
-      } else {
-        // 简单页码
-        headerFooter.PageNumbers.Add(alignmentMap[alignment] ?? 1)
+      // 遍历所有节添加页码
+      for (let i = 1; i <= sections.Count; i++) {
+        const section = sections.Item(i)
+        // 确保首页不使用不同的页眉页脚
+        section.PageSetup.DifferentFirstPageHeaderFooter = false
+
+        // 获取页脚或页眉
+        const headerFooter = position === 'top' ? section.Headers.Item(1) : section.Footers.Item(1)
+
+        // 清空现有页码
+        const existingPageNumbers = headerFooter.PageNumbers
+        while (existingPageNumbers.Count > 0) {
+          existingPageNumbers.Item(1).Delete()
+        }
+
+        // 清空现有内容
+        const range = headerFooter.Range
+        range.Text = ''
+
+        if (format === 'pageOfTotal') {
+          // 格式：第 X 页 / 共 Y 页
+          // 使用域代码方式插入
+          range.Text = '第  页 / 共  页'
+          range.Font.Name = '宋体'
+          range.Font.Size = fontSize
+          range.Paragraphs.Alignment = alignValue
+
+          // 在"第 "后面插入当前页码域
+          const pageRange = headerFooter.Range
+          pageRange.Find.Execute('第  页', false, false, false, false, false, true, 1, false, '第 ^p 页', 0)
+          // 使用更简单的方式：直接用域代码
+          headerFooter.Range.Text = ''
+          const r = headerFooter.Range
+          r.InsertAfter('第 ')
+          r.Collapse(0) // wdCollapseEnd = 0
+          r.Fields.Add(r, -1, 'PAGE', false)
+          const r2 = headerFooter.Range
+          r2.Collapse(0)
+          r2.InsertAfter(' 页 / 共 ')
+          r2.Collapse(0)
+          r2.Fields.Add(r2, -1, 'NUMPAGES', false)
+          const r3 = headerFooter.Range
+          r3.Collapse(0)
+          r3.InsertAfter(' 页')
+
+          // 设置整体格式
+          headerFooter.Range.Font.Name = '宋体'
+          headerFooter.Range.Font.Size = fontSize
+          headerFooter.Range.Paragraphs.Alignment = alignValue
+        } else {
+          // 简单页码：直接使用 PageNumbers.Add
+          existingPageNumbers.Add(alignValue)
+          // 设置字体
+          headerFooter.Range.Font.Name = '宋体'
+          headerFooter.Range.Font.Size = fontSize
+        }
       }
-
-      // 设置字体
-      headerFooter.Range.Font.Name = '宋体'
-      headerFooter.Range.Font.Size = fontSize
 
       // 退出页眉页脚编辑模式
       this.closeHeaderFooter()
 
       return { success: true, message: '页码添加成功' }
     } catch (error) {
+      console.error('添加页码失败:', error)
       return { success: false, message: error.message || '页码添加失败' }
     }
   }

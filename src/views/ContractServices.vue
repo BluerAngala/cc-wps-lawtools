@@ -90,9 +90,9 @@
           <CollapseHeader
             title="执行工作流"
             icon="📄"
-            :processing="batchWorkflowRef?.isProcessing?.value"
-            :button-text="batchWorkflowRef?.buttonText?.value || '开始处理'"
-            :disabled="!batchWorkflowRef?.canExecute?.value"
+            :processing="batchWorkflowRef?.isProcessing"
+            :button-text="batchWorkflowRef?.buttonText || '开始处理'"
+            :disabled="!batchWorkflowRef?.canExecute"
             @execute="batchWorkflowRef?.triggerExecute()"
           />
         </template>
