@@ -330,10 +330,10 @@ function insertCoverPage(selection, doc, info) {
     selection.TypeParagraph()
   }
 
-  // 装饰线
+  // 装饰线（黑色）
   selection.Font.Size = COVER.DIVIDER_FONT_SIZE
   selection.Font.Bold = false
-  selection.Font.Color = COLORS.BLUE
+  selection.Font.Color = COLORS.BLACK
   selection.TypeText('━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   selection.TypeParagraph()
   for (let i = 0; i < COVER.DIVIDER_BOTTOM_LINES; i++) {
@@ -370,11 +370,11 @@ function insertCoverPage(selection, doc, info) {
     selection.TypeParagraph()
   }
 
-  // 底部机构名称
+  // 底部机构名称（黑色）
   selection.Font.Name = '黑体'
   selection.Font.Size = COVER.BRAND_FONT_SIZE
   selection.Font.Bold = true
-  selection.Font.Color = COLORS.BLUE
+  selection.Font.Color = COLORS.BLACK
   selection.TypeText(BRAND.NAME)
   selection.TypeParagraph()
 }
@@ -435,6 +435,7 @@ function insertLevel1Title(selection, text) {
 
 /**
  * 二级标题
+ * @param {boolean} hasIssues - true 表示有问题（红色），false 表示已通过（蓝色）
  */
 function insertLevel2Title(selection, index, text, statusText = '', hasIssues = false) {
   selection.TypeParagraph()
@@ -450,8 +451,11 @@ function insertLevel2Title(selection, index, text, statusText = '', hasIssues = 
   selection.TypeText(`${chineseNum}、${text}`)
 
   if (statusText) {
+    // 有问题用红色，已通过用蓝色
     selection.Font.Color = hasIssues ? COLORS.RED : COLORS.BLUE
     selection.TypeText(`  [${statusText}]`)
+    // 恢复黑色
+    selection.Font.Color = COLORS.BLACK
   }
 
   selection.TypeParagraph()
@@ -472,6 +476,7 @@ function insertBodyText(selection, text, color = COLORS.BLACK, bold = false) {
 
 /**
  * 基本信息表格
+ * 左列灰底黑字，右列白底黑字，增加行高
  */
 function insertInfoTable(selection, doc, data) {
   setTitleParagraphFormat(selection)
@@ -482,8 +487,15 @@ function insertInfoTable(selection, doc, data) {
   table.Borders.InsideLineStyle = 1
   table.Rows.Alignment = 1
 
-  table.Columns.Item(1).Width = 100
-  table.Columns.Item(2).Width = 300
+  // 设置列宽
+  table.Columns.Item(1).Width = 120
+  table.Columns.Item(2).Width = 280
+
+  // 设置行高（增加间距）
+  for (let r = 1; r <= data.length; r++) {
+    table.Rows.Item(r).Height = 28
+    table.Rows.Item(r).HeightRule = 1 // wdRowHeightAtLeast
+  }
 
   data.forEach((row, rowIndex) => {
     const cell1 = table.Cell(rowIndex + 1, 1)
@@ -496,12 +508,14 @@ function insertInfoTable(selection, doc, data) {
     cell1.Range.Font.Color = COLORS.BLACK
     cell1.Shading.BackgroundPatternColor = COLORS.LIGHT_GRAY
     cell1.VerticalAlignment = 1
+    cell1.Range.ParagraphFormat.Alignment = 1 // 居中
 
     cell2.Range.Text = row[1]
     cell2.Range.Font.Name = '宋体'
     cell2.Range.Font.Size = 12
     cell2.Range.Font.Color = COLORS.BLACK
     cell2.VerticalAlignment = 1
+    cell2.Range.ParagraphFormat.Alignment = 1 // 居中
   })
 
   selection.EndOf(15)
@@ -510,6 +524,8 @@ function insertInfoTable(selection, doc, data) {
 
 /**
  * 统计表格
+ * 表头：灰底黑字
+ * 数据行：审查项和已通过用黑色，有问题和问题数用红色
  */
 function insertStatisticsTable(selection, doc, stats) {
   setTitleParagraphFormat(selection)
@@ -520,7 +536,11 @@ function insertStatisticsTable(selection, doc, stats) {
   table.Borders.InsideLineStyle = 1
   table.Rows.Alignment = 1
 
-  // 表头：蓝底白字
+  // 设置行高
+  table.Rows.Item(1).Height = 28
+  table.Rows.Item(2).Height = 36
+
+  // 表头：灰底黑字
   const headers = ['审查项', '已通过', '有问题', '问题数']
   headers.forEach((header, i) => {
     const cell = table.Cell(1, i + 1)
@@ -528,13 +548,13 @@ function insertStatisticsTable(selection, doc, stats) {
     cell.Range.Font.Name = '黑体'
     cell.Range.Font.Size = 12
     cell.Range.Font.Bold = true
-    cell.Range.Font.Color = COLORS.WHITE
-    cell.Shading.BackgroundPatternColor = COLORS.BLUE
+    cell.Range.Font.Color = COLORS.BLACK
+    cell.Shading.BackgroundPatternColor = COLORS.LIGHT_GRAY
     cell.Range.ParagraphFormat.Alignment = 1
     cell.VerticalAlignment = 1
   })
 
-  // 数据行：有问题和问题数用红色
+  // 数据行：审查项和已通过用黑色，有问题和问题数用红色
   const values = [stats.total, stats.passed, stats.failed, stats.issues]
   const valueColors = [COLORS.BLACK, COLORS.BLACK, COLORS.RED, COLORS.RED]
 

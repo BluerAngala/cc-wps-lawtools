@@ -286,6 +286,13 @@
       <n-button @click="handleReset">重新审查</n-button>
     </div>
 
+    <!-- 测试按钮（开发用） -->
+    <div v-if="pageState === 'idle'" class="wps-card wps-section mt-2">
+      <n-button type="warning" size="small" @click="testGenerateReport">
+        🧪 测试生成报告
+      </n-button>
+    </div>
+
     <!-- 空状态 -->
     <EmptyState
       v-if="pageState === 'complete' && (!reviewResult?.issues?.length && !reviewResult?.risks?.length)"
@@ -615,4 +622,45 @@ const exportReport = () => {
   }
 }
 
+// 测试生成报告（使用模拟数据）
+const testGenerateReport = () => {
+  try {
+    const mockChecklist = [
+      { id: '1', name: '合同主体信息', selected: true, required: true, reviewRequirements: '审查合同双方主体资格是否合法', reviewBasis: '《民法典》第四百六十九条' },
+      { id: '2', name: '服务内容', selected: true, required: true, reviewRequirements: '审查服务内容是否明确具体', reviewBasis: '《民法典》第五百一十条' },
+      { id: '3', name: '服务标准', selected: true, required: false, reviewRequirements: '审查服务标准是否明确', reviewBasis: '《民法典》第五百一十条' },
+      { id: '4', name: '合同金额', selected: true, required: true, reviewRequirements: '审查合同金额条款', reviewBasis: '《民法典》第五百一十条' },
+      { id: '5', name: '付款方式', selected: true, required: true, reviewRequirements: '审查付款条款', reviewBasis: '《民法典》第五百七十七条' }
+    ]
+
+    const mockReviewResult = {
+      issues: [
+        { checklistId: '1', severity: 'high', position: '合同首部', keyword: '甲方主体信息缺失', comment: '甲方主体信息缺失，存在签约主体不明风险。' },
+        { checklistId: '1', severity: 'high', position: '合同首部', keyword: '乙方主体信息不完整', comment: '乙方主体信息全部空白，必须补充。' },
+        { checklistId: '4', severity: 'medium', position: '第三条', keyword: '人数增加不调整费用', comment: '人数增加不调整费用，对乙方显失公平。' },
+        { checklistId: '5', severity: 'high', position: '第七条', keyword: '付款依赖甲方审核', comment: '付款依赖甲方审核，乙方收款时间不可控。' },
+        { checklistId: '5', severity: 'medium', position: '第十二条', keyword: '管辖法院仅约定甲方所在地', comment: '管辖法院仅约定甲方所在地，排除乙方选择。' }
+      ],
+      risks: [
+        { severity: 'high', description: '乙方主体信息空白导致合同无效或无法追责', suggestion: '签约前补填乙方全称、信用代码、法定代表人' },
+        { severity: 'high', description: '付款依赖甲方审核，乙方收款时间不可控', suggestion: '增设最迟付款日及逾期利息条款' },
+        { severity: 'medium', description: '违约金比例过高可能被法院调低', suggestion: '将30%违约金调整为实际损失+不超过逾期部分20%' }
+      ],
+      summary: { totalIssues: 5, totalRisks: 3 }
+    }
+
+    generateRiskScanReport({
+      documentType: { type: '合同', subtype: '培训服务合同' },
+      perspectiveLabel: '中立视角',
+      scanScope: 'full',
+      checklist: mockChecklist,
+      reviewResult: mockReviewResult,
+      statistics: { total: 5, passed: 2, failed: 3, issues: 5 }
+    })
+    window.$message?.success('测试报告已生成')
+  } catch (error) {
+    window.$message?.error('测试失败: ' + error.message)
+    console.error(error)
+  }
+}
 </script>

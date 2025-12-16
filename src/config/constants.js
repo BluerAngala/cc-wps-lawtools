@@ -18,11 +18,11 @@ export const DEV_CONFIG = {
 
 // 报告样式常量
 export const REPORT_STYLE = {
-  // 颜色（黑、红、蓝三色）
+  // 颜色（WPS 使用 BGR 格式，不是 RGB）
   COLORS: {
     BLACK: 0x000000,
-    RED: 0xff0000,
-    BLUE: 0x0000ff,
+    RED: 0x0000ff, // BGR 格式：蓝=0, 绿=0, 红=255
+    BLUE: 0xff0000, // BGR 格式：蓝=255, 绿=0, 红=0
     WHITE: 0xffffff,
     LIGHT_GRAY: 0xf2f2f2
   },
