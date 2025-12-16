@@ -126,42 +126,42 @@ class AppConfigManager {
               {
                 keyword: '合同主体',
                 comment: '请核实合同双方主体资格是否合法有效，营业执照、授权委托书等资质文件是否齐全',
-                actionType: 'comment'
+                actionType: '批注'
               },
               {
                 keyword: '付款条款',
                 comment: '请确认付款方式、期限、条件是否明确，是否存在付款风险',
-                actionType: 'comment'
+                actionType: '批注'
               },
               {
                 keyword: '违约责任',
                 comment: '请审查违约金标准是否合理（一般不超过合同金额的30%），免责条款是否过于宽泛',
-                actionType: 'comment'
+                actionType: '批注'
               },
               {
                 keyword: '争议解决',
                 comment: '建议约定明确的管辖法院或仲裁机构，避免约定不明导致的管辖争议',
-                actionType: 'comment'
+                actionType: '批注'
               },
               {
                 keyword: '合同期限',
                 comment: '请确认合同起止时间、续约机制、提前终止条件是否明确',
-                actionType: 'comment'
+                actionType: '批注'
               },
               {
                 keyword: '保密条款',
                 comment: '请审查保密范围、保密期限、违约责任是否明确约定',
-                actionType: 'comment'
+                actionType: '批注'
               },
               {
                 keyword: '知识产权',
                 comment: '请确认知识产权归属、使用范围、侵权责任分担是否清晰',
-                actionType: 'comment'
+                actionType: '批注'
               },
               {
                 keyword: '不可抗力',
                 comment: '请审查不可抗力条款的范围是否合理，通知义务和后果处理是否明确',
-                actionType: 'comment'
+                actionType: '批注'
               }
             ],
             createdAt: new Date().toISOString(),
