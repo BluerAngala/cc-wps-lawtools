@@ -87,6 +87,7 @@ export const ActionTypes = {
   EXTRACT_CONTRACT: 'extractContract',
   REVIEW_CONTRACT: 'reviewContract',
   GLOBAL_ANALYSIS: 'globalAnalysis',
+  GENERATE_CHECKLIST: 'generateChecklist',
 
   // 脱敏操作
   SCAN_SENSITIVE: 'scanSensitive',

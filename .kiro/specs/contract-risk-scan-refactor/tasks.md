@@ -1,0 +1,94 @@
+# Implementation Plan
+
+- [x] 1. 扩展审查清单生成器，支持更多文书类型和视角
+  - [x] 1.1 更新 reviewChecklistGenerator.js，添加诉讼文书、律师函等文书类型的清单模板
+    - 添加诉讼文书（起诉状、答辩状）、律师函、法律意见书的审查清单
+    - 添加 generateChecklist(documentType, perspective) 方法支持视角参数
+    - _Requirements: 3.2_
+  - [ ]* 1.2 编写属性测试：清单与文档类型匹配（可选）
+    - **Property 4: 清单与文档类型匹配**
+    - **Validates: Requirements 3.2**
+
+- [x] 2. 创建生成清单的 Action
+  - [x] 2.1 创建 generateChecklist.js Action
+    - 实现 GenerateChecklistAction 类
+    - 接收 documentType 和 perspective 参数
+    - 调用 reviewChecklistGenerator 生成清单
+    - 将清单存储到 context.data.checklist
+    - _Requirements: 3.1, 3.2_
+  - [x] 2.2 在 actionRegistry 中注册新 Action
+    - 更新 src/services/workflow/actions/index.js
+    - 添加 ActionTypes.GENERATE_CHECKLIST
+    - _Requirements: 3.1_
+  - [ ]* 2.3 编写属性测试：工作流步骤顺序正确（可选）
+    - **Property 3: 工作流步骤顺序正确**
+    - **Validates: Requirements 3.1**
+
+- [x] 3. 更新预设工作流
+  - [x] 3.1 在 presets.js 中添加"生成清单"预设工作流
+    - 定义 generateChecklistWorkflow: readDocument → identifyContract → generateChecklist
+    - _Requirements: 3.1_
+  - [x] 3.2 更新"风险扫描"预设工作流，支持传入确认的清单
+    - 修改 contractRiskScan 预设，支持 checklist 参数
+    - _Requirements: 5.1_
+
+- [x] 4. 重构 ContractRiskScan.vue 页面
+  - [x] 4.1 添加审查视角选择器
+    - 添加 perspective ref 和单选按钮组（甲方/乙方/中立）
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  - [x] 4.2 添加扫描范围选择器
+    - 添加 scanScope ref 和单选按钮组（全文/选中内容）
+    - 实现获取选中文本的逻辑
+    - _Requirements: 2.1, 2.2, 2.3_
+  - [x] 4.3 实现分步状态管理
+    - 添加 pageState ref (idle/generating/ready/reviewing/complete)
+    - 添加 checklist ref 和 selectedItems ref
+    - _Requirements: 3.1, 4.1_
+  - [x] 4.4 实现"生成清单"功能
+    - 调用生成清单工作流
+    - 展示清单列表，支持勾选/取消勾选
+    - _Requirements: 3.1, 3.2, 4.1, 4.2_
+  - [ ]* 4.5 编写属性测试：取消勾选项被过滤（可选）
+    - **Property 5: 取消勾选项被过滤**
+    - **Validates: Requirements 4.2**
+  - [x] 4.6 实现"开始审查"功能
+    - 过滤出用户确认的清单项
+    - 调用审查工作流，传入确认的清单
+    - _Requirements: 5.1, 5.2_
+  - [ ]* 4.7 编写属性测试：审查仅使用确认的清单（可选）
+    - **Property 6: 审查仅使用确认的清单**
+    - **Validates: Requirements 5.1**
+  - [x] 4.8 实现审查结果展示
+    - 按清单项分组显示问题
+    - 标记清单项状态（已通过/有问题）
+    - _Requirements: 5.3, 6.1, 6.2, 6.3_
+  - [ ]* 4.9 编写属性测试：结果与清单正确关联（可选）
+    - **Property 7: 结果与清单正确关联**
+    - **Validates: Requirements 5.3, 6.1**
+  - [ ]* 4.10 编写属性测试：清单状态正确更新（可选）
+    - **Property 8: 清单状态正确更新**
+    - **Validates: Requirements 6.2, 6.3**
+
+- [x] 5. 实现重置功能
+  - [x] 5.1 实现"重新生成"按钮功能
+    - 清除清单和结果，重新执行生成清单工作流
+    - _Requirements: 7.1_
+  - [x] 5.2 实现"清除结果"按钮功能
+    - 仅清除审查结果，保留清单设置
+    - _Requirements: 7.2_
+
+- [x] 6. 更新审查引擎支持视角和清单参数
+  - [x] 6.1 更新 contractReviewEngine.js，支持传入确认的清单
+    - 修改 review 方法，接收 checklist 参数
+    - 仅按传入的清单项进行审查
+    - _Requirements: 5.1_
+  - [ ]* 6.2 编写属性测试：视角参数正确传递（可选）
+    - **Property 1: 视角参数正确传递**
+    - **Validates: Requirements 1.2, 1.3, 1.4**
+  - [ ]* 6.3 编写属性测试：选中内容正确传递（可选）
+    - **Property 2: 选中内容正确传递**
+    - **Validates: Requirements 2.2**
+
+- [x] 7. Checkpoint - 确保所有测试通过
+  - Lint 检查已通过
+  - 所有核心功能已实现

@@ -167,6 +167,44 @@ export const aiWorkflowPresets = {
         }
       }
     ]
+  },
+
+  // 生成审查清单（分步审查第一步）
+  generateReviewChecklist: {
+    id: 'generate-review-checklist',
+    name: '生成审查清单',
+    description: '读取文档 → 识别文档类型 → 生成审查清单',
+    category: 'ai',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      { actionType: ActionTypes.IDENTIFY_CONTRACT, name: '识别文档类型' },
+      {
+        actionType: ActionTypes.GENERATE_CHECKLIST,
+        name: '生成审查清单',
+        params: {
+          perspective: 'neutral'
+        }
+      }
+    ]
+  },
+
+  // 执行风险审查（分步审查第二步，使用确认的清单）
+  executeRiskReview: {
+    id: 'execute-risk-review',
+    name: '执行风险审查',
+    description: '读取文档 → 按确认的清单执行风险审查',
+    category: 'ai',
+    steps: [
+      { actionType: ActionTypes.READ_DOCUMENT, name: '读取文档' },
+      {
+        actionType: ActionTypes.REVIEW_CONTRACT,
+        name: '执行审查',
+        params: {
+          depth: 'standard',
+          autoApply: false
+        }
+      }
+    ]
   }
 }
 

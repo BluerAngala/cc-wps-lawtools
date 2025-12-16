@@ -397,16 +397,24 @@ export class ContractReviewEngine {
     unifiedLogger.info('合同类型', { contractCategory: contractType?.type, subtype: contractType?.subtype, contractType: contractType, type: 'contract_analysis' })
     unifiedLogger.info('审查选项', { options: options, type: 'contract_analysis' })
     
-    // 1. 生成审查清单
-    const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType)
-    unifiedLogger.info('基础审查清单', { count: baseChecklist.length, type: 'contract_analysis' })
-    
-    // 2. 获取用户自定义规则（仅在useCustomRules为true时）
-    const userRules = options.useCustomRules ? this.getUserReviewRules() : []
-    unifiedLogger.info('用户自定义规则', { count: userRules.length, type: 'contract_analysis' })
-    
-    // 3. 合并清单
-    const checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
+    // 1. 获取审查清单（优先使用传入的清单，否则生成新清单）
+    let checklist
+    if (options.checklist && options.checklist.length > 0) {
+      // 使用用户确认的清单
+      checklist = options.checklist
+      unifiedLogger.info('使用用户确认的清单', { count: checklist.length, type: 'contract_analysis' })
+    } else {
+      // 生成新清单
+      const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType, options.perspective)
+      unifiedLogger.info('基础审查清单', { count: baseChecklist.length, type: 'contract_analysis' })
+      
+      // 获取用户自定义规则（仅在useCustomRules为true时）
+      const userRules = options.useCustomRules ? this.getUserReviewRules() : []
+      unifiedLogger.info('用户自定义规则', { count: userRules.length, type: 'contract_analysis' })
+      
+      // 合并清单
+      checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
+    }
     unifiedLogger.info('最终审查清单', { count: checklist.length, type: 'contract_analysis' })
     
     const context = {

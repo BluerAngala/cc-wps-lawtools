@@ -22,6 +22,7 @@ import { identifyContractAction } from './identifyContract.js'
 import { extractContractAction } from './extractContract.js'
 import { reviewContractAction } from './reviewContract.js'
 import { globalAnalysisAction } from './globalAnalysis.js'
+import { generateChecklistAction } from './generateChecklist.js'
 
 // 导入脱敏操作
 import { scanSensitiveAction } from './scanSensitive.js'
@@ -48,7 +49,8 @@ export const aiActions = [
   identifyContractAction,
   extractContractAction,
   reviewContractAction,
-  globalAnalysisAction
+  globalAnalysisAction,
+  generateChecklistAction
 ]
 
 // 所有操作列表
@@ -85,7 +87,8 @@ export {
   identifyContractAction,
   extractContractAction,
   reviewContractAction,
-  globalAnalysisAction
+  globalAnalysisAction,
+  generateChecklistAction
 }
 
 // 导出基类

@@ -1,0 +1,616 @@
+/**
+ * 专业报告生成器
+ * 使用 WPS API 生成格式化的审查报告
+ * 遵循公文排版规范
+ */
+
+import { pathManager } from './pathManager.js'
+import { BRAND, DEV_CONFIG, REPORT_STYLE, CHINESE_NUMBERS } from '@/config/constants.js'
+
+// 解构常用常量
+const { COLORS, FONT_SIZE, LOGO } = REPORT_STYLE
+
+/**
+ * 设置正文段落格式
+ */
+function setBodyParagraphFormat(selection) {
+  selection.ParagraphFormat.FirstLineIndent = 28
+  selection.ParagraphFormat.SpaceBefore = 0
+  selection.ParagraphFormat.SpaceAfter = 0
+  selection.ParagraphFormat.LineSpacingRule = 4
+  selection.ParagraphFormat.LineSpacing = 28
+  selection.ParagraphFormat.Alignment = 0
+}
+
+/**
+ * 设置标题段落格式
+ */
+function setTitleParagraphFormat(selection) {
+  selection.ParagraphFormat.FirstLineIndent = 0
+  selection.ParagraphFormat.SpaceBefore = 0
+  selection.ParagraphFormat.SpaceAfter = 0
+  selection.ParagraphFormat.LineSpacingRule = 0
+  selection.ParagraphFormat.Alignment = 1
+}
+
+/**
+ * 格式化日期
+ */
+function formatDate(date) {
+  const d = date || new Date()
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+}
+
+/**
+ * 生成风险扫描报告
+ */
+export function generateRiskScanReport(options) {
+  const { documentType, perspectiveLabel, scanScope, checklist, reviewResult, statistics } = options
+
+  if (typeof window.Application === 'undefined') {
+    throw new Error('请在 WPS 环境中使用此功能')
+  }
+
+  const doc = window.Application.Documents.Add()
+  const selection = window.Application.Selection
+
+  // 设置页面边距
+  doc.PageSetup.TopMargin = REPORT_STYLE.PAGE_MARGIN
+  doc.PageSetup.BottomMargin = REPORT_STYLE.PAGE_MARGIN
+  doc.PageSetup.LeftMargin = REPORT_STYLE.PAGE_MARGIN
+  doc.PageSetup.RightMargin = REPORT_STYLE.PAGE_MARGIN
+
+  const docTypeName = documentType?.subtype || documentType?.type || '法律文书'
+
+  // 第一页：封面页（无页眉页脚）- 第1节
+  insertCoverPage(selection, { documentType, perspectiveLabel, scanScope })
+
+  // 第二页：基本信息和统计（无页码）- 第2节
+  selection.InsertBreak(2) // wdSectionBreakNextPage = 2，创建新节
+  insertInfoPage(selection, doc, { docTypeName, perspectiveLabel, scanScope, statistics })
+
+  // 第三页开始：详细审查结果（从这里开始有页码）- 第3节
+  selection.InsertBreak(2) // wdSectionBreakNextPage = 2，创建新节
+
+  insertDetailPage(selection, docTypeName, checklist, reviewResult)
+
+  // 报告尾部
+  insertFooter(selection)
+
+  // 所有内容插入完成后，设置页眉页脚
+  setupSection1And2Header(doc)
+  setupSection3HeaderFooter(doc)
+
+  return doc
+}
+
+/**
+ * 获取插件实际运行目录（从页面 URL 解析）
+ */
+function getPluginDir() {
+  const href = window.location.href
+  // 生产环境：file:///C:/path/to/plugin/index.html
+  if (href.startsWith('file:///')) {
+    return href.substring(8, href.lastIndexOf('/')).replace(/\//g, '\\')
+  }
+  // 开发环境：使用 wps-addon-build 目录
+  return DEV_CONFIG.PROJECT_ROOT + '\\' + DEV_CONFIG.BUILD_DIR
+}
+
+/**
+ * 获取 logo 图片路径
+ * 使用项目已有的 pathManager 管理路径
+ */
+function getLogoPath() {
+  try {
+    if (!pathManager.isWPSAvailable()) {
+      console.log('WPS 环境不可用')
+      return ''
+    }
+
+    const fs = window.Application.FileSystem
+    const configDir = pathManager.getConfigDir()
+    if (!configDir) {
+      console.log('无法获取配置目录')
+      return ''
+    }
+
+    // logo 保存路径：配置目录/images/logo_card.png
+    const logoDir = configDir + '/images'
+    const logoPath = logoDir + '/' + LOGO.FILE_NAME
+
+    // 检查文件是否已存在
+    if (fs.Exists(logoPath)) {
+      console.log('logo已存在:', logoPath)
+      return logoPath
+    }
+
+    // 获取插件目录的 logo 源文件路径（从页面 URL 解析）
+    const pluginDir = getPluginDir()
+    const srcLogoPath = pluginDir + '\\images\\' + LOGO.FILE_NAME
+    console.log('源logo路径:', srcLogoPath)
+
+    // 检查源文件是否存在
+    if (!fs.Exists(srcLogoPath)) {
+      console.log('源logo文件不存在:', srcLogoPath)
+      return ''
+    }
+
+    // 创建目录并复制文件
+    pathManager.ensureDir(logoDir)
+    fs.copyFileSync(srcLogoPath, logoPath)
+    console.log('logo已复制到:', logoPath)
+    return logoPath
+  } catch (e) {
+    console.log('获取logo路径失败:', e)
+    return ''
+  }
+}
+
+/**
+ * 在页眉中添加 logo 图片（右上角）
+ */
+function addHeaderLogo(header) {
+  try {
+    const logoPath = getLogoPath()
+    console.log('尝试加载logo:', logoPath)
+
+    if (!logoPath) {
+      console.log('无法获取logo路径，跳过')
+      return
+    }
+
+    // 先选中页眉区域
+    header.Range.Select()
+
+    // 在页眉中插入图片
+    const shape = header.Shapes.AddPicture(logoPath, false, true)
+
+    if (!shape) {
+      console.log('图片插入失败，shape 为 null')
+      return
+    }
+
+    // 设置图片大小
+    shape.LockAspectRatio = true
+    shape.Width = LOGO.WIDTH
+
+    // 设置环绕方式为衬于文字下方
+    shape.WrapFormat.Type = 5 // wdWrapBehind = 5
+
+    // 设置相对于页面定位
+    shape.RelativeHorizontalPosition = 1 // wdRelativeHorizontalPositionPage = 1
+    shape.RelativeVerticalPosition = 1 // wdRelativeVerticalPositionPage = 1
+
+    // 定位到页面右上角
+    shape.Left = LOGO.LEFT
+    shape.Top = LOGO.TOP
+
+    // 退出页眉编辑模式，返回正文
+    window.Application.ActiveDocument.ActiveWindow.View.SeekView = 0 // wdSeekMainDocument = 0
+
+    console.log('logo插入成功')
+  } catch (e) {
+    console.log('添加页眉logo失败:', e)
+  }
+}
+
+/**
+ * 设置第1、2节的页眉（无页码）
+ */
+function setupSection1And2Header(doc) {
+  try {
+    // 第1节（封面）
+    const section1 = doc.Sections.Item(1)
+    section1.Headers.Item(1).Range.Text = ''
+
+    // 第2节（基本信息）
+    if (doc.Sections.Count >= 2) {
+      const section2 = doc.Sections.Item(2)
+      const header2 = section2.Headers.Item(1)
+      header2.LinkToPrevious = false
+      header2.Range.Text = BRAND.HEADER_TEXT
+      header2.Range.Font.Name = '宋体'
+      header2.Range.Font.Size = 9
+      header2.Range.Font.Color = COLORS.BLACK
+      header2.Range.ParagraphFormat.Alignment = 1
+
+      // 添加 logo
+      addHeaderLogo(header2)
+    }
+  } catch (e) {
+    console.log('页眉设置失败:', e)
+  }
+}
+
+/**
+ * 设置第3节的页眉和页脚（带页码）
+ */
+function setupSection3HeaderFooter(doc) {
+  try {
+    const section3 = doc.Sections.Item(3)
+
+    // 页眉
+    const header = section3.Headers.Item(1)
+    header.LinkToPrevious = false
+    header.Range.Text = BRAND.HEADER_TEXT
+    header.Range.Font.Name = '宋体'
+    header.Range.Font.Size = 9
+    header.Range.Font.Color = COLORS.BLACK
+    header.Range.ParagraphFormat.Alignment = 1
+
+    // 添加 logo
+    addHeaderLogo(header)
+
+    // 页脚 - 格式：- x -
+    const footer = section3.Footers.Item(1)
+    footer.LinkToPrevious = false
+    footer.Range.Text = ''
+    footer.Range.ParagraphFormat.Alignment = 1
+
+    // 设置页码从1开始
+    const pageNumbers = footer.PageNumbers
+    pageNumbers.RestartNumberingAtSection = true
+    pageNumbers.StartingNumber = 1
+
+    // 先插入前缀
+    footer.Range.InsertAfter('- ')
+
+    // 添加页码
+    pageNumbers.Add(1)
+
+    // 在页码后添加后缀
+    const range = footer.Range
+    range.Collapse(0)
+    range.InsertAfter(' -')
+
+    // 设置页码格式：宋体小四（12磅）
+    footer.Range.Font.Name = '宋体'
+    footer.Range.Font.Size = 12
+    footer.Range.Font.Color = COLORS.BLACK
+  } catch (e) {
+    console.log('第3节页眉页脚设置失败:', e)
+  }
+}
+
+/**
+ * 插入封面页
+ */
+function insertCoverPage(selection, info) {
+  // 顶部留白（减少行数）
+  for (let i = 0; i < 4; i++) {
+    selection.TypeParagraph()
+  }
+
+  // 主标题
+  setTitleParagraphFormat(selection)
+  selection.Font.Name = '黑体'
+  selection.Font.Size = FONT_SIZE.CHU_HAO
+  selection.Font.Bold = true
+  selection.Font.Color = COLORS.BLACK
+  selection.TypeText('文档风险扫描报告')
+  selection.TypeParagraph()
+  selection.TypeParagraph()
+
+  // 装饰线
+  selection.Font.Size = 12
+  selection.Font.Bold = false
+  selection.TypeText('━━━━━━━━━━━━━━━━━━━━━━━━')
+  selection.TypeParagraph()
+
+  // 留白
+  for (let i = 0; i < 4; i++) {
+    selection.TypeParagraph()
+  }
+
+  // 文档信息
+  selection.Font.Name = '宋体'
+  selection.Font.Size = FONT_SIZE.SI_HAO
+  selection.Font.Color = COLORS.BLACK
+
+  const docTypeName = info.documentType?.subtype || info.documentType?.type || '法律文书'
+  selection.TypeText(`文档类型：${docTypeName}`)
+  selection.TypeParagraph()
+  selection.TypeParagraph()
+
+  selection.TypeText(`审查视角：${info.perspectiveLabel}`)
+  selection.TypeParagraph()
+  selection.TypeParagraph()
+
+  selection.TypeText(`扫描范围：${info.scanScope === 'full' ? '全文扫描' : '选中内容扫描'}`)
+  selection.TypeParagraph()
+  selection.TypeParagraph()
+
+  selection.TypeText(`报告日期：${formatDate()}`)
+  selection.TypeParagraph()
+
+  // 底部留白（减少）
+  for (let i = 0; i < 4; i++) {
+    selection.TypeParagraph()
+  }
+
+  // 底部机构名称
+  selection.Font.Name = '黑体'
+  selection.Font.Size = 18
+  selection.Font.Color = COLORS.BLUE
+  selection.TypeText(BRAND.NAME)
+  selection.TypeParagraph()
+}
+
+/**
+ * 插入基本信息和统计页
+ */
+function insertInfoPage(selection, doc, info) {
+  selection.TypeParagraph()
+
+  insertLevel1Title(selection, '基本信息')
+  insertInfoTable(selection, doc, [
+    ['文档类型', info.docTypeName],
+    ['审查视角', info.perspectiveLabel],
+    ['扫描范围', info.scanScope === 'full' ? '全文' : '选中内容'],
+    ['生成时间', formatDate()]
+  ])
+
+  selection.TypeParagraph()
+  selection.TypeParagraph()
+
+  insertLevel1Title(selection, '审查统计')
+  insertStatisticsTable(selection, doc, info.statistics)
+}
+
+/**
+ * 插入详细审查结果页
+ */
+function insertDetailPage(selection, docTypeName, checklist, reviewResult) {
+  selection.TypeParagraph()
+
+  insertLevel1Title(selection, `关于${docTypeName}的审查报告`)
+
+  const selectedItems = checklist.filter(item => item.selected)
+  selectedItems.forEach((item, index) => {
+    const itemIssues = (reviewResult.issues || []).filter(i => i.checklistId === item.id)
+    insertChecklistItem(selection, item, itemIssues, index)
+  })
+
+  if (reviewResult.risks?.length > 0) {
+    insertRiskSection(selection, reviewResult.risks, selectedItems.length)
+  }
+}
+
+/**
+ * 一级标题
+ */
+function insertLevel1Title(selection, text) {
+  setTitleParagraphFormat(selection)
+  selection.Font.Name = '黑体'
+  selection.Font.Size = FONT_SIZE.ER_HAO
+  selection.Font.Bold = true
+  selection.Font.Color = COLORS.BLACK
+  selection.TypeText(text)
+  selection.TypeParagraph()
+  selection.TypeParagraph()
+}
+
+/**
+ * 二级标题
+ */
+function insertLevel2Title(selection, index, text, statusText = '', hasIssues = false) {
+  selection.TypeParagraph()
+
+  setBodyParagraphFormat(selection)
+  selection.ParagraphFormat.FirstLineIndent = 0
+  selection.Font.Name = '黑体'
+  selection.Font.Size = FONT_SIZE.SI_HAO
+  selection.Font.Bold = true
+  selection.Font.Color = COLORS.BLACK
+
+  const chineseNum = CHINESE_NUMBERS[index] || String(index + 1)
+  selection.TypeText(`${chineseNum}、${text}`)
+
+  if (statusText) {
+    selection.Font.Color = hasIssues ? COLORS.RED : COLORS.BLUE
+    selection.TypeText(`  [${statusText}]`)
+  }
+
+  selection.TypeParagraph()
+}
+
+/**
+ * 正文
+ */
+function insertBodyText(selection, text, color = COLORS.BLACK, bold = false) {
+  setBodyParagraphFormat(selection)
+  selection.Font.Name = '宋体'
+  selection.Font.Size = FONT_SIZE.SI_HAO
+  selection.Font.Bold = bold
+  selection.Font.Color = color
+  selection.TypeText(text)
+  selection.TypeParagraph()
+}
+
+/**
+ * 基本信息表格
+ */
+function insertInfoTable(selection, doc, data) {
+  setTitleParagraphFormat(selection)
+
+  const table = doc.Tables.Add(selection.Range, data.length, 2)
+  table.Borders.Enable = true
+  table.Borders.OutsideLineStyle = 1
+  table.Borders.InsideLineStyle = 1
+  table.Rows.Alignment = 1
+
+  table.Columns.Item(1).Width = 100
+  table.Columns.Item(2).Width = 300
+
+  data.forEach((row, rowIndex) => {
+    const cell1 = table.Cell(rowIndex + 1, 1)
+    const cell2 = table.Cell(rowIndex + 1, 2)
+
+    cell1.Range.Text = row[0]
+    cell1.Range.Font.Name = '宋体'
+    cell1.Range.Font.Size = 12
+    cell1.Range.Font.Bold = true
+    cell1.Range.Font.Color = COLORS.BLACK
+    cell1.Shading.BackgroundPatternColor = COLORS.LIGHT_GRAY
+    cell1.VerticalAlignment = 1
+
+    cell2.Range.Text = row[1]
+    cell2.Range.Font.Name = '宋体'
+    cell2.Range.Font.Size = 12
+    cell2.Range.Font.Color = COLORS.BLACK
+    cell2.VerticalAlignment = 1
+  })
+
+  selection.EndOf(15)
+  selection.MoveDown()
+}
+
+/**
+ * 统计表格
+ */
+function insertStatisticsTable(selection, doc, stats) {
+  setTitleParagraphFormat(selection)
+
+  const table = doc.Tables.Add(selection.Range, 2, 4)
+  table.Borders.Enable = true
+  table.Borders.OutsideLineStyle = 1
+  table.Borders.InsideLineStyle = 1
+  table.Rows.Alignment = 1
+
+  // 表头：蓝底白字
+  const headers = ['审查项', '已通过', '有问题', '问题数']
+  headers.forEach((header, i) => {
+    const cell = table.Cell(1, i + 1)
+    cell.Range.Text = header
+    cell.Range.Font.Name = '黑体'
+    cell.Range.Font.Size = 12
+    cell.Range.Font.Bold = true
+    cell.Range.Font.Color = COLORS.WHITE
+    cell.Shading.BackgroundPatternColor = COLORS.BLUE
+    cell.Range.ParagraphFormat.Alignment = 1
+    cell.VerticalAlignment = 1
+  })
+
+  // 数据行：有问题和问题数用红色
+  const values = [stats.total, stats.passed, stats.failed, stats.issues]
+  const valueColors = [COLORS.BLACK, COLORS.BLACK, COLORS.RED, COLORS.RED]
+
+  values.forEach((value, i) => {
+    const cell = table.Cell(2, i + 1)
+    cell.Range.Text = String(value)
+    cell.Range.Font.Name = '黑体'
+    cell.Range.Font.Size = 16
+    cell.Range.Font.Bold = true
+    cell.Range.Font.Color = valueColors[i]
+    cell.Range.ParagraphFormat.Alignment = 1
+    cell.VerticalAlignment = 1
+  })
+
+  for (let i = 1; i <= 4; i++) {
+    table.Columns.Item(i).Width = 100
+  }
+
+  selection.EndOf(15)
+  selection.MoveDown()
+}
+
+/**
+ * 审查项
+ */
+function insertChecklistItem(selection, item, issues, index) {
+  const hasIssues = issues.length > 0
+  const statusText = hasIssues ? `有问题 - ${issues.length}个` : '已通过'
+
+  insertLevel2Title(selection, index, item.name, statusText, hasIssues)
+
+  if (item.reviewRequirements) {
+    insertBodyText(selection, `审查要点：${item.reviewRequirements}`)
+  }
+
+  if (item.reviewBasis) {
+    insertBodyText(selection, `法律依据：${item.reviewBasis}`)
+  }
+
+  if (hasIssues) {
+    insertBodyText(selection, '审查结果：')
+    issues.forEach((issue, idx) => {
+      insertIssueItem(selection, issue, idx + 1)
+    })
+  } else {
+    insertBodyText(selection, '审查结果：未发现问题', COLORS.BLUE, true)
+  }
+}
+
+/**
+ * 问题项
+ */
+function insertIssueItem(selection, issue, index) {
+  const isHighRisk = issue.severity === 'high'
+  const riskText = { high: '高风险', medium: '中风险', low: '低风险' }[issue.severity] || '风险'
+
+  setBodyParagraphFormat(selection)
+  selection.ParagraphFormat.FirstLineIndent = 0
+  selection.Font.Name = '楷体'
+  selection.Font.Size = FONT_SIZE.SI_HAO
+  selection.Font.Color = isHighRisk ? COLORS.RED : COLORS.BLACK
+  selection.Font.Bold = !isHighRisk
+
+  selection.TypeText(`${index}. [${riskText}] ${issue.position || ''}`)
+  selection.TypeParagraph()
+
+  if (issue.keyword) {
+    insertBodyText(selection, `相关条款：${issue.keyword}`)
+  }
+
+  insertBodyText(selection, `问题说明：${issue.comment}`)
+}
+
+/**
+ * 风险提示章节
+ */
+function insertRiskSection(selection, risks, startIndex) {
+  insertLevel2Title(selection, startIndex, '风险提示', '', false)
+
+  risks.forEach((risk, index) => {
+    const isHighRisk = risk.severity === 'high'
+    const riskText = { high: '高风险', medium: '中风险', low: '低风险' }[risk.severity] || '风险'
+
+    setBodyParagraphFormat(selection)
+    selection.ParagraphFormat.FirstLineIndent = 0
+    selection.Font.Name = '楷体'
+    selection.Font.Size = FONT_SIZE.SI_HAO
+    selection.Font.Color = isHighRisk ? COLORS.RED : COLORS.BLACK
+    selection.Font.Bold = !isHighRisk
+
+    selection.TypeText(`${index + 1}. [${riskText}] ${risk.description}`)
+    selection.TypeParagraph()
+
+    if (risk.suggestion) {
+      insertBodyText(selection, `建议：${risk.suggestion}`, COLORS.BLUE, false)
+    }
+  })
+}
+
+/**
+ * 报告尾部
+ */
+function insertFooter(selection) {
+  selection.TypeParagraph()
+  selection.TypeParagraph()
+
+  setBodyParagraphFormat(selection)
+  selection.ParagraphFormat.FirstLineIndent = 0
+  selection.ParagraphFormat.Alignment = 2
+
+  selection.Font.Name = '宋体'
+  selection.Font.Size = FONT_SIZE.SI_HAO
+  selection.Font.Bold = false
+  selection.Font.Color = COLORS.BLACK
+
+  selection.TypeText(`审查人：${BRAND.NAME}`)
+  selection.TypeParagraph()
+
+  selection.TypeText(`审查时间：${formatDate()}`)
+  selection.TypeParagraph()
+}
