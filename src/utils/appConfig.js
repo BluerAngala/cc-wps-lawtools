@@ -124,29 +124,44 @@ class AppConfigManager {
             type: 'review',
             rules: [
               {
-                reviewRules: '争议解决',
-                reviewRequirements: '请AI审查合同中的争议解决条款，检查是否约定了明确的纠纷处理方式（仲裁或法院管辖），并评估条款的有效性和合理性',
-                actionType: '批注'
+                keyword: '合同主体',
+                comment: '请核实合同双方主体资格是否合法有效，营业执照、授权委托书等资质文件是否齐全',
+                actionType: 'comment'
               },
               {
-                reviewRules: '违约责任',
-                reviewRequirements: '请AI分析违约责任条款的完整性，检查违约金标准是否合理，免责条款是否过于宽泛，并提出改进建议',
-                actionType: '批注'
+                keyword: '付款条款',
+                comment: '请确认付款方式、期限、条件是否明确，是否存在付款风险',
+                actionType: 'comment'
               },
               {
-                reviewRules: '付款条件',
-                reviewRequirements: '请AI审查并优化付款条款，确保付款方式、期限、条件表述清晰，识别潜在的付款风险并提出修订建议',
-                actionType: '修订'
+                keyword: '违约责任',
+                comment: '请审查违约金标准是否合理（一般不超过合同金额的30%），免责条款是否过于宽泛',
+                actionType: 'comment'
               },
               {
-                reviewRules: '合同期限',
-                reviewRequirements: '请AI检查合同期限条款的明确性，包括起止时间、续约机制、提前终止条件，并评估是否存在歧义',
-                actionType: '批注'
+                keyword: '争议解决',
+                comment: '建议约定明确的管辖法院或仲裁机构，避免约定不明导致的管辖争议',
+                actionType: 'comment'
               },
               {
-                reviewRules: '知识产权',
-                reviewRequirements: '请AI全面审查知识产权相关条款，包括权利归属、使用范围、侵权责任分担、保密义务等，确保权责清晰',
-                actionType: '批注'
+                keyword: '合同期限',
+                comment: '请确认合同起止时间、续约机制、提前终止条件是否明确',
+                actionType: 'comment'
+              },
+              {
+                keyword: '保密条款',
+                comment: '请审查保密范围、保密期限、违约责任是否明确约定',
+                actionType: 'comment'
+              },
+              {
+                keyword: '知识产权',
+                comment: '请确认知识产权归属、使用范围、侵权责任分担是否清晰',
+                actionType: 'comment'
+              },
+              {
+                keyword: '不可抗力',
+                comment: '请审查不可抗力条款的范围是否合理，通知义务和后果处理是否明确',
+                actionType: 'comment'
               }
             ],
             createdAt: new Date().toISOString(),
