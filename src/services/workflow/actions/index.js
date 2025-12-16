@@ -9,6 +9,7 @@ import { actionRegistry } from '../actionRegistry.js'
 import { readDocumentAction } from './readDocument.js'
 import { saveDocumentAction } from './saveDocument.js'
 import { addHeaderAction } from './addHeader.js'
+import { addFooterAction } from './addFooter.js'
 import { addPageNumberAction } from './addPageNumber.js'
 import { addWatermarkAction } from './addWatermark.js'
 import { addCommentAction } from './addComment.js'
@@ -33,6 +34,7 @@ export const documentActions = [
   readDocumentAction,
   saveDocumentAction,
   addHeaderAction,
+  addFooterAction,
   addPageNumberAction,
   addWatermarkAction,
   addCommentAction,
@@ -71,6 +73,7 @@ export {
   readDocumentAction,
   saveDocumentAction,
   addHeaderAction,
+  addFooterAction,
   addPageNumberAction,
   addWatermarkAction,
   addCommentAction,

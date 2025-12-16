@@ -74,6 +74,7 @@ export const ActionTypes = {
   READ_DOCUMENT: 'readDocument',
   SAVE_DOCUMENT: 'saveDocument',
   ADD_HEADER: 'addHeader',
+  ADD_FOOTER: 'addFooter',
   ADD_PAGE_NUMBER: 'addPageNumber',
   ADD_WATERMARK: 'addWatermark',
   ADD_COMMENT: 'addComment',

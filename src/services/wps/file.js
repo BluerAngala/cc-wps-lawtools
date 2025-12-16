@@ -22,11 +22,13 @@ class WPSFileService {
    * @param {string} options.text - 页眉文本
    * @param {number} options.fontSize - 字体大小，默认12
    * @param {string} options.alignment - 对齐方式：左对齐/居中/右对齐，默认右对齐
+   * @param {string} options.imagePath - 图片路径（可选）
+   * @param {Object} options.imageOptions - 图片配置（可选）
    */
-  async addHeader({ text, fontSize = 12, alignment = '右对齐' }) {
+  async addHeader({ text, fontSize = 12, alignment = '右对齐', imagePath, imageOptions = {} }) {
     const doc = this.checkEnvironment()
-    if (!text) {
-      return { success: false, message: '页眉文本为空' }
+    if (!text && !imagePath) {
+      return { success: false, message: '页眉文本或图片路径为空' }
     }
 
     try {
@@ -39,21 +41,30 @@ class WPSFileService {
       const header = sections.Item(1).Headers.Item(1)
       const range = header.Range
 
-      const existingText = range.Text?.trim() || ''
-      let newHeaderText = text
+      // 添加文本
+      if (text) {
+        const existingText = range.Text?.trim() || ''
+        let newHeaderText = text
 
-      if (existingText && !existingText.includes(text)) {
-        newHeaderText = existingText + '\t' + text
-      } else if (existingText.includes(text)) {
-        return { success: true, message: '页眉内容已存在' }
+        if (existingText && !existingText.includes(text)) {
+          newHeaderText = existingText + '\t' + text
+        } else if (existingText.includes(text)) {
+          // 文本已存在，继续处理图片
+        } else {
+          range.Text = newHeaderText
+        }
+
+        range.Font.Name = '宋体'
+        range.Font.Size = fontSize
+
+        const alignmentMap = { 左对齐: 0, 居中: 1, 右对齐: 2 }
+        range.Paragraphs.Alignment = alignmentMap[alignment] ?? 2
       }
 
-      range.Text = newHeaderText
-      range.Font.Name = '宋体'
-      range.Font.Size = fontSize
-
-      const alignmentMap = { 左对齐: 0, 居中: 1, 右对齐: 2 }
-      range.Paragraphs.Alignment = alignmentMap[alignment] ?? 2
+      // 添加图片
+      if (imagePath) {
+        await this.addHeaderImage(header, imagePath, imageOptions)
+      }
 
       // 退出页眉编辑模式
       this.closeHeaderFooter()
@@ -61,6 +72,55 @@ class WPSFileService {
       return { success: true, message: '页眉添加成功' }
     } catch (error) {
       return { success: false, message: error.message || '页眉添加失败' }
+    }
+  }
+
+  /**
+   * 在页眉中添加图片
+   * @param {Object} header - 页眉对象
+   * @param {string} imagePath - 图片路径
+   * @param {Object} options - 图片配置
+   */
+  async addHeaderImage(header, imagePath, options = {}) {
+    const { width = 50, left = 490, top = 20 } = options
+
+    try {
+      // 检查文件是否存在
+      const fs = window.Application?.FileSystem
+      if (fs && !fs.Exists(imagePath)) {
+        console.log('图片文件不存在:', imagePath)
+        return { success: false, message: '图片文件不存在' }
+      }
+
+      // 选中页眉区域
+      header.Range.Select()
+
+      // 插入图片
+      const shape = header.Shapes.AddPicture(imagePath, false, true)
+      if (!shape) {
+        return { success: false, message: '图片插入失败' }
+      }
+
+      // 设置图片大小
+      shape.LockAspectRatio = true
+      shape.Width = width
+
+      // 设置环绕方式为衬于文字下方
+      shape.WrapFormat.Type = 5 // wdWrapBehind
+
+      // 设置相对于页面定位
+      shape.RelativeHorizontalPosition = 1 // wdRelativeHorizontalPositionPage
+      shape.RelativeVerticalPosition = 1 // wdRelativeVerticalPositionPage
+
+      // 定位
+      shape.Left = left
+      shape.Top = top
+
+      console.log('页眉图片插入成功')
+      return { success: true, message: '页眉图片添加成功' }
+    } catch (error) {
+      console.log('添加页眉图片失败:', error)
+      return { success: false, message: error.message || '添加页眉图片失败' }
     }
   }
 
@@ -191,6 +251,54 @@ class WPSFileService {
       doc.Range(0, 0).Select()
     } catch {
       // 忽略错误，不影响主流程
+    }
+  }
+
+  /**
+   * 添加页脚
+   * @param {Object} options - 配置选项
+   * @param {string} options.text - 页脚文本
+   * @param {number} options.fontSize - 字体大小，默认12
+   * @param {string} options.alignment - 对齐方式：左对齐/居中/右对齐，默认居中
+   */
+  async addFooter({ text, fontSize = 12, alignment = '居中' }) {
+    const doc = this.checkEnvironment()
+    if (!text) {
+      return { success: false, message: '页脚文本为空' }
+    }
+
+    try {
+      const sections = doc.Sections
+      if (sections.Count === 0) {
+        return { success: false, message: '文档没有节' }
+      }
+
+      sections.Item(1).PageSetup.DifferentFirstPageHeaderFooter = false
+      const footer = sections.Item(1).Footers.Item(1)
+      const range = footer.Range
+
+      const existingText = range.Text?.trim() || ''
+      let newFooterText = text
+
+      if (existingText && !existingText.includes(text)) {
+        newFooterText = existingText + '\t' + text
+      } else if (existingText.includes(text)) {
+        return { success: true, message: '页脚内容已存在' }
+      }
+
+      range.Text = newFooterText
+      range.Font.Name = '宋体'
+      range.Font.Size = fontSize
+
+      const alignmentMap = { 左对齐: 0, 居中: 1, 右对齐: 2 }
+      range.Paragraphs.Alignment = alignmentMap[alignment] ?? 1
+
+      // 退出页脚编辑模式
+      this.closeHeaderFooter()
+
+      return { success: true, message: '页脚添加成功' }
+    } catch (error) {
+      return { success: false, message: error.message || '页脚添加失败' }
     }
   }
 

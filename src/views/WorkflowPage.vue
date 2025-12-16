@@ -163,65 +163,72 @@
     <ResultModal v-model:show="showResultModal" :result="executionResult" />
 
     <!-- 步骤编辑弹窗 -->
-    <n-modal v-model:show="showEditModal" preset="card" title="编辑步骤参数" style="width: 80%; max-width: 400px">
+    <n-modal v-model:show="showEditModal" preset="card" title="编辑步骤参数" style="width: 80%; max-width: 500px">
       <n-form v-if="editingStep" label-placement="top" size="small">
         <!-- 无可编辑参数时的提示 -->
         <div v-if="Object.keys(getStepSchema(editingStep)).length === 0" class="text-gray-400 text-sm py-4 text-center">
           此操作没有可配置的参数
         </div>
-        <n-form-item
-          v-for="(prop, key) in getStepSchema(editingStep)"
-          :key="key"
-          :label="prop.title || key"
-        >
-          <!-- 有枚举值的选择器（优先判断） -->
-          <n-select
-            v-if="prop.enum"
-            v-model:value="editingStep.params[key]"
-            :options="getEnumOptions(prop)"
-            :placeholder="prop.description"
-          />
-          <!-- 数组类型 + options：多选框组 -->
-          <n-checkbox-group
-            v-else-if="prop.type === 'array' && prop.options"
-            v-model:value="editingStep.params[key]"
-          >
-            <n-space>
-              <n-checkbox
-                v-for="opt in prop.options"
-                :key="opt.value"
-                :value="opt.value"
-                :label="opt.label"
-              />
-            </n-space>
-          </n-checkbox-group>
-          <!-- 布尔开关 -->
-          <div v-else-if="prop.type === 'boolean'" class="flex items-center gap-2">
-            <n-switch v-model:value="editingStep.params[key]" />
-            <span class="text-xs text-gray-500">{{ prop.description }}</span>
-          </div>
-          <!-- 数字输入 -->
-          <n-input-number
-            v-else-if="prop.type === 'number'"
-            v-model:value="editingStep.params[key]"
-            :placeholder="prop.description"
-            class="w-full"
-          />
-          <!-- 多行文本输入 -->
-          <n-input
-            v-else-if="prop.inputType === 'textarea'"
-            v-model:value="editingStep.params[key]"
-            type="textarea"
-            :placeholder="prop.placeholder || prop.description"
-            :rows="3"
-          />
-          <!-- 字符串输入（默认） -->
-          <n-input
-            v-else
-            v-model:value="editingStep.params[key]"
-            :placeholder="prop.placeholder || prop.description"
-          />
-        </n-form-item>
+        <!-- 非数字类型的表单项 -->
+        <template v-for="(prop, key) in getStepSchema(editingStep)" :key="key">
+          <n-form-item v-if="prop.type !== 'number'" :label="prop.title || key">
+            <!-- 有枚举值的选择器（优先判断） -->
+            <n-select
+              v-if="prop.enum"
+              v-model:value="editingStep.params[key]"
+              :options="getEnumOptions(prop)"
+              :placeholder="prop.description"
+            />
+            <!-- 数组类型 + options：多选框组 -->
+            <n-checkbox-group
+              v-else-if="prop.type === 'array' && prop.options"
+              v-model:value="editingStep.params[key]"
+            >
+              <n-space>
+                <n-checkbox
+                  v-for="opt in prop.options"
+                  :key="opt.value"
+                  :value="opt.value"
+                  :label="opt.label"
+                />
+              </n-space>
+            </n-checkbox-group>
+            <!-- 布尔开关 -->
+            <div v-else-if="prop.type === 'boolean'" class="flex items-center gap-2">
+              <n-switch v-model:value="editingStep.params[key]" />
+              <span class="text-xs text-gray-500">{{ prop.description }}</span>
+            </div>
+            <!-- 多行文本输入 -->
+            <n-input
+              v-else-if="prop.inputType === 'textarea'"
+              v-model:value="editingStep.params[key]"
+              type="textarea"
+              :placeholder="prop.placeholder || prop.description"
+              :rows="3"
+            />
+            <!-- 字符串输入（默认） -->
+            <n-input
+              v-else
+              v-model:value="editingStep.params[key]"
+              :placeholder="prop.placeholder || prop.description"
+            />
+          </n-form-item>
+        </template>
+        <!-- 数字类型的表单项（双栏布局） -->
+        <n-grid v-if="hasNumberFields(editingStep)" :cols="2" :x-gap="12">
+          <template v-for="(prop, key) in getStepSchema(editingStep)" :key="key">
+            <n-gi v-if="prop.type === 'number'">
+              <n-form-item :label="prop.title || key">
+                <n-input-number
+                  v-model:value="editingStep.params[key]"
+                  :placeholder="prop.description"
+                  button-placement="both"
+                  class="w-full text-center"
+                />
+              </n-form-item>
+            </n-gi>
+          </template>
+        </n-grid>
       </n-form>
       <template #footer>
         <n-space justify="end">
@@ -271,7 +278,9 @@ import {
   NSelect,
   NTag,
   NCheckboxGroup,
-  NCheckbox
+  NCheckbox,
+  NGrid,
+  NGi
 } from '../components/naive-components.js'
 import { PageLayout, PageHeader } from '../components/common'
 import ResultModal from '../components/ResultModal.vue'
@@ -358,6 +367,12 @@ const getStepSchema = (step) => {
     }
   })
   return editableProps
+}
+
+// 检查是否有数字类型字段
+const hasNumberFields = (step) => {
+  const schema = getStepSchema(step)
+  return Object.values(schema).some(prop => prop.type === 'number')
 }
 
 // 获取枚举选项（支持 enumLabels）

@@ -7,7 +7,7 @@
 export { NConfigProvider, NMessageProvider } from 'naive-ui'
 
 // 布局组件
-export { NCard, NSpace, NGrid, NGridItem, NDivider } from 'naive-ui'
+export { NCard, NSpace, NGrid, NGridItem, NGridItem as NGi, NDivider } from 'naive-ui'
 
 // 表单组件
 export {
