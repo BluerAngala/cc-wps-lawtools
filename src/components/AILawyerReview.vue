@@ -342,6 +342,24 @@ const defaultLawyerRules = [
   { keyword: '不可抗力', comment: '审查不可抗力条款的定义范围是否合理，检查通知义务、证明责任、后果处理是否明确约定', actionType: '批注' }
 ]
 
+// 迁移旧数据格式
+const migrateRules = (rules) => {
+  let needSave = false
+  const migrated = rules.map(rule => {
+    const newRule = { ...rule }
+    // 迁移 actionType: comment -> 批注, revision -> 修订
+    if (newRule.actionType === 'comment') {
+      newRule.actionType = '批注'
+      needSave = true
+    } else if (newRule.actionType === 'revision') {
+      newRule.actionType = '修订'
+      needSave = true
+    }
+    return newRule
+  })
+  return { migrated, needSave }
+}
+
 // 加载方案
 const loadSchemes = () => {
   const data = appConfig.getSchemes('review')
@@ -353,6 +371,13 @@ const loadSchemes = () => {
     if (!activeScheme.rules || activeScheme.rules.length === 0) {
       activeScheme.rules = [...defaultLawyerRules]
       appConfig.updateScheme('review', activeScheme.id, { rules: activeScheme.rules })
+    } else {
+      // 迁移旧数据格式
+      const { migrated, needSave } = migrateRules(activeScheme.rules)
+      if (needSave) {
+        activeScheme.rules = migrated
+        appConfig.updateScheme('review', activeScheme.id, { rules: migrated })
+      }
     }
     lawyerRules.value = activeScheme.rules
     configForm.keywordList.value = lawyerRules.value
