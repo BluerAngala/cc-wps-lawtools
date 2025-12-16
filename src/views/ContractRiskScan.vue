@@ -9,13 +9,10 @@
       description="使用 AI 智能分析文档内容，识别潜在风险点和问题条款。支持合同、诉讼文书、律师函等多种法律文书。"
     >
       <template #actions>
-        <n-button 
-          v-if="pageState === 'idle'" 
-          type="primary" 
-          @click="handleGenerateChecklist"
-        >
-          开始任务
-        </n-button>
+        <n-space v-if="pageState === 'idle'" align="center">
+          <n-button type="warning" @click="testGenerateReport">测试报告</n-button>
+          <n-button type="primary" @click="handleGenerateChecklist">开始任务</n-button>
+        </n-space>
         <n-space v-else-if="pageState === 'ready'">
           <n-button @click="handleReset">重新生成</n-button>
           <n-button type="primary" @click="handleStartReview">开始审查</n-button>
@@ -284,13 +281,6 @@
     <div v-if="pageState === 'complete'" class="flex justify-end gap-2 mt-4">
       <n-button @click="exportReport" :disabled="!reviewResult">导出报告</n-button>
       <n-button @click="handleReset">重新审查</n-button>
-    </div>
-
-    <!-- 测试按钮（开发用） -->
-    <div v-if="pageState === 'idle'" class="wps-card wps-section mt-2">
-      <n-button type="warning" size="small" @click="testGenerateReport">
-        🧪 测试生成报告
-      </n-button>
     </div>
 
     <!-- 空状态 -->

@@ -434,14 +434,15 @@ function insertLevel1Title(selection, text) {
 }
 
 /**
- * 二级标题
+ * 二级标题（首行缩进2字符）
  * @param {boolean} hasIssues - true 表示有问题（红色），false 表示已通过（蓝色）
  */
 function insertLevel2Title(selection, index, text, statusText = '', hasIssues = false) {
   selection.TypeParagraph()
 
   setBodyParagraphFormat(selection)
-  selection.ParagraphFormat.FirstLineIndent = 0
+  // 二级标题也需要首行缩进2字符
+  selection.ParagraphFormat.FirstLineIndent = 28
   selection.Font.Name = '黑体'
   selection.Font.Size = FONT_SIZE.SI_HAO
   selection.Font.Bold = true
@@ -605,14 +606,15 @@ function insertChecklistItem(selection, item, issues, index) {
 }
 
 /**
- * 问题项
+ * 问题项（三级标题，首行缩进2字符）
  */
 function insertIssueItem(selection, issue, index) {
   const isHighRisk = issue.severity === 'high'
   const riskText = { high: '高风险', medium: '中风险', low: '低风险' }[issue.severity] || '风险'
 
   setBodyParagraphFormat(selection)
-  selection.ParagraphFormat.FirstLineIndent = 0
+  // 三级标题也需要首行缩进2字符
+  selection.ParagraphFormat.FirstLineIndent = 28
   selection.Font.Name = '楷体'
   selection.Font.Size = FONT_SIZE.SI_HAO
   selection.Font.Color = isHighRisk ? COLORS.RED : COLORS.BLACK
@@ -639,7 +641,8 @@ function insertRiskSection(selection, risks, startIndex) {
     const riskText = { high: '高风险', medium: '中风险', low: '低风险' }[risk.severity] || '风险'
 
     setBodyParagraphFormat(selection)
-    selection.ParagraphFormat.FirstLineIndent = 0
+    // 风险项也需要首行缩进2字符
+    selection.ParagraphFormat.FirstLineIndent = 28
     selection.Font.Name = '楷体'
     selection.Font.Size = FONT_SIZE.SI_HAO
     selection.Font.Color = isHighRisk ? COLORS.RED : COLORS.BLACK
