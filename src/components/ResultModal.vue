@@ -121,6 +121,23 @@
                 </div>
               </div>
             </div>
+
+            <!-- PDF 导出结果 -->
+            <div v-if="item.result.data.pdfFullPath" class="ai-result-card pdf-result">
+              <div class="ai-result-title">📑 导出成功</div>
+              <div class="ai-result-content">
+                <div class="result-item">
+                  <span class="label">文件名：</span>
+                  <span class="value">{{ item.result.data.pdfFileName }}</span>
+                </div>
+                <div class="result-item flex-col items-start!">
+                  <span class="label">保存路径（点击复制）：</span>
+                  <span class="value path-text" @click="copyPath(item.result.data.pdfFullPath)" title="点击复制路径">
+                    {{ item.result.data.pdfFullPath }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -164,7 +181,8 @@ const hasDisplayableData = (item) => {
     data.contractType ||
     data.elements ||
     data.reviewResult ||
-    data.globalAnalysis
+    data.globalAnalysis ||
+    data.pdfFullPath
   )
 }
 
@@ -210,6 +228,16 @@ const truncateText = (text, maxLength) => {
   if (!text) return ''
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength) + '...'
+}
+
+// 复制路径到剪贴板
+const copyPath = (filePath) => {
+  try {
+    navigator.clipboard?.writeText(filePath)
+    window.$message?.success('路径已复制')
+  } catch (error) {
+    console.error('复制失败:', error)
+  }
 }
 </script>
 
@@ -271,5 +299,39 @@ const truncateText = (text, maxLength) => {
 
 .issue-comment {
   color: #78716c;
+}
+
+.pdf-result {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.pdf-result .ai-result-title {
+  color: #166534;
+}
+
+.path-text {
+  word-break: break-all;
+  font-size: 11px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+  display: block;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.path-text:hover {
+  background: #e2e8f0;
+}
+
+.items-start\! {
+  align-items: flex-start !important;
+}
+
+.flex-col {
+  flex-direction: column;
 }
 </style>

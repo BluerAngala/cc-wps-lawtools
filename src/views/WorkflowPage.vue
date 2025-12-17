@@ -29,82 +29,17 @@
       </template>
     </PageHeader>
 
-    <!-- 执行进度（顶部显示） -->
-    <div v-if="isExecuting" class="wps-card wps-section mt-2">
-      <n-progress
-        type="line"
-        :percentage="progressPercent"
-        :status="progressStatus"
-      />
-      <div class="text-sm text-gray-500 mt-2">{{ progressText }}</div>
-    </div>
-
-    <!-- 我的工作流 -->
-    <div v-if="userWorkflows.length > 0" class="wps-card wps-section mt-2">
-      <div class="text-sm font-semibold mb-3">我的工作流</div>
-      <n-space>
-        <n-tag
-          v-for="wf in userWorkflows"
-          :key="wf.id"
-          :type="selectedPreset === wf.id ? 'primary' : 'default'"
-          closable
-          @click="selectPreset(wf)"
-          @close="deleteUserWorkflow(wf.id)"
-          class="cursor-pointer"
-        >
-          {{ wf.name }}
-        </n-tag>
-      </n-space>
-    </div>
-
-    <!-- 预设工作流选择 -->
+    <!-- 1. 当前工作流步骤（始终在最上方） -->
     <div class="wps-card wps-section mt-2">
       <div class="flex items-center justify-between mb-3">
-        <div class="text-sm font-semibold">预设工作流</div>
-        <n-button size="tiny" type="error" @click="clearSteps">清空</n-button>
-      </div>
-      
-      <!-- AI 工作流预设 -->
-      <div class="mb-3">
-        <div class="text-xs text-gray-500 mb-2">🤖 AI 工作流</div>
-        <n-space>
-          <n-button
-            v-for="preset in aiPresets"
-            :key="preset.id"
-            :type="selectedPreset === preset.id ? 'primary' : 'default'"
-            size="small"
-            @click="selectPreset(preset)"
-          >
-            {{ preset.name }}
-          </n-button>
-        </n-space>
-      </div>
-      
-      <!-- 文档工作流预设 -->
-      <div class="mb-3">
-        <div class="text-xs text-gray-500 mb-2">📄 文档工作流</div>
-        <n-space>
-          <n-button
-            v-for="preset in documentPresets"
-            :key="preset.id"
-            :type="selectedPreset === preset.id ? 'primary' : 'default'"
-            size="small"
-            @click="selectPreset(preset)"
-          >
-            {{ preset.name }}
-          </n-button>
-        </n-space>
-      </div>
-    </div>
-
-    <!-- 当前工作流步骤 -->
-    <div class="wps-card wps-section mt-2">
-      <div class="text-sm font-semibold mb-3">
-        当前步骤 ({{ currentSteps.length }})
+        <div class="text-sm font-semibold">
+          当前步骤 ({{ currentSteps.length }})
+        </div>
+        <n-button v-if="currentSteps.length > 0" size="tiny" type="error" @click="clearSteps">清空</n-button>
       </div>
       
       <div v-if="currentSteps.length === 0" class="text-gray-400 text-sm py-4 text-center">
-        请选择预设工作流或从下方添加操作
+        请使用 AI 智能生成、选择预设工作流或手动添加操作
       </div>
       
       <n-space v-else vertical>
@@ -122,41 +57,127 @@
       </n-space>
     </div>
 
-    <!-- 可用操作列表 -->
+    <!-- 执行进度 -->
+    <div v-if="isExecuting" class="wps-card wps-section mt-2">
+      <n-progress
+        type="line"
+        :percentage="progressPercent"
+        :status="progressStatus"
+      />
+      <div class="text-sm text-gray-500 mt-2">{{ progressText }}</div>
+    </div>
+
+    <!-- 2. AI 智能生成（可折叠） -->
     <div class="wps-card wps-section mt-2">
-      <div class="text-sm font-semibold mb-3">添加操作</div>
-      
-      <!-- AI 操作 -->
-      <div class="mb-3">
-        <div class="text-xs text-gray-500 mb-2">🤖 AI 操作</div>
-        <div class="grid grid-cols-4 gap-2">
-          <div
-            v-for="action in aiActionList"
-            :key="action.type"
-            class="flex flex-col items-center gap-1 p-2 bg-blue-50 rounded cursor-pointer hover:bg-blue-100 transition-colors"
-            @click="addAction(action)"
-          >
-            <span class="text-lg">{{ action.icon }}</span>
-            <span class="text-xs text-center">{{ action.name }}</span>
+      <n-collapse :default-expanded-names="['ai-generate']">
+        <n-collapse-item title="🤖 AI 智能生成" name="ai-generate">
+          <AIWorkflowInput @confirm="handleAIConfirm" />
+        </n-collapse-item>
+      </n-collapse>
+    </div>
+
+    <!-- 3. 预设工作流（可折叠） -->
+    <div class="wps-card wps-section mt-2">
+      <n-collapse :default-expanded-names="['presets']">
+        <n-collapse-item name="presets">
+          <template #header>
+            <span>📋 预设工作流</span>
+          </template>
+          
+          <!-- 我的工作流 -->
+          <div v-if="userWorkflows.length > 0" class="mb-3">
+            <div class="text-xs text-gray-500 mb-2">💾 我的工作流</div>
+            <n-space>
+              <n-tag
+                v-for="wf in userWorkflows"
+                :key="wf.id"
+                :type="selectedPreset === wf.id ? 'primary' : 'default'"
+                closable
+                @click="selectPreset(wf)"
+                @close="deleteUserWorkflow(wf.id)"
+                class="cursor-pointer"
+              >
+                {{ wf.name }}
+              </n-tag>
+            </n-space>
           </div>
-        </div>
-      </div>
-      
-      <!-- 文档操作 -->
-      <div>
-        <div class="text-xs text-gray-500 mb-2">📄 文档操作</div>
-        <div class="grid grid-cols-4 gap-2">
-          <div
-            v-for="action in documentActionList"
-            :key="action.type"
-            class="flex flex-col items-center gap-1 p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100 transition-colors"
-            @click="addAction(action)"
-          >
-            <span class="text-lg">{{ action.icon }}</span>
-            <span class="text-xs text-center">{{ action.name }}</span>
+          
+          <!-- AI 工作流预设 -->
+          <div class="mb-3">
+            <div class="text-xs text-gray-500 mb-2">🤖 AI 工作流</div>
+            <n-space>
+              <n-button
+                v-for="preset in aiPresets"
+                :key="preset.id"
+                :type="selectedPreset === preset.id ? 'primary' : 'default'"
+                size="small"
+                @click="selectPreset(preset)"
+              >
+                {{ preset.name }}
+              </n-button>
+            </n-space>
           </div>
-        </div>
-      </div>
+          
+          <!-- 文档工作流预设 -->
+          <div>
+            <div class="text-xs text-gray-500 mb-2">📄 文档工作流</div>
+            <n-space>
+              <n-button
+                v-for="preset in documentPresets"
+                :key="preset.id"
+                :type="selectedPreset === preset.id ? 'primary' : 'default'"
+                size="small"
+                @click="selectPreset(preset)"
+              >
+                {{ preset.name }}
+              </n-button>
+            </n-space>
+          </div>
+        </n-collapse-item>
+      </n-collapse>
+    </div>
+
+    <!-- 4. 手动添加操作（可折叠） -->
+    <div class="wps-card wps-section mt-2">
+      <n-collapse>
+        <n-collapse-item name="manual-add">
+          <template #header>
+            <span>🔧 手动添加操作</span>
+          </template>
+          
+          <!-- AI 操作 -->
+          <div class="mb-3">
+            <div class="text-xs text-gray-500 mb-2">🤖 AI 操作</div>
+            <div class="grid grid-cols-4 gap-2">
+              <div
+                v-for="action in aiActionList"
+                :key="action.type"
+                class="flex flex-col items-center gap-1 p-2 bg-blue-50 rounded cursor-pointer hover:bg-blue-100 transition-colors"
+                @click="addAction(action)"
+              >
+                <span class="text-lg">{{ action.icon }}</span>
+                <span class="text-xs text-center">{{ action.name }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 文档操作 -->
+          <div>
+            <div class="text-xs text-gray-500 mb-2">📄 文档操作</div>
+            <div class="grid grid-cols-4 gap-2">
+              <div
+                v-for="action in documentActionList"
+                :key="action.type"
+                class="flex flex-col items-center gap-1 p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100 transition-colors"
+                @click="addAction(action)"
+              >
+                <span class="text-lg">{{ action.icon }}</span>
+                <span class="text-xs text-center">{{ action.name }}</span>
+              </div>
+            </div>
+          </div>
+        </n-collapse-item>
+      </n-collapse>
     </div>
 
     <!-- 执行结果弹窗 -->
@@ -280,10 +301,13 @@ import {
   NCheckboxGroup,
   NCheckbox,
   NGrid,
-  NGi
+  NGi,
+  NCollapse,
+  NCollapseItem
 } from '../components/naive-components.js'
 import { PageLayout, PageHeader } from '../components/common'
 import ResultModal from '../components/ResultModal.vue'
+import AIWorkflowInput from '../components/AIWorkflowInput.vue'
 import {
   workflowEngine,
   actionRegistry,
@@ -545,6 +569,12 @@ const executeWorkflow = async () => {
   } finally {
     isExecuting.value = false
   }
+}
+
+// 处理 AI 生成的工作流确认
+const handleAIConfirm = (steps) => {
+  currentSteps.value.push(...steps)
+  selectedPreset.value = ''
 }
 
 // 初始化

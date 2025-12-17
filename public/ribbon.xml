@@ -9,7 +9,7 @@
                     <button id="btnContractReview" label="合同审查" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnWorkflow" label="工作流" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnCommonNav" label="常用导航" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
-                    <button id="btnTemplateManager" label="模板管理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
+                    <button id="btnTemplateManager" label="文书模板" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnSettings" label="设置" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnAboutME" label="关于我" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                 </group>
