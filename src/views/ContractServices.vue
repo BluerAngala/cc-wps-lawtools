@@ -20,13 +20,13 @@
           <CollapseHeader
             title="AI提取合同信息"
             icon="🤖"
-            :processing="contractService.isTaskProcessing('extractText')"
-            :button-text="contractService.isTaskProcessing('extractText') ? '提取中...' : '开始提取'"
+            :processing="extracting"
+            :button-text="extracting ? '提取中...' : '开始提取'"
             @execute="executeExtraction"
           />
         </template>
         <ContractExtractor
-          :processing="contractService.isTaskProcessing('extractText')"
+          :processing="extracting"
           :extracted-data="extractedData"
           :submitting="submitting"
           :extractor-config="configs.extractor"
@@ -118,6 +118,7 @@ import { contractService } from '../services/contract/contractService.js'
 const extractedData = ref(null)
 const submitting = ref(false)
 const configs = ref({ extractor: {}, keyword: {} })
+const extracting = ref(false)
 
 // 组件引用
 const keywordCommenterRef = ref(null)
@@ -129,11 +130,20 @@ const batchWorkflowRef = ref(null)
 const keywordProcessing = computed(() => contractService.isTaskProcessing('keywordComment'))
 
 // 提取合同信息
-const executeExtraction = () => {
-  contractService.executeTask('extractText', configs.value.extractor, async (result) => {
-    const processedData = await contractService.processExtractedData(result)
-    if (processedData) extractedData.value = processedData
-  })
+const executeExtraction = async () => {
+  if (extracting.value) {
+    window.$message?.warning('正在提取中，请稍候...')
+    return
+  }
+  extracting.value = true
+  try {
+    await contractService.executeTask('extractText', configs.value.extractor, async (result) => {
+      const processedData = await contractService.processExtractedData(result)
+      if (processedData) extractedData.value = processedData
+    })
+  } finally {
+    extracting.value = false
+  }
 }
 
 // 关键词批注

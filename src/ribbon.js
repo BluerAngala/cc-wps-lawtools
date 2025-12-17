@@ -54,7 +54,9 @@ function OnAction(control) {
     // AI助理
     case 'btnShowAI':
       {
-        const url = 'https://yuanqi.tencent.com/webim/#/chat/tigQTg?appid=1995670616961503232&experience=true'
+        // 旧的元器：https://yuanqi.tencent.com/agent/oRCZyC6JyFcn
+        // 新的怨气：https://yuanqi.tencent.com/webim/#/chat/tigQTg?appid=1995670616961503232&experience=true
+        const url = 'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn'
         console.log('url', url)
         Util.wpsService.createExternalTaskPane(
           url,
