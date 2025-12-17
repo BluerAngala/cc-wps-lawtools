@@ -618,10 +618,29 @@ const handleApplyModifications = async () => {
   applyingModifications.value = true
   let successCount = 0
   let failCount = 0
+  let skippedLawyerCount = 0
 
   for (const item of toApply) {
     try {
-      // 清理关键词
+      // 律师预设意见：尝试在文档中查找关键词，找不到则跳过（这些是通用建议）
+      if (item.source === 'lawyer') {
+        const keyword = cleanKeyword(item.keyword)
+        if (!keyword || keyword.length < 2) {
+          skippedLawyerCount++
+          continue
+        }
+        const range = tryFindRange(keyword)
+        if (range) {
+          wpsDocumentService.addComment(range, `[律师意见] ${item.content}`)
+          successCount++
+        } else {
+          // 律师预设意见找不到关键词是正常的，不算失败
+          skippedLawyerCount++
+        }
+        continue
+      }
+
+      // AI 建议：必须找到关键词才能添加批注
       const keyword = cleanKeyword(item.keyword)
       if (!keyword || keyword.length < 2) {
         console.warn('[应用修改] 关键词太短或为空:', item.keyword, '->', keyword)
@@ -630,8 +649,7 @@ const handleApplyModifications = async () => {
       }
       const range = tryFindRange(keyword)
       if (range) {
-        const prefix = item.source === 'lawyer' ? '[律师意见] ' : ''
-        wpsDocumentService.addComment(range, `${prefix}${item.content}`)
+        wpsDocumentService.addComment(range, item.content)
         successCount++
       } else {
         console.warn('[应用修改] 未找到关键词:', keyword)
@@ -645,10 +663,15 @@ const handleApplyModifications = async () => {
 
   applyingModifications.value = false
 
+  // 构建提示消息
+  let msg = `执行完成：成功 ${successCount} 个`
+  if (failCount > 0) msg += `，失败 ${failCount} 个`
+  if (skippedLawyerCount > 0) msg += `，跳过律师通用意见 ${skippedLawyerCount} 个`
+
   if (failCount > 0) {
-    window.$message?.warning(`执行完成：成功 ${successCount} 个，失败 ${failCount} 个`)
+    window.$message?.warning(msg)
   } else {
-    window.$message?.success(`执行完成：成功 ${successCount} 个`)
+    window.$message?.success(msg)
   }
 }
 
