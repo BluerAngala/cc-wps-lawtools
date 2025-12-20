@@ -91,23 +91,49 @@ function getLogoPath() {
     const href = window.location.href
     let pluginDir = ''
 
-    if (href.startsWith('file:///')) {
-      // 生产环境：file:///C:/path/to/plugin/index.html
-      pluginDir = href.substring(8, href.lastIndexOf('/')).replace(/\//g, '\\')
+    if (href.startsWith('file:')) {
+      // 生产环境：使用 URL 对象解析路径
+      try {
+        const url = new URL(href)
+        // decodeURIComponent 处理路径中的中文和空格
+        let pathname = decodeURIComponent(url.pathname)
+        
+        // Windows 路径处理：去掉开头的斜杠（例如 /C:/path -> C:/path）
+        if (pathname.startsWith('/') && /^[a-zA-Z]:/.test(pathname.substring(1))) {
+          pathname = pathname.substring(1)
+        }
+        
+        // 获取目录路径
+        pluginDir = pathname.substring(0, pathname.lastIndexOf('/')).replace(/\//g, '\\')
+      } catch (e) {
+        // 备选方案
+        pluginDir = decodeURIComponent(href.substring(href.indexOf('file://') + 7, href.lastIndexOf('/'))).replace(/\//g, '\\')
+        // 处理可能多出的开头的斜杠
+        if (pluginDir.startsWith('\\')) pluginDir = pluginDir.substring(1)
+      }
     } else {
       // 开发环境
       pluginDir = DEV_CONFIG.PROJECT_ROOT + '\\' + DEV_CONFIG.BUILD_DIR
     }
 
-    const logoPath = pluginDir + '\\images\\' + LOGO.FILE_NAME
-
-    // 检查文件是否存在
     const fs = window.Application?.FileSystem
-    if (fs && fs.Exists(logoPath)) {
-      return logoPath
+    
+    // 尝试多个可能的路径
+    const possiblePaths = [
+      pluginDir + '\\images\\' + LOGO.FILE_NAME,
+      pluginDir + '\\' + LOGO.FILE_NAME,
+      // 针对开发环境的特殊处理
+      DEV_CONFIG.PROJECT_ROOT + '\\public\\images\\' + LOGO.FILE_NAME
+    ]
+
+    for (const logoPath of possiblePaths) {
+      if (fs && fs.Exists(logoPath)) {
+        console.log('找到logo文件:', logoPath)
+        return logoPath
+      }
     }
 
-    console.log('logo文件不存在:', logoPath)
+    console.log('所有预设路径均未找到logo文件')
     return ''
   } catch (e) {
     console.log('获取logo路径失败:', e)

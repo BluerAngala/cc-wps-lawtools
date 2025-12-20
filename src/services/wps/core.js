@@ -17,7 +17,7 @@ export const WPS_Enum = {
  */
 export function getUrlPath() {
   if (window.location.protocol === 'file:') {
-    const path = window.location.href
+    const path = decodeURIComponent(window.location.href)
     return path.substring(0, path.lastIndexOf('/'))
   }
   const { protocol, hostname, port } = window.location
