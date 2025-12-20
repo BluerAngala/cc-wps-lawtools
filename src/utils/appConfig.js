@@ -31,10 +31,32 @@ class AppConfigManager {
         token: import.meta.env.VITE_KDOCS_TOKEN || '',
         sheetId: Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
         cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
-
-        workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '',  // 用于金山文档操作的工作流ID
-
-        companyInfoWorkflowId: import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034'  // 用于获取企业信息的工作流ID
+        workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '', // 用于金山文档操作的工作流ID
+        companyInfoWorkflowId: import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034', // 用于获取企业信息的工作流ID
+        contractNumberPrefix: 'SWXCBHT' // 合同编号前缀，默认为 SWXCBHT
+      },
+      
+      // 金山文档方案管理
+      kdocsSchemes: {
+        schemes: [
+          {
+            id: 'default_kdocs',
+            name: '默认方案',
+            type: 'kdocs',
+            config: {
+              webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL || '',
+              token: import.meta.env.VITE_KDOCS_TOKEN || '',
+              sheetId: Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
+              cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
+              workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '',
+              companyInfoWorkflowId: import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034',
+              contractNumberPrefix: 'SWXCBHT'
+            },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ],
+        activeSchemeId: 'default_kdocs'
       },
       
       // 合同要素提取配置
@@ -438,14 +460,25 @@ class AppConfigManager {
 
   /**
    * 获取方案列表
-   * @param {string} type - 'keyword' | 'review'
+   * @param {string} type - 'keyword' | 'review' | 'kdocs'
    */
   getSchemes(type) {
     const config = this.getConfig()
-    const schemeKey = type === 'keyword' ? 'keywordSchemes' : 'reviewSchemes'
+    const schemeKeyMap = {
+      keyword: 'keywordSchemes',
+      review: 'reviewSchemes',
+      kdocs: 'kdocsSchemes'
+    }
+    const schemeKey = schemeKeyMap[type]
     
-    // 如果没有方案配置，从旧配置迁移
+    if (!schemeKey) return { schemes: [], activeSchemeId: '' }
+    
+    // 如果没有方案配置，从旧配置迁移或返回默认
     if (!config[schemeKey] || !config[schemeKey].schemes) {
+      if (type === 'kdocs') {
+        // kdocs 直接返回默认方案
+        return this.defaultConfig.kdocsSchemes
+      }
       return this.migrateToSchemes(type)
     }
     
@@ -454,12 +487,18 @@ class AppConfigManager {
 
   /**
    * 保存方案列表
-   * @param {string} type - 'keyword' | 'review'
+   * @param {string} type - 'keyword' | 'review' | 'kdocs'
    * @param {Object} schemesData - { schemes: [], activeSchemeId: '' }
    */
   saveSchemes(type, schemesData) {
     const config = this.getConfig()
-    const schemeKey = type === 'keyword' ? 'keywordSchemes' : 'reviewSchemes'
+    const schemeKeyMap = {
+      keyword: 'keywordSchemes',
+      review: 'reviewSchemes',
+      kdocs: 'kdocsSchemes'
+    }
+    const schemeKey = schemeKeyMap[type]
+    if (!schemeKey) return false
     config[schemeKey] = schemesData
     return this.saveConfig(config)
   }

@@ -138,6 +138,8 @@ const submitData = async () => {
 
   try {
     emit('submit-data')
+    // 提交成功后关闭弹窗
+    showResultModal.value = false
   } catch (error) {
     console.error('提交数据时出错:', error)
     window.$message?.error('提交数据失败')

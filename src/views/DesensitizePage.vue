@@ -83,7 +83,7 @@
     />
 
     <!-- 高级配置 -->
-    <n-collapse class="mt-4">
+    <n-collapse :default-expanded-names="['config']" class="mt-4">
       <n-collapse-item title="⚙️ 高级配置" name="config">
         <n-space vertical>
           <n-form-item label="白名单 (每行一个)">

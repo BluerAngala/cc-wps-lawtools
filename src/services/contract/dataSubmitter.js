@@ -5,6 +5,7 @@
 import { kdocsHandler } from '../kdocs/kdocs.js'
 import { taskPane } from '../wps'
 import { fetchCompanyInfo } from '../ai/coze.js'
+import { appConfig } from '../../utils/appConfig.js'
 
 // 特定主体信息映射
 const specialSubjects = {
@@ -268,8 +269,11 @@ export class DataSubmitter {
         const 编号 = res?.data?.[0]?.fields?.编号
         // 是否存在编号
         if (编号) {
-          // 自定义构建审查编号 SWXCBHT-年份-编号
-          审查编号 = `SWXCBHT-${new Date().getFullYear()}-${编号}`
+          // 从配置获取合同编号前缀，默认为 SWXCBHT
+          const kdocsConfig = appConfig.get('kdocs') || {}
+          const prefix = kdocsConfig.contractNumberPrefix || 'SWXCBHT'
+          // 自定义构建审查编号 前缀-年份-编号
+          审查编号 = `${prefix}-${new Date().getFullYear()}-${编号}`
           console.log('构建的审查编号:', 审查编号)
         } else {
           throw new Error('创建金山文档行记录失败或者没有返回id')

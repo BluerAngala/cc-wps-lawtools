@@ -182,7 +182,18 @@
 
                 <n-text>配置金山文档接口参数（Coze 工作流）</n-text>
 
-                <n-button size="small" @click="resetTab('kdocs')">恢复默认</n-button>
+                <n-space>
+                  <n-select
+                    v-model:value="activeKdocsSchemeId"
+                    :options="kdocsSchemeOptions"
+                    size="small"
+                    style="width: 150px"
+                    @update:value="switchKdocsScheme"
+                  />
+                  <n-button size="small" @click="showNewKdocsSchemeModal = true">新建方案</n-button>
+                  <n-button size="small" @click="saveCurrentKdocsScheme" :disabled="!activeKdocsSchemeId">保存方案</n-button>
+                  <n-button size="small" type="error" @click="deleteCurrentKdocsScheme" :disabled="kdocsSchemes.length <= 1">删除</n-button>
+                </n-space>
 
               </div>
 
@@ -226,7 +237,31 @@
 
                 </n-form-item>
 
+                <n-form-item label="合同编号前缀">
+                  <n-input v-model:value="config.kdocs.contractNumberPrefix" @update:value="autoSave" placeholder="SWXCBHT"/>
+                  <template #feedback>
+                    <n-text depth="3" style="font-size: 12px;">
+                      合同编号格式：前缀-年份-编号，如 SWXCBHT-2025-001
+                    </n-text>
+                  </template>
+                </n-form-item>
+
               </n-form>
+
+              <!-- 新建方案弹窗 -->
+              <n-modal v-model:show="showNewKdocsSchemeModal" preset="card" title="新建金山文档方案" style="width: 400px">
+                <n-form label-placement="top">
+                  <n-form-item label="方案名称">
+                    <n-input v-model:value="newKdocsSchemeName" placeholder="请输入方案名称" />
+                  </n-form-item>
+                </n-form>
+                <template #footer>
+                  <n-space justify="end">
+                    <n-button @click="showNewKdocsSchemeModal = false">取消</n-button>
+                    <n-button type="primary" @click="createKdocsScheme">创建</n-button>
+                  </n-space>
+                </template>
+              </n-modal>
 
             </n-tab-pane>
 
@@ -310,7 +345,7 @@ import { ref, onMounted, computed } from 'vue'
 import {
   NConfigProvider, NMessageProvider, NCard, NTabs, NTabPane, NForm, NFormItem,
   NInput, NInputNumber, NButton, NIcon, NText,
-  NSpace, NUpload, NAlert, NSlider, NSelect, NEmpty
+  NSpace, NUpload, NAlert, NSlider, NSelect, NEmpty, NModal
 } from 'naive-ui'
 import { appConfig } from '../utils/appConfig.js'
 import { reinitializeAIClient, getAvailableModels } from '../services/ai/siliconflow.js'
@@ -319,6 +354,17 @@ const activeTab = ref('ai')
 const configPath = ref('')
 const modelOptions = ref([])
 const loadingModels = ref(false)
+
+// 金山文档方案管理
+const kdocsSchemes = ref([])
+const activeKdocsSchemeId = ref('')
+const showNewKdocsSchemeModal = ref(false)
+const newKdocsSchemeName = ref('')
+
+// 金山文档方案选项
+const kdocsSchemeOptions = computed(() => 
+  kdocsSchemes.value.map(s => ({ label: s.name, value: s.id }))
+)
 
 // 初始化配置，使用appConfig的默认配置
 const config = ref(appConfig.getDefaultConfig())
@@ -335,6 +381,7 @@ const timeoutSeconds = computed({
 onMounted(() => {
   loadConfig()
   loadModelList()
+  loadKdocsSchemes()
 })
 
 // 加载模型列表
@@ -513,6 +560,92 @@ const showConfigPath = () => {
 // 关闭对话框
 const closeDialog = () => {
   window.close()
+}
+
+// 金山文档方案管理
+const loadKdocsSchemes = () => {
+  const schemesData = appConfig.getSchemes('kdocs')
+  kdocsSchemes.value = schemesData.schemes || []
+  activeKdocsSchemeId.value = schemesData.activeSchemeId || ''
+  
+  // 如果有激活方案，加载其配置
+  if (activeKdocsSchemeId.value) {
+    const scheme = kdocsSchemes.value.find(s => s.id === activeKdocsSchemeId.value)
+    if (scheme?.config) {
+      config.value.kdocs = { ...config.value.kdocs, ...scheme.config }
+    }
+  }
+}
+
+const switchKdocsScheme = (schemeId) => {
+  const scheme = kdocsSchemes.value.find(s => s.id === schemeId)
+  if (scheme?.config) {
+    config.value.kdocs = { ...scheme.config }
+    appConfig.setActiveScheme('kdocs', schemeId)
+    autoSave()
+    window.$message?.success(`已切换到方案: ${scheme.name}`)
+  }
+}
+
+const saveCurrentKdocsScheme = () => {
+  if (!activeKdocsSchemeId.value) return
+  
+  const scheme = kdocsSchemes.value.find(s => s.id === activeKdocsSchemeId.value)
+  if (scheme) {
+    scheme.config = { ...config.value.kdocs }
+    scheme.updatedAt = new Date().toISOString()
+    appConfig.saveSchemes('kdocs', { schemes: kdocsSchemes.value, activeSchemeId: activeKdocsSchemeId.value })
+    window.$message?.success('方案已保存')
+  }
+}
+
+const createKdocsScheme = () => {
+  if (!newKdocsSchemeName.value.trim()) {
+    window.$message?.warning('请输入方案名称')
+    return
+  }
+  
+  const newScheme = {
+    id: `kdocs_${Date.now()}`,
+    name: newKdocsSchemeName.value.trim(),
+    type: 'kdocs',
+    config: { ...config.value.kdocs },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+  
+  kdocsSchemes.value.push(newScheme)
+  activeKdocsSchemeId.value = newScheme.id
+  appConfig.saveSchemes('kdocs', { schemes: kdocsSchemes.value, activeSchemeId: newScheme.id })
+  
+  showNewKdocsSchemeModal.value = false
+  newKdocsSchemeName.value = ''
+  window.$message?.success('方案已创建')
+}
+
+const deleteCurrentKdocsScheme = () => {
+  if (kdocsSchemes.value.length <= 1) {
+    window.$message?.warning('至少保留一个方案')
+    return
+  }
+  
+  if (!confirm('确定删除当前方案吗？')) return
+  
+  const index = kdocsSchemes.value.findIndex(s => s.id === activeKdocsSchemeId.value)
+  if (index !== -1) {
+    kdocsSchemes.value.splice(index, 1)
+    activeKdocsSchemeId.value = kdocsSchemes.value[0].id
+    
+    // 切换到第一个方案的配置
+    const firstScheme = kdocsSchemes.value[0]
+    if (firstScheme?.config) {
+      config.value.kdocs = { ...firstScheme.config }
+    }
+    
+    appConfig.saveSchemes('kdocs', { schemes: kdocsSchemes.value, activeSchemeId: activeKdocsSchemeId.value })
+    autoSave()
+    window.$message?.success('方案已删除')
+  }
 }
 </script>
 
