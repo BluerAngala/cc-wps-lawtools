@@ -139,7 +139,7 @@
 
     <!-- 4. 手动添加操作（可折叠） -->
     <div class="wps-card wps-section mt-2">
-      <n-collapse>
+      <n-collapse :default-expanded-names="['manual-add']">
         <n-collapse-item name="manual-add">
           <template #header>
             <span>🔧 手动添加操作</span>

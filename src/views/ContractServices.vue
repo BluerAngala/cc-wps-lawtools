@@ -13,7 +13,7 @@
     </n-alert>
 
     <!-- 折叠面板（手风琴模式） -->
-    <n-collapse :default-expanded-names="['extractor']" accordion class="mt-4">
+    <n-collapse :default-expanded-names="[]" accordion class="mt-4">
       <!-- AI合同信息提取 -->
       <n-collapse-item name="extractor">
         <template #header>
