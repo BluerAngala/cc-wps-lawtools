@@ -6,22 +6,17 @@
       icon="🔒"
       :loading="isExecuting"
       loading-text="扫描中"
-      description="自动检测文档中的敏感信息（身份证号、手机号、邮箱、银行卡号等），支持选择性脱敏处理。"
+      description="自动检测文档中的敏感信息（身份证号、手机号、邮箱、银行卡号等）。支持设置白名单脱敏，脱敏后可一键恢复原始内容。"
     >
       <template #actions>
-        <n-space>
-          <n-button type="primary" @click="scanDocument" :loading="isExecuting" :disabled="isExecuting">
-            {{ isExecuting ? '扫描中...' : '扫描文档' }}
-          </n-button>
-          <n-button 
-            type="success" 
-            @click="applyDesensitization" 
-            :disabled="!hasSelectedItems || isExecuting"
-            v-if="sensitiveInfoList.length > 0"
-          >
-            一键脱敏 ({{ selectedCount }})
-          </n-button>
-        </n-space>
+        <n-button 
+          :type="actionButtonType" 
+          @click="handleMainAction" 
+          :loading="isExecuting" 
+          :disabled="isExecuting || (actionState === 'desensitize' && !hasSelectedItems)"
+        >
+          {{ actionButtonText }}
+        </n-button>
       </template>
     </PageHeader>
 
@@ -33,6 +28,31 @@
       :current="progress.current"
       :total="progress.total"
     />
+
+    
+    <!-- 高级配置 -->
+    <n-collapse :default-expanded-names="['config']" class="mt-4">
+      <n-collapse-item title="⚙️ 高级配置" name="config">
+        <n-space vertical>
+          <n-form-item label="白名单 (每行一个)">
+            <n-input
+              v-model:value="whitelist"
+              type="textarea"
+              placeholder="请输入白名单项，每行一个&#10;例如：张三&#10;例如：13800138000"
+              :rows="3"
+            />
+          </n-form-item>
+          <n-form-item label="自定义敏感词 (格式: 敏感词|替换词)">
+            <n-input
+              v-model:value="customSensitiveWords"
+              type="textarea"
+              placeholder="请输入自定义敏感词，格式: 敏感词|替换词，每行一个&#10;例如：机密信息|***"
+              :rows="3"
+            />
+          </n-form-item>
+        </n-space>
+      </n-collapse-item>
+    </n-collapse>
 
     <!-- 检测结果列表 -->
     <div v-if="sensitiveInfoList.length > 0" class="wps-card wps-section mt-4">
@@ -82,29 +102,6 @@
       icon="✅"
     />
 
-    <!-- 高级配置 -->
-    <n-collapse :default-expanded-names="['config']" class="mt-4">
-      <n-collapse-item title="⚙️ 高级配置" name="config">
-        <n-space vertical>
-          <n-form-item label="白名单 (每行一个)">
-            <n-input
-              v-model:value="whitelist"
-              type="textarea"
-              placeholder="请输入白名单项，每行一个&#10;例如：张三&#10;例如：13800138000"
-              :rows="3"
-            />
-          </n-form-item>
-          <n-form-item label="自定义敏感词 (格式: 敏感词|替换词)">
-            <n-input
-              v-model:value="customSensitiveWords"
-              type="textarea"
-              placeholder="请输入自定义敏感词，格式: 敏感词|替换词，每行一个&#10;例如：机密信息|***"
-              :rows="3"
-            />
-          </n-form-item>
-        </n-space>
-      </n-collapse-item>
-    </n-collapse>
 
     <!-- 处理结果提示 -->
     <div v-if="resultMessage" class="wps-card wps-section mt-4">
@@ -137,10 +134,28 @@ const whitelist = ref('')
 const customSensitiveWords = ref('')
 const resultMessage = ref('')
 const resultType = ref('success')
+const desensitizedMap = ref([]) // 保存脱敏映射，用于恢复
 
 // 计算属性
 const hasSelectedItems = computed(() => sensitiveInfoList.value.some(item => item.selected))
 const selectedCount = computed(() => sensitiveInfoList.value.filter(item => item.selected).length)
+const canRestore = computed(() => desensitizedMap.value.length > 0)
+
+// 按钮状态：scan -> desensitize -> restore
+const actionState = computed(() => {
+  if (canRestore.value) return 'restore'
+  if (sensitiveInfoList.value.length > 0) return 'desensitize'
+  return 'scan'
+})
+const actionButtonType = computed(() => {
+  const types = { scan: 'primary', desensitize: 'success', restore: 'warning' }
+  return types[actionState.value]
+})
+const actionButtonText = computed(() => {
+  if (isExecuting.value) return '扫描中...'
+  const texts = { scan: '扫描文档', desensitize: `一键脱敏 (${selectedCount.value})`, restore: '一键恢复' }
+  return texts[actionState.value]
+})
 
 // 获取类型颜色
 const getTypeColor = (type) => {
@@ -169,6 +184,12 @@ const parseCustomSensitiveWords = () => {
     .filter(item => item !== null)
     .map(item => item.word)
     .join(',')
+}
+
+// 主按钮点击处理
+const handleMainAction = () => {
+  const actions = { scan: scanDocument, desensitize: applyDesensitization, restore: restoreSensitiveInfo }
+  actions[actionState.value]()
 }
 
 // 扫描文档
@@ -212,6 +233,7 @@ const clearResults = () => {
   scanned.value = false
   resultMessage.value = ''
   resetWorkflow()
+  // 注意：不清除 desensitizedMap，保留恢复能力
 }
 
 // 应用脱敏
@@ -252,10 +274,62 @@ const applyDesensitization = async () => {
     resultMessage.value = `成功脱敏 ${replacedCount} 个敏感信息`
     window.$message?.success(resultMessage.value)
 
+    // 保存脱敏映射，用于后续恢复
+    desensitizedMap.value = selectedItems.map(item => ({
+      original: item.original,
+      desensitized: item.desensitized
+    }))
+
     setTimeout(() => clearResults(), 2000)
   } catch (error) {
     resultType.value = 'error'
     resultMessage.value = '脱敏失败: ' + error.message
+    window.$message?.error(resultMessage.value)
+  }
+}
+
+// 恢复敏感信息
+const restoreSensitiveInfo = () => {
+  const doc = getDocument()
+  if (!doc) return
+
+  if (desensitizedMap.value.length === 0) {
+    window.$message?.warning('没有可恢复的脱敏记录')
+    return
+  }
+
+  try {
+    let restoredCount = 0
+    const selection = doc.Application.Selection
+
+    // 逆向替换：脱敏值 -> 原始值
+    desensitizedMap.value.forEach(item => {
+      selection.HomeKey(6)
+      const findObj = selection.Find
+      findObj.ClearFormatting()
+      findObj.Text = item.desensitized
+      findObj.Replacement.ClearFormatting()
+      findObj.Replacement.Text = item.original
+      findObj.Forward = true
+      findObj.Wrap = 1
+      findObj.Format = false
+      findObj.MatchCase = false
+      findObj.MatchWholeWord = false
+      findObj.MatchWildcards = false
+
+      const result = findObj.Execute(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 2)
+      if (result) restoredCount++
+    })
+
+    resultType.value = 'success'
+    resultMessage.value = `成功恢复 ${restoredCount} 个敏感信息`
+    window.$message?.success(resultMessage.value)
+
+    // 清除恢复映射
+    desensitizedMap.value = []
+  } catch (error) {
+    resultType.value = 'error'
+    resultMessage.value = '恢复失败: ' + error.message
     window.$message?.error(resultMessage.value)
   }
 }

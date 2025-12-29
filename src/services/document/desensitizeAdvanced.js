@@ -72,9 +72,9 @@ const SENSITIVE_PATTERNS = [
   // 合同主体
   {
     type: '合同主体',
-    regex: /(甲方|乙方|丙方|丁方)[:：\s]{1,3}([\u4e00-\u9fa5（）]{6,30})/g,
+    regex: /(甲方|乙方|丙方|丁方)[:：\s]{1,3}([\u4e00-\u9fa5（）]{2,30})/g,
     mask: (match) => {
-      const parts = match.match(/(甲方|乙方|丙方|丁方)[:：\s]{1,3}([\u4e00-\u9fa5（）]{6,30})/)
+      const parts = match.match(/(甲方|乙方|丙方|丁方)[:：\s]{1,3}([\u4e00-\u9fa5（）]{2,30})/)
       if (parts && parts[2]) {
         // 只有当第二部分是完整的机构名称时才脱敏
         return match.replace(parts[2], '*'.repeat(parts[2].length))
@@ -189,6 +189,19 @@ export class Desensitizer {
     this.whitelist.delete(item)
   }
 
+  // 检查是否在白名单中（支持部分匹配）
+  isInWhitelist(match) {
+    // 精确匹配
+    if (this.whitelist.has(match)) return true
+    // 部分匹配：白名单项包含在匹配内容中，或匹配内容包含白名单项
+    for (const item of this.whitelist) {
+      if (match.includes(item) || item.includes(match)) {
+        return true
+      }
+    }
+    return false
+  }
+
   // 处理文本脱敏
   desensitizeText(text) {
     if (!text) {
@@ -206,8 +219,8 @@ export class Desensitizer {
 
       if (matches) {
         matches.forEach((match) => {
-          // 检查是否在白名单中
-          if (!this.whitelist.has(match)) {
+          // 检查是否在白名单中（支持部分匹配）
+          if (!this.isInWhitelist(match)) {
             // 添加到敏感信息列表
             sensitiveInfoList.push({
               original: match,
@@ -230,8 +243,9 @@ export class Desensitizer {
 
       if (matches) {
         matches.forEach((match) => {
-          // 检查是否在白名单中
-          if (!this.whitelist.has(match)) {
+          // 检查是否在白名单中（支持部分匹配：白名单项包含在匹配内容中，或匹配内容包含在白名单项中）
+          const isWhitelisted = this.isInWhitelist(match)
+          if (!isWhitelisted) {
             // 生成脱敏后的文本
             const desensitized = pattern.mask(match)
 
