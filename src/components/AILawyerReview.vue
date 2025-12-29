@@ -1,5 +1,5 @@
 <template>
-  <div class="relative p-3">
+  <div class="relative">
     <!-- 执行中遮罩 -->
     <div v-if="isProcessing" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded">
       <n-spin size="large" />
@@ -7,9 +7,9 @@
       <n-progress class="w-48 mt-2" type="line" status="info" :percentage="100" :show-indicator="false" :processing="true" />
     </div>
 
-    <n-space vertical :size="12">
+    <n-space vertical :size="8">
       <!-- 功能说明 -->
-      <n-alert title="AI 生成审查清单 + 律师配置清单，AI 生成建议 + 律师预设意见" type="info" :closable="false" show-icon />
+      <div class="text-xs text-blue-500">AI 生成审查清单 + 律师配置清单，AI 生成建议 + 律师预设意见</div>
 
       <!-- 审查选项（idle 状态） -->
       <div v-if="pageState === 'idle'">
@@ -174,9 +174,22 @@
                     <n-tag :type="getSeverityColor(issue.severity)" size="tiny">
                       {{ getSeverityText(issue.severity) }}
                     </n-tag>
+                    <!-- 显示来源标签 -->
+                    <n-tag v-if="getSuggestionByIssue(issue)?.source === 'merged'" type="success" size="tiny">整合</n-tag>
+                    <n-tag v-else-if="getSuggestionByIssue(issue)?.source === 'ai'" type="info" size="tiny">AI</n-tag>
                     <span class="text-xs text-gray-400">{{ issue.position || '' }}</span>
                   </div>
-                  <div class="text-sm text-gray-700 pl-6">{{ issue.comment }}</div>
+                  <!-- 整合意见显示 -->
+                  <div v-if="getSuggestionByIssue(issue)?.source === 'merged'" class="pl-6 space-y-1">
+                    <div class="text-sm text-orange-700 bg-orange-50 p-1 rounded">
+                      <span class="font-medium">律师意见：</span>{{ getSuggestionByIssue(issue)?.content }}
+                    </div>
+                    <div v-if="getSuggestionByIssue(issue)?.aiContent" class="text-sm text-blue-700 bg-blue-50 p-1 rounded">
+                      <span class="font-medium">AI分析：</span>{{ getSuggestionByIssue(issue)?.aiContent }}
+                    </div>
+                  </div>
+                  <!-- 纯 AI 意见显示 -->
+                  <div v-else class="text-sm text-gray-700 pl-6">{{ issue.comment }}</div>
                 </div>
               </div>
               <div v-else class="text-sm text-green-600">✓ 该项审查未发现问题</div>
@@ -184,12 +197,12 @@
           </div>
         </div>
 
-        <!-- 律师预设意见（单独显示） -->
-        <div v-if="lawyerSuggestionsList.length > 0" class="mt-3">
-          <div class="text-sm font-semibold mb-2">📝 律师预设意见</div>
+        <!-- 律师预设意见（单独显示未匹配的通用建议） -->
+        <div v-if="unmatchedLawyerSuggestions.length > 0" class="mt-3">
+          <div class="text-sm font-semibold mb-2">📝 律师通用意见（未匹配到具体内容）</div>
           <div class="space-y-1">
             <div
-              v-for="item in lawyerSuggestionsList"
+              v-for="item in unmatchedLawyerSuggestions"
               :key="item.id"
               class="border border-orange-200 bg-orange-50 rounded px-2 py-1"
             >
@@ -289,8 +302,8 @@ const passedCount = computed(() => {
 const selectedSuggestionCount = computed(() => suggestions.value.filter(s => s.selected).length)
 const selectedSuggestions = computed(() => suggestions.value.filter(s => s.selected))
 
-// 律师预设意见列表（单独显示）
-const lawyerSuggestionsList = computed(() => suggestions.value.filter(s => s.source === 'lawyer'))
+// 律师预设意见列表（未匹配的通用建议）
+const unmatchedLawyerSuggestions = computed(() => suggestions.value.filter(s => s.source === 'lawyer'))
 
 // 获取某个清单项的所有问题
 const getItemIssues = (itemId) => {
@@ -544,37 +557,90 @@ const handleStartReview = async () => {
   emit('stateChange', pageState.value)
 }
 
-// 生成修改建议（合并 AI 建议 + 律师预设意见）
+// 检查两个关键词是否匹配（模糊匹配）
+const isKeywordMatch = (aiKeyword, lawyerKeyword) => {
+  if (!aiKeyword || !lawyerKeyword) return false
+  const ai = aiKeyword.toLowerCase().trim()
+  const lawyer = lawyerKeyword.toLowerCase().trim()
+  // 完全匹配或包含关系
+  return ai === lawyer || ai.includes(lawyer) || lawyer.includes(ai)
+}
+
+// 生成修改建议（整合 AI 建议 + 律师预设意见）
 const generateSuggestions = () => {
-  const aiSuggestions = (reviewResult.value?.issues || []).map((issue, index) => ({
-    id: `ai_${index}`,
-    issueId: issue.id || `issue_${index}`,
-    position: issue.position || '',
-    // AI 返回的是 searchKeyword 字段
-    keyword: issue.searchKeyword || issue.keyword || '',
-    actionType: issue.severity === 'high' ? 'revision' : 'comment',
-    content: issue.comment || '',
-    severity: issue.severity || 'medium',
-    selected: true,
-    source: 'ai'
-  }))
+  const issues = reviewResult.value?.issues || []
+  const result = []
+  const matchedLawyerRuleIds = new Set() // 记录已匹配的律师规则
 
-  // 律师预设意见
-  const lawyerSuggestions = lawyerRules.value
-    .filter(rule => rule.comment)
-    .map((rule, index) => ({
-      id: `lawyer_${index}`,
-      issueId: `lawyer_rule_${index}`,
-      position: '',
-      keyword: rule.keyword || '',
-      actionType: rule.actionType || 'comment',
-      content: rule.comment || '',
-      severity: 'medium',
-      selected: true,
-      source: 'lawyer'
-    }))
+  // 遍历 AI 识别的问题
+  issues.forEach((issue, index) => {
+    const aiKeyword = issue.searchKeyword || issue.keyword || ''
+    const aiContent = issue.comment || ''
 
-  suggestions.value = [...aiSuggestions, ...lawyerSuggestions]
+    // 查找是否有匹配的律师规则
+    const matchedLawyerRule = lawyerRules.value.find((rule, ruleIndex) => {
+      if (matchedLawyerRuleIds.has(ruleIndex)) return false // 已匹配过的跳过
+      return isKeywordMatch(aiKeyword, rule.keyword)
+    })
+
+    if (matchedLawyerRule) {
+      // 找到匹配的律师规则，整合意见
+      const ruleIndex = lawyerRules.value.indexOf(matchedLawyerRule)
+      matchedLawyerRuleIds.add(ruleIndex)
+
+      // 律师规则优先，整合 AI 意见
+      const isRevision = matchedLawyerRule.actionType === '修订'
+      result.push({
+        id: `merged_${index}`,
+        issueId: issue.id || `issue_${index}`,
+        position: issue.position || '',
+        keyword: aiKeyword, // 使用 AI 识别的更精确的关键词
+        actionType: matchedLawyerRule.actionType || '批注',
+        // 整合内容：律师意见在前，AI 意见在后
+        content: matchedLawyerRule.comment || '',
+        aiContent: aiContent, // AI 的分析意见
+        severity: issue.severity || 'medium',
+        selected: true,
+        source: 'merged', // 标记为整合来源
+        lawyerRule: matchedLawyerRule,
+        isRevision
+      })
+    } else {
+      // 没有匹配的律师规则，纯 AI 建议
+      result.push({
+        id: `ai_${index}`,
+        issueId: issue.id || `issue_${index}`,
+        position: issue.position || '',
+        keyword: aiKeyword,
+        actionType: issue.severity === 'high' ? '修订' : '批注',
+        content: aiContent,
+        aiContent: '',
+        severity: issue.severity || 'medium',
+        selected: true,
+        source: 'ai'
+      })
+    }
+  })
+
+  // 添加未匹配的律师预设意见（通用建议）
+  lawyerRules.value.forEach((rule, index) => {
+    if (!matchedLawyerRuleIds.has(index) && rule.comment) {
+      result.push({
+        id: `lawyer_${index}`,
+        issueId: `lawyer_rule_${index}`,
+        position: '',
+        keyword: rule.keyword || '',
+        actionType: rule.actionType || '批注',
+        content: rule.comment || '',
+        aiContent: '',
+        severity: 'medium',
+        selected: true,
+        source: 'lawyer'
+      })
+    }
+  })
+
+  suggestions.value = result
 }
 
 // 清理关键词：处理换行符、多余空格，截取有效部分
@@ -622,9 +688,10 @@ const handleApplyModifications = async () => {
 
   for (const item of toApply) {
     try {
-      // 律师预设意见：尝试在文档中查找关键词，找不到则跳过（这些是通用建议）
+      const keyword = cleanKeyword(item.keyword)
+
+      // 律师预设意见（未匹配的通用建议）：尝试在文档中查找关键词
       if (item.source === 'lawyer') {
-        const keyword = cleanKeyword(item.keyword)
         if (!keyword || keyword.length < 2) {
           skippedLawyerCount++
           continue
@@ -634,14 +701,45 @@ const handleApplyModifications = async () => {
           wpsDocumentService.addComment(range, `[律师意见] ${item.content}`)
           successCount++
         } else {
-          // 律师预设意见找不到关键词是正常的，不算失败
           skippedLawyerCount++
         }
         continue
       }
 
+      // 整合意见（AI + 律师匹配）：律师意见优先执行，AI 意见作为补充批注
+      if (item.source === 'merged') {
+        if (!keyword || keyword.length < 2) {
+          failCount++
+          continue
+        }
+        const range = tryFindRange(keyword)
+        if (range) {
+          if (item.isRevision && item.lawyerRule?.revision) {
+            // 律师设置了修订，执行修订
+            wpsDocumentService.addRevision(range, item.lawyerRule.revision)
+            // 同时添加整合批注（律师意见 + AI 分析）
+            const commentContent = buildMergedComment(item)
+            if (commentContent) {
+              // 修订后重新查找位置添加批注
+              const newRange = tryFindRange(item.lawyerRule.revision) || tryFindRange(keyword)
+              if (newRange) {
+                wpsDocumentService.addComment(newRange, commentContent)
+              }
+            }
+          } else {
+            // 批注模式：整合律师意见和 AI 分析到同一个批注
+            const commentContent = buildMergedComment(item)
+            wpsDocumentService.addComment(range, commentContent)
+          }
+          successCount++
+        } else {
+          console.warn('[应用修改] 未找到关键词:', keyword)
+          failCount++
+        }
+        continue
+      }
+
       // AI 建议：必须找到关键词才能添加批注
-      const keyword = cleanKeyword(item.keyword)
       if (!keyword || keyword.length < 2) {
         console.warn('[应用修改] 关键词太短或为空:', item.keyword, '->', keyword)
         failCount++
@@ -649,7 +747,7 @@ const handleApplyModifications = async () => {
       }
       const range = tryFindRange(keyword)
       if (range) {
-        wpsDocumentService.addComment(range, item.content)
+        wpsDocumentService.addComment(range, `[AI分析] ${item.content}`)
         successCount++
       } else {
         console.warn('[应用修改] 未找到关键词:', keyword)
@@ -673,6 +771,18 @@ const handleApplyModifications = async () => {
   } else {
     window.$message?.success(msg)
   }
+}
+
+// 构建整合批注内容
+const buildMergedComment = (item) => {
+  const parts = []
+  if (item.content) {
+    parts.push(`【律师意见】${item.content}`)
+  }
+  if (item.aiContent) {
+    parts.push(`【AI分析】${item.aiContent}`)
+  }
+  return parts.join('\n\n')
 }
 
 // 重置

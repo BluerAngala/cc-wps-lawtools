@@ -1,15 +1,8 @@
 <template>
-  <div class="wps-card">
-    <div>
-      <!-- 配置区域 -->
-      <div class="mb-5">
-        <n-alert title="使用AI智能提取合同关键信息" type="info" :closable="false" show-icon />
-
-        <div class="mt-4">
-          <ConfigForm :config="configForm" @update-config="updateConfig" />
-        </div>
-      </div>
-    </div>
+  <div>
+    <!-- 配置区域 -->
+    <div class="text-xs text-blue-500 mb-2">使用AI智能提取合同关键信息</div>
+    <ConfigForm :config="configForm" @update-config="updateConfig" />
 
     <!-- 提取结果弹窗 -->
     <n-modal v-model:show="showResultModal" preset="card" title="提取结果" style="width: 600px; max-width: 90vw;">

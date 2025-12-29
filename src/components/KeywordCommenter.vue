@@ -1,5 +1,5 @@
 <template>
-  <div class="relative p-3">
+  <div class="relative">
     <!-- 执行中遮罩 -->
     <div v-if="processing" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded">
       <n-spin size="large" />
@@ -7,9 +7,9 @@
       <n-progress class="w-48 mt-2" type="line" status="info" :percentage="100" :show-indicator="false" :processing="true" />
     </div>
 
-    <n-space vertical :size="12">
+    <n-space vertical :size="8">
       <!-- 功能说明 -->
-      <n-alert title="匹配关键词并添加固定的批注或修订内容" type="info" :closable="false" show-icon />
+      <div class="text-xs text-blue-500">匹配关键词并添加固定的批注或修订内容</div>
 
       <!-- 方案选择器 -->
       <SchemeSelector

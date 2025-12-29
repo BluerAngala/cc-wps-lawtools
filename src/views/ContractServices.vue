@@ -1,112 +1,118 @@
 <template>
   <PageLayout>
-    <!-- 页面说明 -->
-    <n-alert type="info" :closable="false" show-icon class="mb-4">
-      <div class="text-sm leading-relaxed">
-        <p class="mb-2">本页面提供以下功能：</p>
-        <p>• <strong>AI提取合同信息</strong>：智能识别合同名称、甲乙方、金额等关键要素</p>
-        <p>• <strong>关键词修订批注</strong>：匹配关键词并添加固定的批注或修订</p>
-        <p>• <strong>AI全流程审查</strong>：AI 自动生成审查清单并执行审查，生成修改建议</p>
-        <p>• <strong>AI+律师共同审查</strong>：AI 清单 + 律师规则，AI 建议 + 律师意见</p>
-        <p>• <strong>执行工作流</strong>：一键完成添加编号、重命名、导出PDF等操作</p>
+    <div class="p-4">
+      <!-- 页面说明 -->
+      <n-alert type="info" :closable="false" show-icon class="mb-4">
+        <div class="text-sm leading-relaxed">
+          选择下方功能卡片开始使用，点击卡片打开对应功能面板。
+        </div>
+      </n-alert>
+
+      <!-- 功能卡片网格 -->
+      <div class="grid grid-cols-2 gap-3">
+      <div
+        v-for="item in featureCards"
+        :key="item.key"
+        class="feature-card"
+        :class="{ 'is-processing': item.processing }"
+        @click="openModal(item.key)"
+      >
+        <div class="card-icon">{{ item.icon }}</div>
+        <div class="card-title">{{ item.title }}</div>
+        <div class="card-desc">{{ item.desc }}</div>
+        <n-spin v-if="item.processing" size="small" class="card-spin" />
       </div>
-    </n-alert>
+    </div>
 
-    <!-- 折叠面板（手风琴模式） -->
-    <n-collapse :default-expanded-names="[]" accordion class="mt-4">
-      <!-- AI合同信息提取 -->
-      <n-collapse-item name="extractor">
-        <template #header>
-          <CollapseHeader
-            title="AI提取合同信息"
-            icon="🤖"
-            :processing="extracting"
-            :button-text="extracting ? '提取中...' : '开始提取'"
-            @execute="executeExtraction"
-          />
-        </template>
-        <ContractExtractor
-          :processing="extracting"
-          :extracted-data="extractedData"
-          :submitting="submitting"
-          :extractor-config="configs.extractor"
-          @submit-data="submitExtractedData"
-          @update:extracted-data="extractedData = $event"
-          @update-config="updateExtractorConfig"
-        />
-      </n-collapse-item>
+    <!-- AI提取合同信息弹窗 -->
+    <n-modal v-model:show="modals.extractor" preset="card" title="🤖 AI提取合同信息" class="feature-modal" :mask-closable="false">
+      <ContractExtractor
+        :processing="extracting"
+        :extracted-data="extractedData"
+        :submitting="submitting"
+        :extractor-config="configs.extractor"
+        @submit-data="submitExtractedData"
+        @update:extracted-data="extractedData = $event"
+        @update-config="updateExtractorConfig"
+      />
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="modals.extractor = false">关闭</n-button>
+          <n-button type="primary" :loading="extracting" @click="executeExtraction">
+            {{ extracting ? '提取中...' : '开始提取' }}
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
-      <!-- 关键词修订批注 -->
-      <n-collapse-item name="keyword">
-        <template #header>
-          <CollapseHeader
-            title="关键词修订批注"
-            icon="🔍"
-            :processing="keywordProcessing"
-            :button-text="keywordProcessing ? '处理中...' : '开始处理'"
-            @execute="keywordCommenterRef?.triggerExecute()"
-          />
-        </template>
-        <KeywordCommenter
-          ref="keywordCommenterRef"
-          :processing="keywordProcessing"
-          :keyword-config="configs.keyword"
-          @execute="executeKeywordComment"
-          @update-config="updateKeywordConfig"
-        />
-      </n-collapse-item>
+    <!-- 关键词修订批注弹窗 -->
+    <n-modal v-model:show="modals.keyword" preset="card" title="🔍 关键词修订批注" class="feature-modal" :mask-closable="false">
+      <KeywordCommenter
+        ref="keywordCommenterRef"
+        :processing="keywordProcessing"
+        :keyword-config="configs.keyword"
+        @execute="executeKeywordComment"
+        @update-config="updateKeywordConfig"
+      />
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="modals.keyword = false">关闭</n-button>
+          <n-button type="primary" :loading="keywordProcessing" @click="keywordCommenterRef?.triggerExecute()">
+            {{ keywordProcessing ? '处理中...' : '开始处理' }}
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
-      <!-- AI全流程审查 -->
-      <n-collapse-item name="aiFullReview">
-        <template #header>
-          <CollapseHeader
-            title="AI全流程审查"
-            icon="⚖️"
-            :processing="aiFullReviewRef?.isProcessing?.value"
-            :button-text="aiFullReviewRef?.buttonText?.value || '开始任务'"
-            @execute="aiFullReviewRef?.triggerExecute()"
-          />
-        </template>
-        <AIFullReview ref="aiFullReviewRef" />
-      </n-collapse-item>
+    <!-- AI全流程审查弹窗 -->
+    <n-modal v-model:show="modals.aiFullReview" preset="card" title="⚖️ AI全流程审查" class="feature-modal" :mask-closable="false">
+      <AIFullReview ref="aiFullReviewRef" @state-change="handleAIFullReviewStateChange" />
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="modals.aiFullReview = false">关闭</n-button>
+          <n-button type="primary" :loading="aiFullReviewProcessing" @click="aiFullReviewRef?.triggerExecute()">
+            {{ aiFullReviewRef?.buttonText?.value || '开始任务' }}
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
-      <!-- AI+律师共同审查 -->
-      <n-collapse-item name="aiLawyerReview">
-        <template #header>
-          <CollapseHeader
-            title="AI+律师共同审查"
-            icon="👨‍⚖️"
-            :processing="aiLawyerReviewRef?.isProcessing?.value"
-            :button-text="aiLawyerReviewRef?.buttonText?.value || '开始任务'"
-            @execute="aiLawyerReviewRef?.triggerExecute()"
-          />
-        </template>
-        <AILawyerReview ref="aiLawyerReviewRef" />
-      </n-collapse-item>
+    <!-- AI+律师共同审查弹窗 -->
+    <n-modal v-model:show="modals.aiLawyerReview" preset="card" title="👨‍⚖️ AI+律师共同审查" class="feature-modal" :mask-closable="false">
+      <AILawyerReview ref="aiLawyerReviewRef" @state-change="handleAILawyerReviewStateChange" />
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="modals.aiLawyerReview = false">关闭</n-button>
+          <n-button type="primary" :loading="aiLawyerReviewProcessing" @click="aiLawyerReviewRef?.triggerExecute()">
+            {{ aiLawyerReviewRef?.buttonText?.value || '开始任务' }}
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
-      <!-- 执行工作流 -->
-      <n-collapse-item name="batch">
-        <template #header>
-          <CollapseHeader
-            title="执行工作流"
-            icon="📄"
-            :processing="batchWorkflowRef?.isProcessing"
-            :button-text="batchWorkflowRef?.buttonText || '开始处理'"
-            :disabled="!batchWorkflowRef?.canExecute"
-            @execute="batchWorkflowRef?.triggerExecute()"
-          />
-        </template>
-        <BatchWorkflow ref="batchWorkflowRef" />
-      </n-collapse-item>
-    </n-collapse>
+    <!-- 执行工作流弹窗 -->
+    <n-modal v-model:show="modals.batch" preset="card" title="📄 执行工作流" class="feature-modal" :mask-closable="false">
+      <BatchWorkflow ref="batchWorkflowRef" />
+      <template #footer>
+        <div class="flex justify-between items-center">
+          <n-button type="info" size="small" @click="batchWorkflowRef?.openCreateModal()">+ 新建工作流</n-button>
+          <n-space>
+            <n-button @click="modals.batch = false">关闭</n-button>
+            <n-button type="primary" :disabled="!batchWorkflowRef?.canExecute" :loading="batchWorkflowRef?.isProcessing" @click="batchWorkflowRef?.triggerExecute()">
+              {{ batchWorkflowRef?.buttonText || '开始处理' }}
+            </n-button>
+          </n-space>
+        </div>
+      </template>
+    </n-modal>
+    </div>
   </PageLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NCollapse, NCollapseItem, NAlert } from '../components/naive-components.js'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { NAlert, NModal, NButton, NSpace, NSpin } from 'naive-ui'
 import { PageLayout } from '../components/common'
-import CollapseHeader from '../components/CollapseHeader.vue'
 import ContractExtractor from '../components/ContractExtractor.vue'
 import KeywordCommenter from '../components/KeywordCommenter.vue'
 import AIFullReview from '../components/AIFullReview.vue'
@@ -114,11 +120,22 @@ import AILawyerReview from '../components/AILawyerReview.vue'
 import BatchWorkflow from '../components/BatchWorkflow.vue'
 import { contractService } from '../services/contract/contractService.js'
 
+// 弹窗状态
+const modals = reactive({
+  extractor: false,
+  keyword: false,
+  aiFullReview: false,
+  aiLawyerReview: false,
+  batch: false
+})
+
 // 响应式数据
 const extractedData = ref(null)
 const submitting = ref(false)
 const configs = ref({ extractor: {}, keyword: {} })
 const extracting = ref(false)
+const aiFullReviewProcessing = ref(false)
+const aiLawyerReviewProcessing = ref(false)
 
 // 组件引用
 const keywordCommenterRef = ref(null)
@@ -128,6 +145,29 @@ const batchWorkflowRef = ref(null)
 
 // 关键词处理状态
 const keywordProcessing = computed(() => contractService.isTaskProcessing('keywordComment'))
+
+// 功能卡片配置
+const featureCards = computed(() => [
+  { key: 'extractor', icon: '🤖', title: 'AI提取合同信息', desc: '智能识别合同关键要素', processing: extracting.value },
+  { key: 'keyword', icon: '🔍', title: '关键词修订批注', desc: '匹配关键词添加批注', processing: keywordProcessing.value },
+  { key: 'aiFullReview', icon: '⚖️', title: 'AI全流程审查', desc: 'AI自动生成审查清单', processing: aiFullReviewProcessing.value },
+  { key: 'aiLawyerReview', icon: '👨‍⚖️', title: 'AI+律师共同审查', desc: 'AI清单+律师规则整合', processing: aiLawyerReviewProcessing.value },
+  { key: 'batch', icon: '📄', title: '执行工作流', desc: '一键完成批量操作', processing: batchWorkflowRef.value?.isProcessing }
+])
+
+// 打开弹窗
+const openModal = (key) => {
+  modals[key] = true
+}
+
+// 状态变化处理
+const handleAIFullReviewStateChange = (state) => {
+  aiFullReviewProcessing.value = state === 'generating' || state === 'reviewing'
+}
+
+const handleAILawyerReviewStateChange = (state) => {
+  aiLawyerReviewProcessing.value = state === 'generating' || state === 'reviewing'
+}
 
 // 提取合同信息
 const executeExtraction = async () => {
@@ -191,3 +231,117 @@ onUnmounted(() => {
   contractService.cleanup()
 })
 </script>
+
+<style scoped>
+.feature-card {
+  position: relative;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.feature-card.is-processing {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.card-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.card-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.card-spin {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+</style>
+
+<style>
+/* 弹窗全局样式 */
+.feature-modal {
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+}
+
+.feature-modal .n-card-header {
+  padding: 12px 16px;
+}
+
+.feature-modal .n-card-header__main {
+  font-size: 15px;
+}
+
+.feature-modal .n-card__content {
+  max-height: calc(80vh - 110px);
+  overflow-y: auto;
+  padding: 8px 28px;
+  font-size: 13px;
+}
+
+.feature-modal .n-card__footer {
+  padding: 10px 16px;
+}
+
+/* 细滚动条 */
+.feature-modal .n-card__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.feature-modal .n-card__content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.feature-modal .n-card__content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.feature-modal .n-card__content::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* 弹窗内组件字体调整 */
+.feature-modal .n-alert {
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.feature-modal .n-button {
+  font-size: 13px;
+}
+
+.feature-modal .n-input {
+  font-size: 13px;
+}
+
+.feature-modal .n-select {
+  font-size: 13px;
+}
+
+.feature-modal .n-tag {
+  font-size: 11px;
+}
+</style>

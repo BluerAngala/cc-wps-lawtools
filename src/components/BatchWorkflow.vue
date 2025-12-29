@@ -1,46 +1,76 @@
 <template>
-  <div class="p-3">
-    <n-alert type="info" :closable="false" show-icon class="mb-3">
-      <template #header>工作流说明</template>
-      <template #default>选择预设工作流方案执行，支持关键词搜索。</template>
-    </n-alert>
+  <div>
+    <div class="text-xs text-blue-500 mb-2">选择预设工作流方案执行</div>
 
-    <!-- 工作流选择器 -->
-    <n-select
-      v-model:value="selectedWorkflowId"
-      :options="workflowOptions"
-      placeholder="输入关键词搜索工作流..."
-      filterable
-      clearable
-      size="small"
-      class="mb-3"
-    />
-
-    <!-- 选中的工作流步骤预览 -->
-    <div v-if="selectedWorkflow" class="mb-2 p-2 bg-blue-50 border border-blue-200 rounded">
+    <!-- 选中的工作流详情（固定在顶部） -->
+    <div v-if="selectedWorkflow" class="mb-3 p-2 bg-gray-50 border border-gray-200 rounded">
       <div class="flex items-center justify-between mb-1">
-        <div class="text-xs font-medium text-blue-600">{{ selectedWorkflow.name }} - 执行步骤：</div>
-        <div class="flex gap-1">
-          <n-tag size="tiny" :type="selectedWorkflow.isUser ? 'warning' : (selectedWorkflow.category === 'ai' ? 'info' : 'success')">
-            {{ selectedWorkflow.isUser ? '自定义' : (selectedWorkflow.category === 'ai' ? 'AI' : '文档') }}
-          </n-tag>
-          <template v-if="selectedWorkflow.isUser">
-            <n-button size="tiny" quaternary @click="editWorkflow(selectedWorkflow)">编辑</n-button>
-            <n-button size="tiny" quaternary type="error" @click="deleteWorkflow(selectedWorkflow.id)">删除</n-button>
-          </template>
+        <div class="text-sm font-medium text-gray-800">{{ selectedWorkflow.name }}</div>
+        <div v-if="selectedWorkflow.isUser" class="flex gap-1">
+          <n-button size="tiny" type="info" secondary @click="editWorkflow(selectedWorkflow)">编辑</n-button>
+          <n-button size="tiny" type="error" secondary @click="deleteWorkflow(selectedWorkflow.id)">删除</n-button>
         </div>
       </div>
       <div class="flex flex-wrap gap-1">
-        <n-tag v-for="(step, idx) in selectedWorkflow.steps" :key="idx" size="tiny" type="info">
+        <n-tag v-for="(step, idx) in selectedWorkflow.steps" :key="idx" size="tiny">
           {{ idx + 1 }}. {{ step.name }}
         </n-tag>
       </div>
     </div>
+    <div v-else class="mb-3 p-3 bg-gray-50 border border-gray-200 rounded text-center text-xs text-gray-400">
+      请从下方选择一个工作流
+    </div>
 
-    <!-- 新建工作流按钮 -->
-    <n-button type="info" size="small" block @click="openCreateModal">
-      + 新建自定义工作流
-    </n-button>
+    <!-- 工作流列表（可滚动） -->
+    <div class="workflow-list overflow-y-auto" style="max-height: 240px;">
+      <!-- 用户自定义工作流 -->
+      <template v-if="userWorkflows.length > 0">
+        <div class="text-xs text-gray-400 mb-1">💾 我的工作流</div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div
+            v-for="wf in userWorkflows"
+            :key="'user_' + wf.id"
+            class="workflow-card"
+            :class="{ 'is-selected': selectedWorkflowId === 'user_' + wf.id }"
+            @click="selectedWorkflowId = 'user_' + wf.id"
+          >
+            <span class="card-name">{{ wf.name }}</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- AI 工作流 -->
+      <template v-if="aiPresets.length > 0">
+        <div class="text-xs text-gray-400 mb-1">🤖 AI 工作流</div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div
+            v-for="wf in aiPresets"
+            :key="'preset_' + wf.id"
+            class="workflow-card"
+            :class="{ 'is-selected': selectedWorkflowId === 'preset_' + wf.id }"
+            @click="selectedWorkflowId = 'preset_' + wf.id"
+          >
+            <span class="card-name">{{ wf.name }}</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- 文档工作流 -->
+      <template v-if="docPresets.length > 0">
+        <div class="text-xs text-gray-400 mb-1">📄 文档工作流</div>
+        <div class="grid grid-cols-2 gap-2">
+          <div
+            v-for="wf in docPresets"
+            :key="'preset_' + wf.id"
+            class="workflow-card"
+            :class="{ 'is-selected': selectedWorkflowId === 'preset_' + wf.id }"
+            @click="selectedWorkflowId = 'preset_' + wf.id"
+          >
+            <span class="card-name">{{ wf.name }}</span>
+          </div>
+        </div>
+      </template>
+    </div>
 
     <!-- 执行中遮罩 -->
     <div v-if="processing" class="mt-3 p-3 bg-gray-50 rounded">
@@ -94,7 +124,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { NAlert, NTag, NSelect, NModal, NButton, NSpin, NProgress } from 'naive-ui'
+import { NTag, NModal, NButton, NSpin, NProgress } from 'naive-ui'
 import WorkflowConfigModal from './WorkflowConfigModal.vue'
 import { useWorkflowExecution } from '../composables/useWorkflowExecution.js'
 import { getPresetList, workflowStorage } from '../services/workflow'
@@ -115,56 +145,11 @@ const editingWorkflow = ref(null)
 // 获取所有预设工作流
 const allPresets = computed(() => getPresetList())
 
-// 合并所有工作流选项（预设 + 用户自定义）
-const workflowOptions = computed(() => {
-  const options = []
+// AI 工作流
+const aiPresets = computed(() => allPresets.value.filter(p => p.category === 'ai'))
 
-  // 用户自定义工作流分组
-  if (userWorkflows.value.length > 0) {
-    options.push({
-      type: 'group',
-      label: '💾 我的工作流',
-      key: 'user',
-      children: userWorkflows.value.map(wf => ({
-        label: wf.name,
-        value: `user_${wf.id}`,
-        description: wf.description
-      }))
-    })
-  }
-
-  // AI 工作流分组
-  const aiPresets = allPresets.value.filter(p => p.category === 'ai')
-  if (aiPresets.length > 0) {
-    options.push({
-      type: 'group',
-      label: '🤖 AI 工作流',
-      key: 'ai',
-      children: aiPresets.map(p => ({
-        label: p.name,
-        value: `preset_${p.id}`,
-        description: p.description
-      }))
-    })
-  }
-
-  // 文档工作流分组
-  const docPresets = allPresets.value.filter(p => p.category !== 'ai')
-  if (docPresets.length > 0) {
-    options.push({
-      type: 'group',
-      label: '📄 文档工作流',
-      key: 'document',
-      children: docPresets.map(p => ({
-        label: p.name,
-        value: `preset_${p.id}`,
-        description: p.description
-      }))
-    })
-  }
-
-  return options
-})
+// 文档工作流
+const docPresets = computed(() => allPresets.value.filter(p => p.category !== 'ai'))
 
 // 选中的工作流对象
 const selectedWorkflow = computed(() => {
@@ -319,6 +304,7 @@ onMounted(() => {
 // 暴露给父组件的属性和方法
 defineExpose({
   triggerExecute,
+  openCreateModal,
   // 直接暴露 computed 的 value，让父组件更容易访问
   get isProcessing() {
     return isProcessing.value
@@ -331,3 +317,29 @@ defineExpose({
   }
 })
 </script>
+
+<style scoped>
+.workflow-card {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.workflow-card:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+}
+
+.workflow-card.is-selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.card-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+}
+</style>

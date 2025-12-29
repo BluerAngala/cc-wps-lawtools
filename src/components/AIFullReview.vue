@@ -1,5 +1,5 @@
 <template>
-  <div class="relative p-3">
+  <div class="relative">
     <!-- 执行中遮罩 -->
     <div v-if="isProcessing" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded">
       <n-spin size="large" />
@@ -7,9 +7,9 @@
       <n-progress class="w-48 mt-2" type="line" status="info" :percentage="100" :show-indicator="false" :processing="true" />
     </div>
 
-    <n-space vertical :size="12">
+    <n-space vertical :size="8">
       <!-- 功能说明 -->
-      <n-alert title="AI 根据合同类型自动生成审查清单，执行审查后生成修改建议" type="info" :closable="false" show-icon />
+      <div class="text-xs text-blue-500">AI 根据合同类型自动生成审查清单，执行审查后生成修改建议</div>
 
       <!-- 审查选项（idle 状态） -->
       <div v-if="pageState === 'idle'">
