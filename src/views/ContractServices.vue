@@ -133,6 +133,22 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- 更多功能定制弹窗 -->
+    <n-modal v-model:show="modals.custom" preset="card" title="🎨 更多功能定制" class="feature-modal" :mask-closable="false">
+      <div class="flex flex-col items-center py-8">
+        <img :src="logoCard" alt="联系客服" class=" h-[200px]" />
+        <div class="text-center text-sm text-gray-600 mt-4">
+          <p class="mb-1">扫描二维码联系我</p>
+          <p class="text-xs text-gray-500">定制专属功能，满足您的个性化需求</p>
+        </div>
+      </div>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="modals.custom = false">关闭</n-button>
+        </n-space>
+      </template>
+    </n-modal>
     </div>
   </PageLayout>
 </template>
@@ -147,6 +163,7 @@ import AIFullReview from '../components/AIFullReview.vue'
 import AILawyerReview from '../components/AILawyerReview.vue'
 import BatchWorkflow from '../components/BatchWorkflow.vue'
 import { contractService } from '../services/contract/contractService.js'
+import logoCard from '../assets/logo_card.png'
 
 // 弹窗状态
 const modals = reactive({
@@ -154,7 +171,8 @@ const modals = reactive({
   keyword: false,
   aiFullReview: false,
   aiLawyerReview: false,
-  batch: false
+  batch: false,
+  custom: false
 })
 
 // 响应式数据
@@ -182,7 +200,8 @@ const featureCards = computed(() => [
   { key: 'keyword', icon: '🔍', title: '关键词修订批注', desc: '匹配关键词添加批注', processing: keywordProcessing.value },
   { key: 'aiFullReview', icon: '⚖️', title: 'AI全流程审查', desc: 'AI自动生成审查清单', processing: aiFullReviewProcessing.value },
   { key: 'aiLawyerReview', icon: '👨‍⚖️', title: 'AI+律师共同审查', desc: 'AI清单+律师规则整合', processing: aiLawyerReviewProcessing.value },
-  { key: 'batch', icon: '📄', title: '执行工作流', desc: '一键完成批量操作', processing: batchWorkflowRef.value?.isProcessing }
+  { key: 'batch', icon: '📄', title: '执行工作流', desc: '一键完成批量操作', processing: batchWorkflowRef.value?.isProcessing },
+  { key: 'custom', icon: '🎨', title: '更多功能定制', desc: '联系客服定制专属功能', processing: false }
 ])
 
 // 打开弹窗
