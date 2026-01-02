@@ -70,7 +70,21 @@
       <template #footer>
         <n-space justify="end">
           <n-button @click="modals.aiFullReview = false">关闭</n-button>
-          <n-button type="primary" :loading="aiFullReviewProcessing" @click="aiFullReviewRef?.triggerExecute()">
+          <n-button 
+            v-if="aiFullReviewState === 'complete' && aiFullReviewRef?.selectedSuggestionCount?.value > 0"
+            type="primary" 
+            :disabled="aiFullReviewRef?.applyingModifications?.value"
+            :loading="aiFullReviewRef?.applyingModifications?.value"
+            @click="aiFullReviewRef?.handleApplyModifications()"
+          >
+            {{ aiFullReviewRef?.applyingModifications?.value ? '执行中...' : `应用批注 (${aiFullReviewRef?.selectedSuggestionCount?.value || 0})` }}
+          </n-button>
+          <n-button 
+            v-if="aiFullReviewState !== 'complete'"
+            type="primary" 
+            :loading="aiFullReviewProcessing" 
+            @click="aiFullReviewRef?.triggerExecute()"
+          >
             {{ aiFullReviewRef?.buttonText?.value || '开始任务' }}
           </n-button>
         </n-space>
@@ -83,7 +97,21 @@
       <template #footer>
         <n-space justify="end">
           <n-button @click="modals.aiLawyerReview = false">关闭</n-button>
-          <n-button type="primary" :loading="aiLawyerReviewProcessing" @click="aiLawyerReviewRef?.triggerExecute()">
+          <n-button 
+            v-if="aiLawyerReviewState === 'complete' && aiLawyerReviewRef?.selectedSuggestionCount?.value > 0"
+            type="primary" 
+            :disabled="aiLawyerReviewRef?.applyingModifications?.value"
+            :loading="aiLawyerReviewRef?.applyingModifications?.value"
+            @click="aiLawyerReviewRef?.handleApplyModifications()"
+          >
+            {{ aiLawyerReviewRef?.applyingModifications?.value ? '执行中...' : `应用批注 (${aiLawyerReviewRef?.selectedSuggestionCount?.value || 0})` }}
+          </n-button>
+          <n-button 
+            v-if="aiLawyerReviewState !== 'complete'"
+            type="primary" 
+            :loading="aiLawyerReviewProcessing" 
+            @click="aiLawyerReviewRef?.triggerExecute()"
+          >
             {{ aiLawyerReviewRef?.buttonText?.value || '开始任务' }}
           </n-button>
         </n-space>
@@ -135,7 +163,9 @@ const submitting = ref(false)
 const configs = ref({ extractor: {}, keyword: {} })
 const extracting = ref(false)
 const aiFullReviewProcessing = ref(false)
+const aiFullReviewState = ref('idle') // 跟踪AI全流程审查状态
 const aiLawyerReviewProcessing = ref(false)
+const aiLawyerReviewState = ref('idle') // 跟踪AI+律师审查状态
 
 // 组件引用
 const keywordCommenterRef = ref(null)
@@ -163,10 +193,12 @@ const openModal = (key) => {
 // 状态变化处理
 const handleAIFullReviewStateChange = (state) => {
   aiFullReviewProcessing.value = state === 'generating' || state === 'reviewing'
+  aiFullReviewState.value = state
 }
 
 const handleAILawyerReviewStateChange = (state) => {
   aiLawyerReviewProcessing.value = state === 'generating' || state === 'reviewing'
+  aiLawyerReviewState.value = state
 }
 
 // 提取合同信息

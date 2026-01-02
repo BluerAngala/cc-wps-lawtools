@@ -1,7 +1,7 @@
 <template>
-  <div class="relative">
+  <div class="relative ai-lawyer-review-container">
     <!-- 执行中遮罩 -->
-    <div v-if="isProcessing" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded">
+    <div v-if="isProcessing" class="ai-lawyer-review-loading-overlay">
       <n-spin size="large" />
       <div class="mt-3 text-sm font-medium text-gray-600">{{ progressText }}</div>
       <n-progress class="w-48 mt-2" type="line" status="info" :percentage="100" :show-indicator="false" :processing="true" />
@@ -218,18 +218,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 应用修改按钮 -->
-        <div v-if="suggestions.length > 0" class="flex justify-end mt-3">
-          <n-button
-            type="primary"
-            :disabled="selectedSuggestionCount === 0 || applyingModifications"
-            :loading="applyingModifications"
-            @click="handleApplyModifications"
-          >
-            {{ applyingModifications ? '执行中...' : `应用批注 (${selectedSuggestionCount})` }}
-          </n-button>
-        </div>
       </div>
 
       <!-- 空状态 -->
@@ -240,7 +228,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import { NSpace, NAlert, NRadioGroup, NRadio, NTag, NInput, NButton, NCheckbox, NSpin, NProgress, NEmpty } from 'naive-ui'
+import { NSpace, NRadioGroup, NRadio, NTag, NInput, NButton, NCheckbox, NSpin, NProgress, NEmpty } from 'naive-ui'
 import SchemeSelector from './SchemeSelector.vue'
 import ConfigForm from './ConfigForm.vue'
 import { useWorkflowExecution } from '../composables/useWorkflowExecution.js'
@@ -522,7 +510,7 @@ const handleStartReview = async () => {
   }
 
   pageState.value = 'reviewing'
-  progressText.value = '正在审查...'
+  progressText.value = '正在审查，请耐心等待几分钟'
   emit('stateChange', 'reviewing')
 
   try {
@@ -837,6 +825,32 @@ defineExpose({
   triggerExecute,
   isProcessing,
   buttonText,
-  pageState
+  pageState,
+  selectedSuggestionCount,
+  applyingModifications,
+  handleApplyModifications
 })
 </script>
+
+<style scoped>
+/* 加载遮罩 - 覆盖弹窗可视区域，固定在可视区域内 */
+.ai-lawyer-review-loading-overlay {
+  position: sticky;
+  top: 0;
+  left: -28px;
+  right: -28px;
+  width: calc(100% + 56px);
+  height: calc(80vh - 110px);
+  min-height: calc(80vh - 110px);
+  max-height: calc(80vh - 110px);
+  background: rgba(255, 255, 255, 0.9);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  margin: -8px -28px;
+  padding: 8px 28px;
+}
+</style>

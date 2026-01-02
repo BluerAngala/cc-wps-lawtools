@@ -163,18 +163,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 应用修改按钮 -->
-        <div v-if="suggestions.length > 0" class="flex justify-end mt-3">
-          <n-button
-            type="primary"
-            :disabled="selectedSuggestionCount === 0 || applyingModifications"
-            :loading="applyingModifications"
-            @click="handleApplyModifications"
-          >
-            {{ applyingModifications ? '执行中...' : `应用批注 (${selectedSuggestionCount})` }}
-          </n-button>
-        </div>
       </div>
 
       <!-- 空状态 -->
@@ -185,7 +173,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { NSpace, NAlert, NRadioGroup, NRadio, NTag, NInput, NButton, NCheckbox, NSpin, NProgress, NEmpty } from 'naive-ui'
+import { NSpace, NRadioGroup, NRadio, NTag, NInput, NButton, NCheckbox, NSpin, NProgress, NEmpty } from 'naive-ui'
 import { useWorkflowExecution } from '../composables/useWorkflowExecution.js'
 import { useWpsEnvironment } from '../composables/useWpsEnvironment.js'
 import { ActionTypes } from '../services/workflow'
@@ -547,7 +535,10 @@ defineExpose({
   triggerExecute,
   isProcessing,
   buttonText,
-  pageState
+  pageState,
+  selectedSuggestionCount,
+  applyingModifications,
+  handleApplyModifications
 })
 </script>
 
