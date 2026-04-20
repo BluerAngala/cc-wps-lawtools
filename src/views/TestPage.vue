@@ -213,7 +213,7 @@ import {
   NDivider, NList, NListItem, NThing 
 } from 'naive-ui'
 import { taskPane } from '../services/wps'
-import { desensitizeText } from '../services/document/desensitize.js'
+import { Desensitizer } from '../services/document/desensitizeAdvanced.js'
 import TaskScheduler from '../services/ai/TaskScheduler.js'
 import unifiedLogger from '@/utils/unifiedLogger.js'
 
@@ -451,7 +451,26 @@ const onProcessUserTextWithAI = async () => {
 
 // 脱敏文本处理
 const processDesensitizeText = (text) => {
-  const { desensitizedText: resultText, sensitiveInfoList: resultList } = desensitizeText(text)
+  const whitelistArr = whitelist.value
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+
+  const customWordsArr = customSensitiveWords.value
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map(line => {
+      const [word, replacement] = line.split('|')
+      return { word: word?.trim(), replacement: replacement?.trim() || null }
+    })
+
+  const desensitizer = new Desensitizer({
+    whitelist: whitelistArr,
+    customSensitiveWords: customWordsArr
+  })
+
+  const { desensitizedText: resultText, sensitiveInfoList: resultList } = desensitizer.desensitizeText(text)
 
   sensitiveInfoList.value = resultList
   desensitizedText.value = resultText

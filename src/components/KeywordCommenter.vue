@@ -35,7 +35,7 @@
 
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
-import { NSpace, NAlert, NSpin, NProgress } from 'naive-ui'
+import { NSpace, NSpin, NProgress } from 'naive-ui'
 import SchemeSelector from './SchemeSelector.vue'
 import ConfigForm from './ConfigForm.vue'
 import { appConfig } from '../utils/appConfig.js'

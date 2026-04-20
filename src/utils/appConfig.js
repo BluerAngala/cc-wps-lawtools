@@ -612,6 +612,22 @@ class AppConfigManager {
     
     return schemesData
   }
+
+  /**
+   * 获取 AI 配置（统一入口）
+   * 所有 AI 服务都应使用此方法获取配置
+   */
+  getAIConfig() {
+    const config = this.get('ai') || {}
+    return {
+      apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
+      baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
+      model: config.model || 'Qwen/Qwen2.5-7B-Instruct',
+      timeout: config.timeout || 120000,
+      maxTokens: config.maxTokens || 8000,
+      temperature: config.temperature !== undefined ? config.temperature : 0.1
+    }
+  }
 }
 
 // 创建单例

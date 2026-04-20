@@ -21,6 +21,3 @@ export { default as taskPane } from './taskHandler.js'
 
 // 文档监听器
 export { DocumentWatcher, default as watcher } from './watcher.js'
-
-// 业务系统对接
-export { default as systemBridge, openOfficeFileFromSystemDemo, InvokeFromSystemDemo } from './systemBridge.js'

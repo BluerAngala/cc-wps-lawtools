@@ -1,15 +1,19 @@
 /**
- * 合同服务统一管理器 - 整合所有合同相关功能（简化版）
+ * 合同服务统一管理器 - 整合所有合同相关功能
+ * 合并了原 taskManager.js 的功能，减少包装层级
  */
 
-import { appConfig } from '../../utils/appConfig.js'
-import { TaskManager } from './taskManager.js'
+import TaskScheduler from '../ai/TaskScheduler.js'
+import { taskPane } from '../wps'
+import { batchKeywordAction } from '../workflow/actions/batchKeyword.js'
+import { reviewProcessor } from './reviewProcessor.js'
 import { dataSubmitter } from './dataSubmitter.js'
 import { contractReviewEngine } from './contractReviewEngine.js'
+import { appConfig } from '../../utils/appConfig.js'
 
 export class ContractService {
   constructor() {
-    this.taskManager = new TaskManager({
+    this.taskScheduler = new TaskScheduler({
       maxConcurrentTasks: 2,
       taskTimeout: 30000,
       retryAttempts: 2
@@ -17,8 +21,8 @@ export class ContractService {
 
     this.processingTasks = new Set()
     this.reviewEngine = contractReviewEngine
-    
-    // 结果消息映射
+    this.AI_RULE_TYPES = ['extractText', 'contractReview', 'analyzeDocStructure']
+
     this.resultMessages = {
       keywordComment: '关键词批注添加完成！',
       extractText: 'AI合同信息提取完成！',
@@ -27,76 +31,153 @@ export class ContractService {
     }
   }
 
-  /**
-   * 执行任务（统一入口）
-   * @param {string} taskType - 任务类型
-   * @param {Object} params - 参数
-   * @param {Function} onComplete - 完成回调
-   * @returns {Promise}
-   */
-  async executeTask(taskType, params, onComplete) {
-    // 防重复执行
-    if (this.processingTasks.has(taskType)) {
+  async waitForTaskComplete(taskId, ruleType, params) {
+    return new Promise((resolve, reject) => {
+      const handleComplete = async (task) => {
+        if (task.id === taskId) {
+          try {
+            let processedResult = task.result
+
+            if (ruleType === 'extractText') {
+              if (!task.result || Object.keys(task.result).length === 0) {
+                throw new Error('提取数据为空')
+              }
+              processedResult = task.result
+            } else if (ruleType === 'contractReview') {
+              const actionType = params.actionType || 'comment'
+              if (actionType === 'comment') {
+                processedResult = await reviewProcessor.addReviewComments(task.result)
+              } else if (actionType === 'revision') {
+                processedResult = await reviewProcessor.addReviewRevisions(task.result)
+              }
+            }
+
+            this.taskScheduler.off('taskComplete', handleComplete)
+            this.taskScheduler.off('taskError', handleError)
+            resolve(processedResult)
+          } catch (error) {
+            this.taskScheduler.off('taskComplete', handleComplete)
+            this.taskScheduler.off('taskError', handleError)
+            reject(error)
+          }
+        }
+      }
+
+      const handleError = (task, error) => {
+        if (task.id === taskId) {
+          this.taskScheduler.off('taskComplete', handleComplete)
+          this.taskScheduler.off('taskError', handleError)
+          reject(error)
+        }
+      }
+
+      this.taskScheduler.on('taskComplete', handleComplete)
+      this.taskScheduler.on('taskError', handleError)
+    })
+  }
+
+  async executeTask(ruleType, params = {}, onComplete = null, onError = null) {
+    console.log('执行任务:', ruleType, params)
+
+    if (this.processingTasks.has(ruleType)) {
       window.$message?.warning('该任务正在执行中，请稍候...')
       return
     }
 
-    this.processingTasks.add(taskType)
+    this.processingTasks.add(ruleType)
 
     try {
-      await this.taskManager.executeTask(
-        taskType,
-        params,
-        (result) => {
-          if (onComplete) {
-            onComplete(result)
-          }
-          window.$message?.success(this.resultMessages[taskType] || '任务执行完成！')
-        },
-        (error) => window.$message?.error(error.message || '任务执行失败')
-      )
+      const isKeywordMode = params.mode === 'keyword'
+      const needsAI = this.AI_RULE_TYPES.includes(ruleType) && !isKeywordMode
+
+      let result
+      if (!needsAI) {
+        result = await this.executeDirectTask(ruleType, params)
+      } else {
+        const documentContent = await this.getDocumentContent()
+        const taskId = this.taskScheduler.addTask({
+          type: ruleType,
+          priority: 'high',
+          content: documentContent,
+          options: params
+        })
+        result = await this.waitForTaskComplete(taskId, ruleType, params)
+      }
+
+      if (onComplete) {
+        onComplete(result)
+      }
+      window.$message?.success(this.resultMessages[ruleType] || '任务执行完成！')
+      return result
     } catch (error) {
+      console.error('任务执行失败:', error)
+      if (onError) {
+        onError(error)
+      }
       window.$message?.error(error.message || '任务执行失败')
+      throw error
     } finally {
-      this.processingTasks.delete(taskType)
+      this.processingTasks.delete(ruleType)
     }
   }
 
-  /**
-   * 处理数据提取结果（直接调用，无需包装）
-   * @param {Object} result - 提取结果
-   * @returns {Promise<Object>} 处理后的数据
-   */
+  async getDocumentContent() {
+    const documentContent = await taskPane.onbuttonclick('extractText')
+
+    if (!documentContent || typeof documentContent !== 'string' || !documentContent.trim()) {
+      throw new Error(
+        '无法获取文档内容，请检查以下几点：\n1. 确保已在WPS中打开文档\n2. 确保文档中有内容\n3. 尝试刷新页面重新加载插件'
+      )
+    }
+
+    return documentContent
+  }
+
+  async executeDirectTask(ruleType, params) {
+    switch (ruleType) {
+      case 'keywordComment':
+        return await batchKeywordAction.execute({ keywordList: params.keywordList })
+      case 'addHeader':
+        return await taskPane.onbuttonclick('addHeader', {
+          headerText: params.headerText,
+          fontSize: params.fontSize,
+          alignment: params.alignment
+        })
+      case 'contractReview':
+        if (params.mode === 'keyword') {
+          return await batchKeywordAction.execute({ keywordList: params.keywordList })
+        } else {
+          return await taskPane.onbuttonclick('contractReview', {
+            reviewRules: params.reviewRules,
+            aiResult: params.aiResult
+          })
+        }
+      case 'analyzeDocStructure':
+        return await taskPane.onbuttonclick('analyzeDocStructure', {
+          aiResult: params.aiResult
+        })
+      default:
+        console.warn('未知的直接任务类型:', ruleType)
+        return null
+    }
+  }
+
   async processExtractedData(result) {
     return await dataSubmitter.processExtractedData(result)
   }
 
-  /**
-   * 提交提取的数据（直接调用，消息提示已在 dataSubmitter 中处理）
-   * @param {Object} extractedData - 提取的数据
-   * @returns {Promise}
-   */
   async submitExtractedData(extractedData) {
     return await dataSubmitter.submitExtractedData(extractedData)
   }
 
-  /**
-   * 保存配置（直接调用 appConfig，无需包装）
-   */
   saveConfig(configs) {
     return appConfig.saveConfig(configs)
   }
 
-  /**
-   * 重置配置（直接调用 appConfig）
-   */
   resetConfig() {
     return appConfig.reset()
   }
 
-  /**
-   * 加载配置（简化，直接返回配置对象）
-   */
   loadConfig() {
     const allConfig = appConfig.getConfig()
     return {
@@ -106,22 +187,11 @@ export class ContractService {
     }
   }
 
-  /**
-   * 检查任务是否正在处理
-   * @param {string} taskType - 任务类型
-   * @returns {boolean}
-   */
   isTaskProcessing(taskType) {
     return this.processingTasks.has(taskType)
   }
 
-  /**
-   * 合同审查（新版本）
-   * @param {Object} options - 审查选项
-   * @returns {Promise<Object>} 审查结果
-   */
   async reviewContract(options = {}) {
-    // 防重复执行
     if (this.processingTasks.has('contractReviewNew')) {
       window.$message?.warning('合同审查正在执行中，请稍候...')
       return
@@ -141,14 +211,9 @@ export class ContractService {
     }
   }
 
-  /**
-   * 清理资源
-   */
   cleanup() {
-    this.taskManager.cleanup()
     this.processingTasks.clear()
   }
 }
 
-// 创建默认实例
 export const contractService = new ContractService()

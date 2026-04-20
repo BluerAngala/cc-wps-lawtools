@@ -8,28 +8,14 @@ import {
 } from './promptGenerator.js'
 import { appConfig } from '../../utils/appConfig.js'
 
-// 获取 AI 配置（优先使用统一配置，回退到环境变量）
-const getAIConfig = () => {
-  const config = appConfig.get('ai') || {}
-  return {
-    apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
-    baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
-    model: config.model || 'Qwen/Qwen2.5-7B-Instruct', // 改用更快的 Qwen2.5-7B 模型
-    timeout: config.timeout || 300000, // 增加到300秒（5分钟）
-    maxTokens: config.maxTokens || 8000, // 默认8000 tokens
-    temperature: config.temperature !== undefined ? config.temperature : 0.1 // 默认0.1
-  }
-}
-
-const aiConfig = getAIConfig()
+const aiConfig = appConfig.getAIConfig()
 
 if (!aiConfig.apiKey || !aiConfig.baseUrl) {
   console.warn('AI API 未配置，请在设置页面配置')
 }
 
-// 创建 axios 实例（每次调用时动态获取配置）
 const createApiClient = () => {
-  const config = getAIConfig()
+  const config = appConfig.getAIConfig()
   console.log('[API Client] 创建实例，Timeout:', config.timeout, 'ms')
   return axios.create({
     baseURL: config.baseUrl,
@@ -41,12 +27,7 @@ const createApiClient = () => {
   })
 }
 
-// 不再使用全局实例，改为每次请求时创建
-// let apiClient = createApiClient()
-
-// 提供重新初始化方法（配置更新后调用）
 export const reinitializeAIClient = () => {
-  // apiClient = createApiClient()
   console.log('AI 客户端配置已更新（将在下次请求时生效）')
 }
 
@@ -122,7 +103,7 @@ const setupInterceptors = (client) => {
  * @returns {Promise<string>} 完整的响应内容
  */
 async function streamChatCompletions({ messages, model, onChunk, onProgress, options = {} }) {
-  const config = getAIConfig()
+  const config = appConfig.getAIConfig()
   const currentModel = model || options.model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
   
   const requestBody = {
@@ -291,7 +272,7 @@ async function streamChatCompletions({ messages, model, onChunk, onProgress, opt
  * @returns {Promise<string>} 完整的响应内容
  */
 async function nonStreamChatCompletions({ messages, model, options = {} }) {
-  const config = getAIConfig()
+  const config = appConfig.getAIConfig()
   const currentModel = model || options.model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
   
   const requestBody = {
@@ -382,7 +363,7 @@ async function nonStreamChatCompletions({ messages, model, options = {} }) {
  * @returns {Promise<string>} AI 处理后的结果
  */
 async function processDocumentContent({ content, model }) {
-  const config = getAIConfig()
+  const config = appConfig.getAIConfig()
   const currentModel = model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
   
   try {
@@ -417,7 +398,7 @@ async function processContractElements({
   extractTags,
   model
 }) {
-  const config = getAIConfig()
+  const config = appConfig.getAIConfig()
   const currentModel = model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
   
   try {
@@ -588,7 +569,7 @@ async function processContractReview({
  */
 async function getAvailableModels() {
   try {
-    const config = getAIConfig()
+    const config = appConfig.getAIConfig()
     const response = await axios.get(`${config.baseUrl}/models`, {
       headers: {
         'Authorization': `Bearer ${config.apiKey}`

@@ -11,21 +11,10 @@ import {
   generateContractReviewPrompt
 } from './promptGenerator.js'
 
-// 获取 AI 配置（与siliconflow.js保持一致）
-const getAIConfig = () => {
-  const config = appConfig.get('ai') || {}
-  return {
-    apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
-    baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
-    timeout: config.timeout || 120000 // 默认120秒
-  }
-}
-
 export class TaskScheduler {
   constructor(options = {}) {
     this.documentParser = new DocumentParser()
 
-    // AI服务配置
     this.aiConfig = {
       maxTokensPerChunk: options.maxTokensPerChunk || 3000,
       defaultModel: options.defaultModel || 'moonshotai/Kimi-K2-Instruct-0905',
@@ -34,10 +23,9 @@ export class TaskScheduler {
       ...options.ai
     }
 
-    // 调度器配置
     this.config = {
       maxConcurrentTasks: options.maxConcurrentTasks || 3,
-      taskTimeout: options.taskTimeout || 120000, // 120秒超时
+      taskTimeout: options.taskTimeout || 120000,
       retryAttempts: options.retryAttempts || 2,
       priorityLevels: ['high', 'medium', 'low'],
       ...options
@@ -362,7 +350,7 @@ export class TaskScheduler {
         console.log(`AI调用尝试 ${attempt + 1}/${this.aiConfig.maxRetries}`)
         
         // 获取最新的超时配置（每次调用时重新读取，确保使用最新配置）
-        const currentConfig = getAIConfig()
+        const currentConfig = appConfig.getAIConfig()
         const requestTimeout = options.timeout || currentConfig.timeout || 120000
         
         // 创建临时axios实例，使用最新的超时配置

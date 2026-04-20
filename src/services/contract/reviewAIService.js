@@ -11,13 +11,12 @@ import { JSONLParser } from './jsonlParser.js'
 
 export class ReviewAIService {
   constructor() {
-    // 获取AI配置
     this.getAIConfig = () => {
-      const config = appConfig.get('ai') || {}
+      const config = appConfig.getAIConfig()
       return {
-        model: config.model || 'Qwen/Qwen2.5-7B-Instruct', // 改用更快的 Qwen2.5-7B 模型
+        model: config.model || 'Qwen/Qwen2.5-7B-Instruct',
         temperature: config.temperature !== undefined ? config.temperature : 0.1,
-        maxTokens: config.maxTokens || 16000 // 增加到 16000，确保有足够的输出空间
+        maxTokens: config.maxTokens || 16000
       }
     }
   }

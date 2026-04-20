@@ -50,7 +50,7 @@
 <script setup>
 import { reactive, ref, watch, computed } from 'vue'
 import { 
-  NButton, NTag, NAlert, NIcon, NForm, NFormItem, NInput, NGrid, NGridItem, NModal 
+  NButton, NTag, NIcon, NForm, NFormItem, NInput, NGrid, NGridItem, NModal 
 } from 'naive-ui'
 import {
   DocumentOutline as DocumentIcon,

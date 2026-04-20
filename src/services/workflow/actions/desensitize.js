@@ -7,23 +7,7 @@ import { BaseAction, createSuccessResult, createErrorResult } from './baseAction
 import { ActionTypes } from '../types.js'
 import { wpsDocumentService } from '../../wps/index.js'
 import { Desensitizer } from '../../document/desensitizeAdvanced.js'
-
-// 支持的敏感信息类型
-const SENSITIVE_TYPES = [
-  '身份证号',
-  '银行卡号',
-  '手机号',
-  '邮箱',
-  'MAC地址',
-  '护照号',
-  '案件号',
-  '公司编号',
-  '中文地址',
-  '合同主体',
-  '姓名',
-  '银行账号',
-  '纳税人识别号'
-]
+import { SENSITIVE_TYPES } from '../../../config/sensitivePatterns.js'
 
 export class DesensitizeAction extends BaseAction {
   constructor() {
@@ -35,7 +19,6 @@ export class DesensitizeAction extends BaseAction {
     })
   }
 
-  // 解析文本输入为数组（支持逗号、换行分隔）
   parseTextToArray(text) {
     if (!text || typeof text !== 'string') return []
     return text
@@ -46,26 +29,21 @@ export class DesensitizeAction extends BaseAction {
 
   async execute(params, context) {
     try {
-      // 获取文档内容
       const fullText = context.documentText || wpsDocumentService.getFullText()
       if (!fullText) {
         return createErrorResult('无法获取文档内容')
       }
 
-      // 解析白名单和黑名单（优先使用当前参数，否则使用扫描步骤的参数）
       const whitelist = this.parseTextToArray(params.whitelist) || context.data.scanParams?.whitelist || []
       const blacklist = this.parseTextToArray(params.blacklist) || context.data.scanParams?.blacklist || []
 
-      // 创建脱敏器
       const desensitizer = new Desensitizer({
         whitelist,
         customSensitiveWords: blacklist.map(word => ({ word, replacement: null }))
       })
 
-      // 执行脱敏
       let { desensitizedText, sensitiveInfoList } = desensitizer.desensitizeText(fullText)
 
-      // 如果指定了脱敏类型，过滤结果
       const scanTypes = params.scanTypes || context.data.scanParams?.scanTypes || []
       if (scanTypes.length > 0) {
         sensitiveInfoList = sensitiveInfoList.filter(info => scanTypes.includes(info.type))
@@ -78,18 +56,15 @@ export class DesensitizeAction extends BaseAction {
         })
       }
 
-      // 应用脱敏结果到文档
       if (params.autoApply !== false) {
         const doc = window.Application?.ActiveDocument
         const useRevision = params.useRevision === true
 
-        // 根据参数设置修订模式
         if (doc) {
           doc.TrackRevisions = useRevision
         }
 
         try {
-          // 逐个替换敏感信息
           for (const info of sensitiveInfoList) {
             const range = wpsDocumentService.findRangeByKeyword(info.original)
             if (range) {
@@ -97,21 +72,18 @@ export class DesensitizeAction extends BaseAction {
             }
           }
         } finally {
-          // 如果不使用修订模式，确保关闭
           if (!useRevision && doc) {
             doc.TrackRevisions = false
           }
         }
       }
 
-      // 存储脱敏结果到上下文
       context.data.desensitizeResult = {
         sensitiveCount: sensitiveInfoList.length,
         sensitiveInfoList,
         desensitizedText
       }
 
-      // 按类型统计
       const typeStats = {}
       sensitiveInfoList.forEach(info => {
         typeStats[info.type] = (typeStats[info.type] || 0) + 1

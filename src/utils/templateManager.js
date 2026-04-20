@@ -4,22 +4,44 @@
 
 import unifiedLogger from './unifiedLogger.js'
 import { pathManager } from './pathManager.js'
-// 直接导入内置模板配置（Vite 会自动处理 JSON 导入）
-import builtInTemplatesConfig from '@/data/templates.json'
+
+let builtInTemplatesConfig = null
 
 class TemplateManager {
   constructor() {
     unifiedLogger.info('TemplateManager 已初始化')
   }
 
-  /**
-   * 初始化模板 - 直接使用导入的配置，无需 HTTP 请求
-   */
+  async loadBuiltInTemplatesConfig() {
+    if (builtInTemplatesConfig) {
+      return builtInTemplatesConfig
+    }
+
+    try {
+      const basePath = this.getBasePath()
+      const configUrl = `${basePath}templates/templates.json`
+      
+      unifiedLogger.info('加载内置模板配置', { configUrl })
+      
+      const response = await fetch(configUrl)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      
+      builtInTemplatesConfig = await response.json()
+      return builtInTemplatesConfig
+    } catch (error) {
+      unifiedLogger.error('加载内置模板配置失败', {
+        error: error.message
+      })
+      return { templates: [] }
+    }
+  }
+
   async initializeTemplates() {
     unifiedLogger.info('开始初始化模板')
 
     try {
-      // 检查是否已初始化
       const storage = window.Application?.PluginStorage
       const initialized = storage?.getItem('templates_initialized')
 
@@ -33,21 +55,20 @@ class TemplateManager {
         return true
       }
 
-      // 直接使用导入的配置，无需 HTTP 请求
-      const templates = builtInTemplatesConfig.templates || []
+      const config = await this.loadBuiltInTemplatesConfig()
+      const templates = config.templates || []
 
       unifiedLogger.info(`已加载 ${templates.length} 个内置模板`, {
         templateCount: templates.length,
         templateNames: templates.map((t) => t.name)
       })
 
-      // 标记为已初始化
       if (storage) {
         storage.setItem('templates_initialized', 'true')
         unifiedLogger.debug('已标记模板为已初始化')
       }
 
-      unifiedLogger.info('模板初始化完成（直接使用内置模板配置）')
+      unifiedLogger.info('模板初始化完成')
       return true
     } catch (error) {
       unifiedLogger.error('初始化模板失败', {
@@ -59,26 +80,20 @@ class TemplateManager {
     }
   }
 
-  /**
-   * 加载所有模板配置 - 合并内置模板和用户模板
-   */
   async loadTemplates() {
     unifiedLogger.info('开始加载所有模板配置')
 
     try {
-      // 1. 加载内置模板
       const builtInTemplates = await this.loadBuiltInTemplates()
       unifiedLogger.info(`内置模板加载完成: ${builtInTemplates.length} 个`, {
         count: builtInTemplates.length
       })
 
-      // 2. 加载用户保存的模板
       const userTemplates = this.loadUserTemplates()
       unifiedLogger.info(`用户模板加载完成: ${userTemplates.length} 个`, {
         count: userTemplates.length
       })
 
-      // 3. 合并模板（用户模板在前，内置模板在后）
       const allTemplates = [...userTemplates, ...builtInTemplates]
       
       unifiedLogger.info(`所有模板加载完成: ${allTemplates.length} 个`, {
@@ -98,28 +113,17 @@ class TemplateManager {
     }
   }
 
-  /**
-   * 获取当前页面的基础路径（兼容调试和生产环境）
-   * 打包后插件在 %ProgramData%\...\jsaddons\插件名\，需要基于 location.href 构建绝对路径
-   */
   getBasePath() {
-    // 从 location.href 提取基础路径，去掉文件名和 hash
-    // 例如: http://127.0.0.1:3889/index.html#/template -> http://127.0.0.1:3889/
-    // 例如: file:///C:/ProgramData/.../index.html -> file:///C:/ProgramData/.../
     try {
       const url = new URL(window.location.href)
-      // 去掉路径中的文件名和 hash
       const pathname = url.pathname.replace(/\/[^/]+$/, '') || '/'
       
-      // 处理 file:// 协议（host 为空）
       if (url.protocol === 'file:') {
         return `${url.protocol}//${pathname}/`
       }
       
-      // 处理 http/https 协议
       return `${url.protocol}//${url.host}${pathname}/`
     } catch (error) {
-      // 如果 URL 解析失败，使用简单方法
       const href = window.location.href
       const base = href.replace(/\/[^/]+$/, '/').replace(/#.*$/, '')
       unifiedLogger.warn('URL 解析失败，使用备用方法', { href, base })
@@ -127,12 +131,10 @@ class TemplateManager {
     }
   }
 
-  /**
-   * 加载内置模板 - 直接使用导入的配置，无需 HTTP 请求
-   */
   async loadBuiltInTemplates() {
     try {
-      const templates = builtInTemplatesConfig.templates || []
+      const config = await this.loadBuiltInTemplatesConfig()
+      const templates = config.templates || []
       const basePath = this.getBasePath()
 
       unifiedLogger.info(`加载内置模板配置: ${templates.length} 个`, {
@@ -140,11 +142,9 @@ class TemplateManager {
         basePath
       })
 
-      // 使用绝对路径构建模板文件路径（确保打包后也能读取）
-      // 模板文件（.docx）仍然在 public/templates 目录，需要通过 HTTP 访问
       return templates.map((template) => ({
         ...template,
-        filePath: `${basePath}templates/${template.fileName}`,  // 基于 location.href 的绝对路径
+        filePath: `${basePath}templates/${template.fileName}`,
         isBuiltIn: true
       }))
     } catch (error) {
@@ -156,9 +156,6 @@ class TemplateManager {
     }
   }
 
-  /**
-   * 加载用户保存的模板
-   */
   loadUserTemplates() {
     if (!pathManager.isWPSAvailable()) {
       unifiedLogger.debug('WPS 环境不可用，跳过用户模板加载')
@@ -174,13 +171,11 @@ class TemplateManager {
         return []
       }
 
-      // 检查配置文件是否存在
       if (!fs.Exists(configPath)) {
         unifiedLogger.debug('用户模板配置文件不存在', { configPath })
         return []
       }
 
-      // 读取配置文件
       const content = fs.ReadFile(configPath)
       if (!content || content.trim() === '') {
         unifiedLogger.warn('用户模板配置文件为空', { configPath })
@@ -205,9 +200,6 @@ class TemplateManager {
     }
   }
 
-  /**
-   * 保存模板配置（只保存用户自定义模板）
-   */
   saveTemplates(templates) {
     unifiedLogger.info(`开始保存模板配置: ${templates.length} 个模板`)
 
@@ -225,13 +217,11 @@ class TemplateManager {
         return false
       }
 
-      // 确保模板目录存在
       const templatesDir = pathManager.getTemplatesDir()
       if (templatesDir) {
         pathManager.ensureDir(templatesDir)
       }
 
-      // 只保存用户自定义模板（过滤掉内置模板）
       const userTemplates = templates.filter(t => !t.isBuiltIn)
 
       const configData = {
@@ -272,9 +262,6 @@ class TemplateManager {
     }
   }
 
-  /**
-   * 重置初始化状态（用于调试）
-   */
   resetInitialization() {
     unifiedLogger.info('重置模板初始化状态')
 
@@ -299,5 +286,4 @@ class TemplateManager {
   }
 }
 
-// 创建单例
 export const templateManager = new TemplateManager()
