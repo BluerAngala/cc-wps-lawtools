@@ -1,6 +1,6 @@
 <template>
-  <n-config-provider>
-    <div class="p-2.5 h-screen overflow-y-auto scrollbar-none">
+  <n-config-provider theme-overrides="{ common: { baseColor: '#fff', primaryColor: '#18a058' } }">
+    <div class="p-2.5 h-screen overflow-y-auto scrollbar-none bg-white">
       <slot />
     </div>
   </n-config-provider>
