@@ -1,12 +1,6 @@
 
 # 陈恒律师AI工具箱
 
-&gt; 为律师打造的专业 WPS 加载项，集成 AI 能力、工作流引擎、合同审查等功能
-
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](package.json)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-
----
 
 ## 📦 项目简介
 
