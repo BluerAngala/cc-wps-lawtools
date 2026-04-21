@@ -266,11 +266,13 @@ export class DataSubmitter {
       // 保存请求信息
       const requestInfo = res?._requestInfo || null
 
-      let 审查编号 = res?.data?.[0]?.fields?.审查编号
+      // 根据实际返回结构：res.data.result.data[0].fields
+      const recordData = res?.data?.result?.data?.[0] || res?.data?.[0]
+      let 审查编号 = recordData?.fields?.审查编号
       console.log('审查编号:', 审查编号)
 
       if (!审查编号) {
-        const 编号 = res?.data?.[0]?.fields?.编号
+        const 编号 = recordData?.fields?.编号
         // 是否存在编号
         if (编号) {
           // 从配置获取合同编号前缀，默认为 SWXCBHT
@@ -284,7 +286,7 @@ export class DataSubmitter {
         }
       }
 
-      return { success: true, 审查编号, data: res?.data?.[0], requestInfo }
+      return { success: true, 审查编号, data: recordData, requestInfo }
     } catch (error) {
       console.error('创建金山文档记录失败:', error)
       throw error
