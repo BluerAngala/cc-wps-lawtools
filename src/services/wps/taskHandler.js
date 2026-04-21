@@ -160,6 +160,7 @@ class TaskHandler {
 
   /**
    * 抽取文档文本
+   * 注意：此方法只返回文档内容，不做AI处理。AI处理由 contractService 统一管理
    */
   async extractText(param) {
     const doc = this.ensureDocument()
@@ -167,32 +168,7 @@ class TaskHandler {
 
     try {
       const extractedText = wpsDocument.getFullText()
-
-      if (!param || Object.keys(param).length === 0) {
-        return extractedText
-      }
-
-      const extractTags = param?.extractContent || [
-        '合同名称', '对接人', '甲方', '甲方主体信息',
-        '乙方', '乙方主体信息', '其他方', '合同金额'
-      ]
-      const taskId = await this.taskScheduler.addTask({
-        type: 'extractText',
-        content: extractedText,
-        options: { extractTags }
-      })
-
-      this.taskScheduler.on('taskCompleted', (completedTaskId, result) => {
-        if (completedTaskId === taskId) {
-          console.log('AI处理结果:', result)
-        }
-      })
-
-      this.taskScheduler.on('taskError', (errorTaskId, error) => {
-        if (errorTaskId === taskId) {
-          unifiedLogger.error('AI处理出错', { method: 'extractText', taskId, error: error.message })
-        }
-      })
+      return extractedText
     } catch (error) {
       console.error('extractText 出错:', error)
       return ''

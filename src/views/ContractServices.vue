@@ -266,6 +266,10 @@ const submitExtractedData = async () => {
     const result = await contractService.submitExtractedData(extractedData.value)
     if (result?.success) {
       window.$message?.success(result.message || '数据提交成功！')
+      // 提交成功后关闭配置弹窗
+      modals.extractor = false
+      // 清空提取数据
+      extractedData.value = null
     }
   } catch (error) {
     window.$message?.error(error.message || '提交数据失败')
