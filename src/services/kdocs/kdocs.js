@@ -4,13 +4,13 @@ import { appConfig } from '../../utils/appConfig.js'
 
 // 获取金山文档配置
 const getKdocsConfig = () => {
-  const config = appConfig.get('kdocs')
+  const config = appConfig.get('kdocs') || {}
   return {
-    webhookUrl: config.webhookUrl,
-    token: config.token,
-    sheetId: config.sheetId,
-    cozeApiKey: config.cozeApiKey,
-    workflowId: config.workflowId
+    webhookUrl: config.webhookUrl || '',
+    token: config.token || '',
+    sheetId: config.sheetId || 5,
+    cozeApiKey: config.cozeApiKey || '',
+    workflowId: config.workflowId || ''
   }
 }
 
@@ -94,10 +94,20 @@ async function kdocsHandler({ type, recordID, sheetID, inputData, isAsync = fals
     }
 
     // 如果解析成功，将解析后的数据合并到结果中
-    // 保持向后兼容：如果调用代码期望 res.data，则返回解析后的 result.data
-    if (parsedData && parsedData.result) {
-      result.data = parsedData.result.data || parsedData.result
-      result.result = parsedData.result
+    // 新结构：output.data.result，需要解析 parsedData.data.result
+    if (parsedData) {
+      // 检查是否有错误
+      if (parsedData.error) {
+        console.error('Coze 工作流执行错误:', parsedData.error)
+        throw new Error(`工作流执行失败: ${parsedData.error}`)
+      }
+
+      // 尝试获取 result（新结构：data.result）
+      const resultData = parsedData.data?.result || parsedData.result
+      if (resultData) {
+        result.data = resultData
+        result.result = resultData
+      }
     }
 
     console.log('金山文档操作成功')

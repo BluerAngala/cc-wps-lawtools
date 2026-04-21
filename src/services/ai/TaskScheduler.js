@@ -298,7 +298,7 @@ export class TaskScheduler {
       case 'extractText': {
         // extractTags 应该是第一个参数，content 是第二个参数
         const extractTags = options.extractTags || [
-          '合同名称', '对接客户', '甲方', '甲方主体信息', 
+          '合同名称', '对接人', '甲方', '甲方主体信息', 
           '乙方', '乙方主体信息', '其他方', '合同金额'
         ]
         return generateContractExtractionPrompt(extractTags, content)

@@ -12,8 +12,8 @@ export async function fetchCompanyInfo(companyName) {
   }
 
   // 从配置中获取Coze API密钥和工作流ID
-  const config = appConfig.get('kdocs')
-  const cozeApiKey = config.cozeApiKey
+  const config = appConfig.get('kdocs') || {}
+  const cozeApiKey = config.cozeApiKey || ''
   const companyInfoWorkflowId = config.companyInfoWorkflowId || '7550481844523221034'
   
   if (!cozeApiKey) {

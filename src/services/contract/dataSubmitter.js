@@ -181,15 +181,15 @@ export class DataSubmitter {
    * 标准化字段
    */
   normalizeFields(data) {
-    const requiredFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额', '对接客户', '甲方主体信息', '乙方主体信息']
+    const requiredFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额', '对接人', '甲方主体信息', '乙方主体信息']
     const normalizedData = { ...data }
 
     requiredFields.forEach((field) => {
       normalizedData[field] = normalizedData[field] || ''
     })
 
-    // 对接客户字段强制为空
-    normalizedData['对接客户'] = ''
+    // 对接人字段强制为空
+    normalizedData['对接人'] = ''
 
     return normalizedData
   }
@@ -251,9 +251,13 @@ export class DataSubmitter {
     console.log('创建金山文档行记录 fields', fields)
 
     try {
+      // 从配置获取 sheetId，如果没有则使用默认值
+      const kdocsConfig = appConfig.get('kdocs') || {}
+      const sheetID = kdocsConfig.sheetId || 5
+
       const res = await kdocsHandler({
         type: 'createRecords',
-        sheetID: Number(import.meta.env.VITE_KDOCS_SHEETID),
+        sheetID: sheetID,
         inputData: [{ fields }]
       })
 
