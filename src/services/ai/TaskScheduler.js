@@ -15,9 +15,12 @@ export class TaskScheduler {
   constructor(options = {}) {
     this.documentParser = new DocumentParser()
 
+    // 从配置读取默认模型
+    const aiConfig = appConfig.getAIConfig()
+
     this.aiConfig = {
       maxTokensPerChunk: options.maxTokensPerChunk || 3000,
-      defaultModel: options.defaultModel || 'moonshotai/Kimi-K2-Instruct-0905',
+      defaultModel: options.defaultModel || aiConfig.model || 'moonshotai/Kimi-K2-Instruct-0905',
       maxRetries: options.maxRetries || 3,
       retryDelay: options.retryDelay || 1000,
       ...options.ai
