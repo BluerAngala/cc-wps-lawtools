@@ -395,8 +395,10 @@ const loadModelList = async () => {
       tag: getModelTag(model.id)
     }))
     console.log('模型列表加载成功:', modelOptions.value.length, '个模型')
+    window.$message?.success(`成功获取 ${modelOptions.value.length} 个模型`)
   } catch (error) {
     console.error('加载模型列表失败:', error)
+    window.$message?.error(`获取模型列表失败: ${error.message || '未知错误'}`)
     // 使用默认模型列表，这些模型应与appConfig.js中的默认模型保持一致
     const defaultConfig = appConfig.getDefaultConfig()
     const defaultModels = defaultConfig.ai?.defaultModels || [
@@ -424,9 +426,20 @@ const getModelTag = (modelId) => {
 }
 
 // 刷新模型列表
-const refreshModelList = () => {
+const refreshModelList = async () => {
+  // 先强制保存当前配置，确保使用的是最新的 API Key 和 API 地址
+  try {
+    appConfig.saveConfig(config.value)
+    reinitializeAIClient()
+    console.log('配置已保存，开始刷新模型列表...')
+  } catch (error) {
+    console.error('保存配置失败:', error)
+    window.$message?.error('保存配置失败，请重试')
+    return
+  }
+
   window.$message?.info('正在刷新模型列表...')
-  loadModelList()
+  await loadModelList()
 }
 
 // 加载配置

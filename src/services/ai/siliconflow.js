@@ -566,20 +566,27 @@ async function processContractReview({
 /**
  * 获取可用的模型列表
  * @returns {Promise<Array>} 可用模型列表
+ * @throws {Error} 当 API 请求失败时抛出错误
  */
 async function getAvailableModels() {
+  const config = appConfig.getAIConfig()
+
+  // 检查 API Key 是否配置
+  if (!config.apiKey || config.apiKey.trim() === '') {
+    throw new Error('API Key 未配置，请先填写 API Key')
+  }
+
   try {
-    const config = appConfig.getAIConfig()
     const response = await axios.get(`${config.baseUrl}/models`, {
       headers: {
         'Authorization': `Bearer ${config.apiKey}`
       },
       timeout: 10000
     })
-    
+
     // 过滤并排序模型列表
     const models = response.data.data || []
-    
+
     // 推荐的模型顺序（速度快、适合法律文档）
     const recommendedModels = [
       'Qwen/Qwen2.5-7B-Instruct',
@@ -595,30 +602,47 @@ async function getAvailableModels() {
       'meta-llama/Meta-Llama-3.1-70B-Instruct',
       'meta-llama/Meta-Llama-3.1-405B-Instruct'
     ]
-    
+
     // 按推荐顺序排序
     const sortedModels = models.sort((a, b) => {
       const indexA = recommendedModels.indexOf(a.id)
       const indexB = recommendedModels.indexOf(b.id)
-      
+
       if (indexA === -1 && indexB === -1) return 0
       if (indexA === -1) return 1
       if (indexB === -1) return -1
       return indexA - indexB
     })
-    
+
     console.log('获取到模型列表:', sortedModels.length, '个模型')
     return sortedModels
   } catch (error) {
     console.error('获取模型列表时出错:', error)
-    // 返回默认推荐模型列表
-    return [
-      { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5-7B-Instruct (推荐-快速)', owned_by: 'Qwen' },
-      { id: 'Qwen/Qwen2.5-14B-Instruct', name: 'Qwen2.5-14B-Instruct (推荐-平衡)', owned_by: 'Qwen' },
-      { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen2.5-72B-Instruct (推荐-强大)', owned_by: 'Qwen' },
-      { id: 'deepseek-ai/DeepSeek-V3', name: 'DeepSeek-V3 (高性能)', owned_by: 'DeepSeek' },
-      { id: 'Pro/THUDM/glm-4-9b-chat', name: 'GLM-4-9B (快速)', owned_by: 'THUDM' }
-    ]
+
+    // 根据错误类型提供更有意义的错误信息
+    if (error.response) {
+      const { status, data } = error.response
+      switch (status) {
+        case 401:
+          throw new Error('API Key 无效或已过期，请检查配置')
+        case 403:
+          throw new Error('没有权限访问此 API，请检查 API Key 权限')
+        case 429:
+          throw new Error('请求频率过高，请稍后重试')
+        case 500:
+          throw new Error('AI 服务器内部错误，请稍后重试')
+        default:
+          throw new Error(`请求失败 (${status}): ${data?.message || data?.error || '未知错误'}`)
+      }
+    } else if (error.request) {
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('请求超时，请检查网络连接')
+      }
+      throw new Error('网络连接失败，请检查 API 地址是否正确')
+    }
+
+    // 重新抛出原始错误
+    throw error
   }
 }
 
