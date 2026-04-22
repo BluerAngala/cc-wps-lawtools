@@ -162,7 +162,7 @@ class TaskHandler {
    * 抽取文档文本
    * 注意：此方法只返回文档内容，不做AI处理。AI处理由 contractService 统一管理
    */
-  async extractText(param) {
+  async extractText(_param) {
     const doc = this.ensureDocument()
     if (!doc) return ''
 

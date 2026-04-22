@@ -95,7 +95,10 @@ export const ActionTypes = {
   DESENSITIZE: 'desensitize',
 
   // 批量操作
-  BATCH_KEYWORD: 'batchKeyword'
+  BATCH_KEYWORD: 'batchKeyword',
+
+  // 金山文档操作
+  SUBMIT_KDOCS: 'submitKdocs'
 }
 
 /**

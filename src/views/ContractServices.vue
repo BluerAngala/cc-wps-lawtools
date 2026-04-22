@@ -155,6 +155,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { NAlert, NModal, NButton, NSpace, NSpin } from 'naive-ui'
 import { PageLayout } from '../components/common'
 import ContractExtractor from '../components/ContractExtractor.vue'
@@ -164,6 +165,8 @@ import AILawyerReview from '../components/AILawyerReview.vue'
 import BatchWorkflow from '../components/BatchWorkflow.vue'
 import { contractService } from '../services/contract/contractService.js'
 import logoCard from '../assets/logo_card.png'
+
+const router = useRouter()
 
 // 弹窗状态
 const modals = reactive({
@@ -200,13 +203,21 @@ const featureCards = computed(() => [
   { key: 'keyword', icon: '🔍', title: '关键词修订批注', desc: '匹配关键词添加批注', processing: keywordProcessing.value },
   { key: 'aiFullReview', icon: '⚖️', title: 'AI全流程审查', desc: 'AI自动生成审查清单', processing: aiFullReviewProcessing.value },
   { key: 'aiLawyerReview', icon: '👨‍⚖️', title: 'AI+律师共同审查', desc: 'AI清单+律师规则整合', processing: aiLawyerReviewProcessing.value },
-  { key: 'batch', icon: '📄', title: '执行工作流', desc: '一键完成批量操作', processing: batchWorkflowRef.value?.isProcessing },
+  { key: 'workflow', icon: '📄', title: '执行工作流', desc: '一键完成批量操作', processing: batchWorkflowRef.value?.isProcessing },
+  { key: 'batch', icon: '📦', title: '批量合同处理', desc: '批量识别+提交+编号+批注', processing: false, route: '/batch' },
   { key: 'custom', icon: '🎨', title: '更多功能定制', desc: '联系客服定制专属功能', processing: false }
 ])
 
-// 打开弹窗
+// 打开弹窗或跳转页面
 const openModal = (key) => {
-  modals[key] = true
+  const card = featureCards.value.find(c => c.key === key)
+  if (card?.route) {
+    // 如果有路由配置，则跳转到对应页面
+    router.push(card.route)
+  } else {
+    // 否则打开弹窗
+    modals[key] = true
+  }
 }
 
 // 状态变化处理

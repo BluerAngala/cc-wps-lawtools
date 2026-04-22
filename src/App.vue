@@ -1,8 +1,11 @@
 <template>
-  <router-view />
+  <n-message-provider>
+    <router-view />
+  </n-message-provider>
 </template>
 
 <script setup>
+import { NMessageProvider } from 'naive-ui'
 import { onMounted, onUnmounted } from 'vue'
 
 // 引入文档监听器

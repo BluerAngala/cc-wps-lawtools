@@ -9,6 +9,7 @@ import ContractRiskScan from '../views/ContractRiskScan.vue'
 import DesensitizePage from '../views/DesensitizePage.vue'
 import PathDiagnostics from '../views/PathDiagnostics.vue'
 import WorkflowPage from '../views/WorkflowPage.vue'
+import BatchProcessingPage from '../views/BatchProcessingPage.vue'
 
 const router = createRouter({
   history: createWebHashHistory(''),
@@ -56,6 +57,11 @@ const router = createRouter({
       path: '/workflow',
       name: '工作流',
       component: WorkflowPage
+    },
+    {
+      path: '/batch',
+      name: '批量处理',
+      component: BatchProcessingPage
     }
   ]
 })

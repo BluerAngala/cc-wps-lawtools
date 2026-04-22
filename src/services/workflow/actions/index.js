@@ -32,6 +32,9 @@ import { desensitizeAction } from './desensitize.js'
 // 导入批量操作
 import { batchKeywordAction } from './batchKeyword.js'
 
+// 导入金山文档操作
+import { submitKdocsAction } from './submitKdocs.js'
+
 // 文档操作列表
 export const documentActions = [
   readDocumentAction,
@@ -47,7 +50,8 @@ export const documentActions = [
   deleteFileAction,
   scanSensitiveAction,
   desensitizeAction,
-  batchKeywordAction
+  batchKeywordAction,
+  submitKdocsAction
 ]
 
 // AI 操作列表
@@ -87,7 +91,8 @@ export {
   deleteFileAction,
   scanSensitiveAction,
   desensitizeAction,
-  batchKeywordAction
+  batchKeywordAction,
+  submitKdocsAction
 }
 
 // 导出 AI 操作
