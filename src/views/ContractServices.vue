@@ -119,13 +119,13 @@
     </n-modal>
 
     <!-- 执行工作流弹窗 -->
-    <n-modal v-model:show="modals.batch" preset="card" title="📄 执行工作流" class="feature-modal" :mask-closable="false">
+    <n-modal v-model:show="modals.workflow" preset="card" title="📄 执行工作流" class="feature-modal" :mask-closable="false">
       <BatchWorkflow ref="batchWorkflowRef" />
       <template #footer>
         <div class="flex justify-between items-center">
           <n-button type="info" size="small" @click="batchWorkflowRef?.openCreateModal()">+ 新建工作流</n-button>
           <n-space>
-            <n-button @click="modals.batch = false">关闭</n-button>
+            <n-button @click="modals.workflow = false">关闭</n-button>
             <n-button type="primary" :disabled="!batchWorkflowRef?.canExecute" :loading="batchWorkflowRef?.isProcessing" @click="batchWorkflowRef?.triggerExecute()">
               {{ batchWorkflowRef?.buttonText || '开始处理' }}
             </n-button>
@@ -174,6 +174,7 @@ const modals = reactive({
   keyword: false,
   aiFullReview: false,
   aiLawyerReview: false,
+  workflow: false,
   batch: false,
   custom: false
 })
