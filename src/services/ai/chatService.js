@@ -2,75 +2,92 @@ import { wpsDocument } from '../wps/document.js'
 import { appConfig } from '../../utils/appConfig.js'
 import { addCommentAction } from '../workflow/actions/addComment.js'
 import { addRevisionAction } from '../workflow/actions/addRevision.js'
-
-const SYSTEM_PROMPT = `你是陈恒律师AI助手，专注于法律文档的阅读、审查和修改。你可以直接通过工具修改用户正在编辑的文档。
-
-## 你能做的事情
-1. **阅读文档**：自动读取当前打开的文档内容
-2. **添加批注**：在指定文本位置添加法律批注
-3. **添加修订**：修改文档中指定文本（会以修订标记呈现）
-4. **法律分析**：对合同条款进行法律风险分析
-
-## 如何操作文档
-当你需要修改文档时，请在回复中嵌入操作指令，格式如下：
-
-\`\`\`action
-{"type":"comment","keyword":"违约金","comment":"建议审查违约金比例是否合理，一般不超过实际损失的30%"}
-\`\`\`
-
-或
-
-\`\`\`action
-{"type":"revision","keyword":"按日千分之五","newText":"按日千分之一","reason":"违约金过高，建议调整为日千分之一"}
-\`\`\`
-
-## 规则
-- 每次回复可以包含多个操作指令
-- 操作指令必须放在 \`\`\`action 代码块中
-- keyword 必须是文档中能找到的精确文本片段
-- 修改前务必向用户解释修改理由
-- 不确定的内容不要擅自修改
-
-## 当前文档上下文
-{document_context}`
+import { buildSystemPrompt } from './promptTemplates.js'
 
 const TOOL_DEFINITIONS = [
   {
     name: 'add_comment',
     description: '在文档指定关键词位置添加批注',
-    parameters: {
-      keyword: '文档中要添加批注的精确文本',
-      comment: '批注内容'
-    }
+    parameters: { keyword: '文档中要添加批注的精确文本', comment: '批注内容' }
   },
   {
     name: 'add_revision',
     description: '修订文档中指定文本（以修订标记呈现，用户可接受或拒绝）',
+    parameters: { keyword: '要替换的原文精确文本', newText: '替换后的新文本', reason: '修订原因' }
+  },
+  {
+    name: 'risk_assessment',
+    description: '结构化风险评估，输出严重度×可能性矩阵',
     parameters: {
-      keyword: '要替换的原文精确文本',
-      newText: '替换后的新文本',
-      reason: '修订原因'
+      items: '风险项数组，每项含 category/severity/likelihood/description/recommendation'
+    }
+  },
+  {
+    name: 'triage_nda',
+    description: 'NDA快速分流，输出GREEN/YELLOW/RED评级',
+    parameters: {
+      level: 'GREEN/YELLOW/RED',
+      summary: '分流结论摘要',
+      issues: '问题列表',
+      recommendation: '建议处理方式'
+    }
+  },
+  {
+    name: 'compare_contracts',
+    description: '合同对比，输出条款差异',
+    parameters: {
+      items: '差异项数组，每项含 clause/standard/current/change/risk/suggestion'
     }
   }
 ]
 
-function buildSystemPrompt(docContext) {
-  const contextSection = docContext
-    ? `以下是当前文档的内容（截取前8000字符）：\n\n${docContext}`
-    : '当前没有打开的文档。'
-  return SYSTEM_PROMPT.replace('{document_context}', contextSection)
+function _pushAction(actions, action) {
+  if (!action || !action.type) return
+
+  if (action.type === 'risk' && Array.isArray(action.items)) {
+    actions.push({ type: 'risk', items: action.items })
+  } else if (action.type === 'triage' && action.level) {
+    actions.push({
+      type: 'triage',
+      level: action.level,
+      summary: action.summary,
+      issues: action.issues || [],
+      recommendation: action.recommendation
+    })
+  } else if (action.type === 'compare' && Array.isArray(action.items)) {
+    actions.push({ type: 'compare', items: action.items })
+  } else if (action.type === 'comment' && action.keyword) {
+    actions.push(action)
+  } else if (action.type === 'revision' && action.keyword) {
+    actions.push(action)
+  }
 }
 
 function parseActionsFromResponse(text) {
   const actions = []
   const cleanedText = text.replace(/```action\s*([\s\S]*?)\s*```/g, (_match, jsonStr) => {
     try {
-      const action = JSON.parse(jsonStr.trim())
-      if (action.type && action.keyword) {
-        actions.push(action)
+      const raw = jsonStr.trim()
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        parsed.forEach(a => _pushAction(actions, a))
+      } else {
+        _pushAction(actions, parsed)
       }
     } catch (e) {
-      console.warn('解析操作指令失败:', e)
+      const trimmed = jsonStr.trim()
+      const arrMatch = trimmed.match(/^\[/)
+      if (arrMatch) {
+        const fixed = trimmed.replace(/,\s*]/g, ']').replace(/}\s*{/g, '},{')
+        try {
+          const parsed = JSON.parse(fixed)
+          if (Array.isArray(parsed)) parsed.forEach(a => _pushAction(actions, a))
+        } catch {
+          console.warn('解析操作指令失败:', e)
+        }
+      } else {
+        console.warn('解析操作指令失败:', e)
+      }
     }
     return ''
   })
@@ -88,6 +105,9 @@ async function executeAction(action) {
       reason: action.reason
     })
   }
+  if (action.type === 'risk' || action.type === 'triage' || action.type === 'compare') {
+    return { success: true, message: '分析结果已展示' }
+  }
   return { success: false, message: `未知操作类型: ${action.type}` }
 }
 
@@ -96,9 +116,18 @@ class ChatService {
     this.conversationHistory = []
     this.isLoading = false
     this.currentAbortController = null
+    this.currentMode = 'standard'
   }
 
-  async sendMessage(userMessage, { onChunk, onComplete, onError, onAction, onStatus } = {}) {
+  setMode(mode) {
+    this.currentMode = mode
+  }
+
+  getMode() {
+    return this.currentMode
+  }
+
+  async sendMessage(userMessage, { onChunk, onComplete, onError, onAction, onStatus, mode, referenceText, templateContent, inquiryType } = {}) {
     if (this.isLoading) {
       onError?.('正在处理中，请等待当前操作完成')
       return
@@ -106,6 +135,7 @@ class ChatService {
 
     this.isLoading = true
     this.currentAbortController = new AbortController()
+    const effectiveMode = mode || this.currentMode
 
     try {
       onStatus?.('thinking')
@@ -120,8 +150,15 @@ class ChatService {
 
       this.conversationHistory.push({ role: 'user', content: userMessage })
 
+      const systemPrompt = buildSystemPrompt(effectiveMode, {
+        docContext,
+        referenceText,
+        templateContent,
+        inquiryType
+      })
+
       const messages = [
-        { role: 'system', content: buildSystemPrompt(docContext) },
+        { role: 'system', content: systemPrompt },
         ...this.conversationHistory.slice(-20)
       ]
 
@@ -129,9 +166,7 @@ class ChatService {
 
       const aiConfig = appConfig.getAIConfig()
       const model = aiConfig.model || 'moonshotai/Kimi-K2-Instruct-0905'
-
       const useStream = typeof window.fetch === 'function'
-
       let fullResponse = ''
 
       if (useStream) {
@@ -144,7 +179,7 @@ class ChatService {
 
       this.conversationHistory.push({ role: 'assistant', content: fullResponse })
 
-      onComplete?.({ text: cleanedText, actions, rawText: fullResponse })
+      onComplete?.({ text: cleanedText, actions, rawText: fullResponse, mode: effectiveMode })
 
       if (actions.length > 0) {
         onAction?.(actions)
@@ -216,7 +251,7 @@ class ChatService {
             onChunk?.(delta, fullText)
           }
         } catch {
-          // skip malformed SSE chunk
+          // skip
         }
       }
     }

@@ -1,28 +1,14 @@
-/**
- * WPS 文档内容服务
- * 提供文档读取、结构识别、批注、修订等功能
- */
-
 import { wpsCore } from './core.js'
 
-/**
- * WPS 文档服务类
- */
 class WPSDocumentService {
   constructor() {
     this._paragraphCache = { id: null, paragraphs: [] }
   }
 
-  /**
-   * 获取当前活动文档
-   */
   getDocument() {
     return wpsCore.getActiveDocument()
   }
 
-  /**
-   * 检查 WPS 环境并返回文档
-   */
   checkWPSEnvironment() {
     wpsCore.checkEnvironment()
     const doc = this.getDocument()
@@ -32,9 +18,6 @@ class WPSDocumentService {
     return doc
   }
 
-  /**
-   * 获取文档完整文本
-   */
   getFullText() {
     const doc = this.checkWPSEnvironment()
     try {
@@ -50,9 +33,6 @@ class WPSDocumentService {
     }
   }
 
-  /**
-   * 获取段落信息
-   */
   getParagraphs() {
     const doc = this.getDocument()
     if (!doc) return []
@@ -67,9 +47,6 @@ class WPSDocumentService {
     return this._paragraphCache.paragraphs
   }
 
-  /**
-   * 获取文档结构
-   */
   getDocumentStructure() {
     const doc = this.checkWPSEnvironment()
     const structure = { paragraphs: [], sections: [] }
@@ -102,9 +79,6 @@ class WPSDocumentService {
     return structure
   }
 
-  /**
-   * 判断是否是标题
-   */
   isHeading(paragraph) {
     try {
       const style = paragraph.Style?.NameLocal || ''
@@ -124,9 +98,6 @@ class WPSDocumentService {
     }
   }
 
-  /**
-   * 根据字符位置获取 Range
-   */
   getRangeByCharPosition(startChar, endChar) {
     const doc = this.checkWPSEnvironment()
     try {
@@ -137,97 +108,40 @@ class WPSDocumentService {
     }
   }
 
-  /**
-   * 根据关键词查找 Range
-   */
-  findRangeByKeyword(keyword, startChar = 0, endChar = null) {
-    this.checkWPSEnvironment()
+  findRangeByKeyword(keyword) {
+    const doc = this.checkWPSEnvironment()
+    const cleanKeyword = keyword.trim().replace(/\s+/g, ' ')
+    if (!cleanKeyword || cleanKeyword.length < 2) {
+      console.warn(`[定位] 关键词太短: "${cleanKeyword}"`)
+      return null
+    }
 
     try {
-      const cleanKeyword = keyword.trim().replace(/\s+/g, ' ')
-      if (!cleanKeyword || cleanKeyword.length < 2) {
-        console.warn(`[定位] 关键词太短: ${cleanKeyword}`)
-        return null
+      const found = this._findTextInDoc(doc, cleanKeyword)
+      if (found) {
+        console.log(`[定位] 精确找到关键词: Start=${found.Start}, End=${found.End}`)
+        return found
       }
 
-      const paragraphs = this.getParagraphs()
-      if (!paragraphs?.length) {
-        console.warn('[定位] 无法获取段落信息')
-        return null
+      const foundNorm = this._findTextInDoc(doc, cleanKeyword, true)
+      if (foundNorm) {
+        console.log(`[定位] 规范化匹配找到关键词: Start=${foundNorm.Start}, End=${foundNorm.End}`)
+        return foundNorm
       }
 
-      const isFullDocSearch = startChar === 0 && endChar === null
-      const relevantParagraphs = isFullDocSearch
-        ? paragraphs
-        : paragraphs.filter(para => {
-            if (endChar) return para.startChar < endChar && para.endChar > startChar
-            return para.startChar >= startChar
-          })
-
-      if (!relevantParagraphs.length) {
-        if (endChar !== null) return this.findRangeByKeyword(keyword)
-        return null
+      const partial = this._findPartialInDoc(doc, cleanKeyword)
+      if (partial) {
+        console.log(`[定位] 部分匹配找到关键词: Start=${partial.Start}, End=${partial.End}`)
+        return partial
       }
 
-      // 在段落中查找
-      for (const para of relevantParagraphs) {
-        const paraText = para.text.trim()
-        if (!paraText || paraText.length < cleanKeyword.length) continue
-
-        let index = paraText.indexOf(cleanKeyword)
-        if (index !== -1) {
-          const paraRange = para.range.Duplicate
-          const startOffset = this.findTextPositionInParagraph(paraRange, cleanKeyword)
-
-          if (startOffset !== -1) {
-            const targetRange = paraRange.Duplicate
-            const actualStart = paraRange.Start + startOffset
-            const actualEnd = actualStart + cleanKeyword.length
-
-            if (actualStart >= paraRange.Start && actualEnd <= paraRange.End) {
-              targetRange.SetRange(actualStart, actualEnd)
-              return targetRange
-            }
-          }
-        }
-
-        // 模糊匹配
-        const normalizedParaText = paraText.replace(/\s+/g, ' ')
-        const normalizedKeyword = cleanKeyword.replace(/\s+/g, ' ')
-        index = normalizedParaText.indexOf(normalizedKeyword)
-
-        if (index !== -1) {
-          const paraRange = para.range.Duplicate
-          const startOffset = this.findTextPositionInParagraph(paraRange, normalizedKeyword, true)
-
-          if (startOffset !== -1) {
-            const targetRange = paraRange.Duplicate
-            const actualStart = paraRange.Start + startOffset
-            const actualEnd = actualStart + cleanKeyword.length
-
-            if (actualStart >= paraRange.Start && actualEnd <= paraRange.End) {
-              targetRange.SetRange(actualStart, actualEnd)
-              return targetRange
-            }
-          }
-        }
+      const textMatch = this._findByTextScan(doc, cleanKeyword)
+      if (textMatch) {
+        console.log(`[定位] 文本扫描找到关键词: Start=${textMatch.Start}, End=${textMatch.End}`)
+        return textMatch
       }
 
-      // 回退到字符位置查找
-      if (!isFullDocSearch && endChar !== null) {
-        const fullText = this.getFullText()
-        const searchText = fullText.substring(startChar, endChar)
-        const index = searchText.indexOf(cleanKeyword)
-
-        if (index !== -1) {
-          const actualStart = startChar + index
-          const actualEnd = actualStart + cleanKeyword.length
-          if (actualStart >= 0 && actualEnd <= fullText.length) {
-            return this.getRangeByCharPosition(actualStart, actualEnd)
-          }
-        }
-      }
-
+      console.warn(`[定位] 未找到关键词: "${cleanKeyword.substring(0, 30)}..."`)
       return null
     } catch (error) {
       console.error('查找关键词失败:', error)
@@ -235,31 +149,118 @@ class WPSDocumentService {
     }
   }
 
-  /**
-   * 在段落中查找文本位置
-   */
-  findTextPositionInParagraph(paraRange, keyword, normalize = false) {
+  _findTextInDoc(doc, keyword, normalize = false) {
     try {
-      const findRange = paraRange.Duplicate
-      findRange.Find.ClearFormatting()
-      findRange.Find.Text = normalize ? keyword.replace(/\s+/g, ' ') : keyword
-      findRange.Find.MatchCase = false
-      findRange.Find.MatchWholeWord = false
+      const searchKeyword = normalize ? this._normalizeForSearch(keyword) : keyword
+      const searchRange = doc.Range(0, 0)
+      searchRange.Find.ClearFormatting()
+      searchRange.Find.Text = searchKeyword
+      searchRange.Find.MatchCase = false
+      searchRange.Find.MatchWholeWord = false
+      searchRange.Find.MatchWildcards = false
+      searchRange.Find.Forward = true
+      searchRange.Find.Wrap = 0
 
-      if (findRange.Find.Execute()) {
-        return findRange.Start - paraRange.Start
+      if (searchRange.Find.Execute()) {
+        const matchStart = searchRange.Start
+        const matchEnd = searchRange.End
+        if (matchStart >= 0 && matchEnd > matchStart) {
+          return doc.Range(matchStart, matchEnd)
+        }
       }
-      return -1
-    } catch {
-      const paraText = normalize ? paraRange.Text.replace(/\s+/g, ' ') : paraRange.Text
-      const searchKeyword = normalize ? keyword.replace(/\s+/g, ' ') : keyword
-      return paraText.indexOf(searchKeyword)
+    } catch (e) {
+      console.warn('[定位] Find.Execute 搜索失败:', e.message)
     }
+    return null
   }
 
-  /**
-   * 添加批注
-   */
+  _normalizeForSearch(text) {
+    return text
+      .replace(/[\u3000]/g, ' ')
+      .replace(/[（]/g, '(')
+      .replace(/[）]/g, ')')
+      .replace(/[，]/g, ',')
+      .replace(/[。]/g, '.')
+      .replace(/[；]/g, ';')
+      .replace(/[：]/g, ':')
+      .replace(/[""'']/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  _findPartialInDoc(doc, keyword) {
+    if (keyword.length < 6) return null
+
+    try {
+      const chunks = this._splitKeyword(keyword)
+      for (const chunk of chunks) {
+        if (chunk.length < 4) continue
+        const found = this._findTextInDoc(doc, chunk)
+        if (found) return found
+      }
+    } catch (e) {
+      console.warn('[定位] 部分匹配搜索失败:', e)
+    }
+    return null
+  }
+
+  _splitKeyword(keyword) {
+    const chunks = []
+    for (let len = Math.floor(keyword.length * 0.6); len >= Math.min(6, keyword.length); len--) {
+      for (let offset = 0; offset + len <= keyword.length; offset += Math.max(1, Math.floor(len / 2))) {
+        chunks.push(keyword.substring(offset, offset + len))
+      }
+    }
+    return chunks
+  }
+
+  _findByTextScan(doc, keyword) {
+    try {
+      const fullText = doc.Range().Text
+      const normalizedFull = this._normalizeForSearch(fullText)
+      const normalizedKeyword = this._normalizeForSearch(keyword)
+
+      let idx = normalizedFull.indexOf(normalizedKeyword)
+      if (idx === -1 && normalizedKeyword.length >= 6) {
+        const partial = normalizedKeyword.substring(0, Math.ceil(normalizedKeyword.length * 0.7))
+        idx = normalizedFull.indexOf(partial)
+      }
+      if (idx === -1) return null
+
+      const paraStarts = this._getParagraphStartPositions(doc)
+      let paraIdx = -1
+      for (let i = paraStarts.length - 1; i >= 0; i--) {
+        if (paraStarts[i] <= idx) {
+          paraIdx = i
+          break
+        }
+      }
+      if (paraIdx < 0) return null
+
+      const para = doc.Paragraphs.Item(paraIdx + 1)
+      const paraRange = para.Range
+      if (paraRange) {
+        return doc.Range(paraRange.Start, paraRange.End)
+      }
+    } catch (e) {
+      console.warn('[定位] 文本扫描失败:', e)
+    }
+    return null
+  }
+
+  _getParagraphStartPositions(doc) {
+    const positions = []
+    try {
+      for (let i = 1; i <= doc.Paragraphs.Count; i++) {
+        const paraRange = doc.Paragraphs.Item(i).Range
+        positions.push(paraRange.Start)
+      }
+    } catch (e) {
+      console.warn('[定位] 获取段落位置失败:', e)
+    }
+    return positions
+  }
+
   addComment(range, commentText) {
     this.checkWPSEnvironment()
     if (!range) {
@@ -273,7 +274,6 @@ class WPSDocumentService {
         return false
       }
 
-      // 检查重复批注
       if (range.Comments?.Count > 0) {
         for (let i = 1; i <= range.Comments.Count; i++) {
           if (range.Comments.Item(i).Range.Text === commentText) {
@@ -290,9 +290,6 @@ class WPSDocumentService {
     }
   }
 
-  /**
-   * 添加修订标记
-   */
   addRevision(range, suggestedText, reason) {
     this.checkWPSEnvironment()
     if (!range) {
@@ -301,10 +298,32 @@ class WPSDocumentService {
     }
 
     try {
+      const originalStart = range.Start
+      const originalEnd = range.End
+      const keywordLen = originalEnd - originalStart
+
+      if (keywordLen <= 0 || keywordLen > 500) {
+        console.warn(`[修订] Range 长度异常: ${keywordLen}，Start=${originalStart}, End=${originalEnd}，可能指向了全文`)
+        return false
+      }
+
+      const doc = this.getDocument()
+      const docEnd = doc.Range().End
+      const ratio = keywordLen / docEnd
+      if (ratio > 0.5) {
+        console.warn(`[修订] Range 覆盖文档 ${Math.round(ratio * 100)}%，可能指向了全文，拒绝执行`)
+        return false
+      }
+
       wpsCore.enableRevisionMode()
       range.Text = suggestedText
       if (reason) {
-        range.Comments?.Add(range, `修订原因：${reason}`)
+        try {
+          const newRange = doc.Range(originalStart, originalStart + suggestedText.length)
+          newRange.Comments?.Add(newRange, `修订原因：${reason}`)
+        } catch {
+          console.warn('[修订] 添加修订原因批注失败，跳过')
+        }
       }
       return true
     } catch (error) {
@@ -313,9 +332,72 @@ class WPSDocumentService {
     }
   }
 
-  /**
-   * 检查文档是否可用
-   */
+  locateAndSelect(keyword, action) {
+    this.checkWPSEnvironment()
+    const cleanKeyword = keyword.trim().replace(/\s+/g, ' ')
+    if (!cleanKeyword || cleanKeyword.length < 2) return false
+
+    try {
+      if (cleanKeyword.length >= 10) {
+        const range = this.findRangeByKeyword(cleanKeyword)
+        if (range) {
+          range.Select()
+          return true
+        }
+      }
+
+      if (action?.type === 'revision' && action.newText) {
+        const ctxCandidate = this._extractContextFromRevision(action)
+        if (ctxCandidate) {
+          const range = this.findRangeByKeyword(ctxCandidate)
+          if (range) {
+            range.Select()
+            return true
+          }
+        }
+      }
+
+      if (cleanKeyword.length >= 4 && cleanKeyword.length < 10) {
+        const range = this.findRangeByKeyword(cleanKeyword)
+        const doc = this.getDocument()
+        if (range && doc) {
+          const matchLen = range.End - range.Start
+          const docEnd = doc.Range().End
+          if (docEnd > 0 && matchLen / docEnd < 0.3) {
+            range.Select()
+            return true
+          }
+        }
+      }
+
+      console.warn(`[定位] 所有策略均未找到关键词: "${cleanKeyword.substring(0, 30)}..."`)
+      return false
+    } catch (error) {
+      console.error('定位关键词失败:', error)
+      return false
+    }
+  }
+
+  _extractContextFromRevision(action) {
+    const keyword = (action.keyword || '').trim()
+    const newText = (action.newText || '').trim()
+    if (!newText) return null
+
+    const commonParts = newText.split(/[。；，、\n]/).filter(p => p.trim().length >= 6)
+    for (const part of commonParts) {
+      const trimmed = part.trim()
+      if (trimmed.length >= 6 && !keyword.includes(trimmed.substring(0, 4))) {
+        return trimmed
+      }
+    }
+
+    if (newText.length >= 8) {
+      return newText.substring(0, Math.min(30, newText.length))
+    }
+
+    return null
+  }
+
   isDocumentAvailable() {
     try {
       return this.getDocument() !== null
@@ -324,9 +406,6 @@ class WPSDocumentService {
     }
   }
 
-  /**
-   * 收集文档段落信息
-   */
   collectParagraphs(doc) {
     const paragraphs = []
     try {
@@ -347,16 +426,11 @@ class WPSDocumentService {
     return paragraphs
   }
 
-  /**
-   * 获取文档唯一标识
-   */
   getDocumentId(doc) {
     return doc?.FullName || doc?.Name || ''
   }
 }
 
-// 创建单例
 export const wpsDocument = new WPSDocumentService()
 
-// 兼容旧版导出
 export { WPSDocumentService, wpsDocument as wpsDocumentService }

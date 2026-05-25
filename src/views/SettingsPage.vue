@@ -14,7 +14,7 @@
           <template #header>
             <div class="flex items-center justify-between sticky-header">
               <div class="flex items-center gap-3">
-                <n-icon size="24" color="#18a058">
+              <n-icon size="24" color="#18a058">
                   <svg viewBox="0 0 24 24">
                     <path
                       fill="currentColor"
@@ -383,6 +383,88 @@
                   </n-card>
                 </n-space>
               </n-tab-pane>
+
+              <!-- Playbook 配置 -->
+              <n-tab-pane name="playbook" tab="📋 Playbook">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+                  <n-text>管理谈判手册（Playbook），配置标准立场和回复模板</n-text>
+                  <n-space>
+                    <n-button size="small" @click="addPlaybookPosition">添加立场</n-button>
+                    <n-button size="small" @click="addPlaybookTemplate">添加模板</n-button>
+                    <n-button size="small" type="warning" @click="resetPlaybook">恢复默认</n-button>
+                  </n-space>
+                </div>
+
+                <n-space vertical size="large">
+                  <n-card title="标准立场" size="small" :bordered="false" class="bg-gray-50">
+                    <n-space vertical size="medium">
+                      <n-card v-for="(pos, idx) in playbook.positions" :key="pos.id" size="small" :bordered="true">
+                        <template #header>
+                          <div class="flex items-center justify-between">
+                            <n-input v-model:value="pos.category" @update:value="savePlaybook" size="small" style="width: 200px" placeholder="类别名称" />
+                            <n-button size="tiny" quaternary type="error" @click="removePlaybookPosition(idx)">删除</n-button>
+                          </div>
+                        </template>
+                        <n-form label-placement="left" label-width="100" size="small">
+                          <n-form-item label="标准立场">
+                            <n-input v-model:value="pos.standardPosition" @update:value="savePlaybook" type="textarea" :rows="2" />
+                          </n-form-item>
+                          <n-form-item label="可接受范围">
+                            <n-input v-model:value="pos.acceptableRange" @update:value="savePlaybook" />
+                          </n-form-item>
+                          <n-form-item label="升级触发">
+                            <n-input v-model:value="pos.escalationTrigger" @update:value="savePlaybook" />
+                          </n-form-item>
+                          <n-form-item label="重要度">
+                            <n-select v-model:value="pos.severity" @update:value="savePlaybook" :options="severityOptions" />
+                          </n-form-item>
+                        </n-form>
+                      </n-card>
+                    </n-space>
+                  </n-card>
+
+                  <n-card title="NDA 默认设置" size="small" :bordered="false" class="bg-gray-50">
+                    <n-form label-placement="left" label-width="120" size="small">
+                      <n-form-item label="互负保密义务">
+                        <n-select v-model:value="playbook.ndaDefaults.mutualRequired" @update:value="savePlaybook" :options="boolOptions" />
+                      </n-form-item>
+                      <n-form-item label="标准保密期">
+                        <n-input v-model:value="playbook.ndaDefaults.standardTerm" @update:value="savePlaybook" />
+                      </n-form-item>
+                      <n-form-item label="商业秘密保密期">
+                        <n-input v-model:value="playbook.ndaDefaults.tradeSecretTerm" @update:value="savePlaybook" />
+                      </n-form-item>
+                      <n-form-item label="标准例外条款">
+                        <n-select v-model:value="playbook.ndaDefaults.standardCarveouts" @update:value="savePlaybook" :options="boolOptions" />
+                      </n-form-item>
+                      <n-form-item label="残留信息条款">
+                        <n-select v-model:value="playbook.ndaDefaults.residualsClause" @update:value="savePlaybook" :options="residualsOptions" />
+                      </n-form-item>
+                    </n-form>
+                  </n-card>
+
+                  <n-card title="回复模板" size="small" :bordered="false" class="bg-gray-50">
+                    <n-space vertical size="medium">
+                      <n-card v-for="(tpl, idx) in playbook.responseTemplates" :key="tpl.id" size="small" :bordered="true">
+                        <template #header>
+                          <div class="flex items-center justify-between">
+                            <n-input v-model:value="tpl.name" @update:value="savePlaybook" size="small" style="width: 200px" placeholder="模板名称" />
+                            <n-button size="tiny" quaternary type="error" @click="removePlaybookTemplate(idx)">删除</n-button>
+                          </div>
+                        </template>
+                        <n-form label-placement="left" label-width="80" size="small">
+                          <n-form-item label="分类">
+                            <n-input v-model:value="tpl.category" @update:value="savePlaybook" />
+                          </n-form-item>
+                          <n-form-item label="模板内容">
+                            <n-input v-model:value="tpl.template" @update:value="savePlaybook" type="textarea" :rows="4" />
+                          </n-form-item>
+                        </n-form>
+                      </n-card>
+                    </n-space>
+                  </n-card>
+                </n-space>
+              </n-tab-pane>
             </n-tabs>
           </div>
         </n-card>
@@ -416,6 +498,7 @@ import {
 } from 'naive-ui'
 import { appConfig } from '../utils/appConfig.js'
 import { reinitializeAIClient, getAvailableModels } from '../services/ai/siliconflow.js'
+import { playbookService } from '../services/ai/playbookService.js'
 
 const activeTab = ref('ai')
 const configPath = ref('')
@@ -435,6 +518,63 @@ const kdocsSchemeOptions = computed(() =>
 
 // 初始化配置，使用appConfig的默认配置
 const config = ref(appConfig.getDefaultConfig())
+
+const playbook = ref(playbookService.loadPlaybook())
+
+const severityOptions = [
+  { label: '高', value: 'high' },
+  { label: '中', value: 'medium' },
+  { label: '低', value: 'low' }
+]
+
+const boolOptions = [
+  { label: '是', value: true },
+  { label: '否', value: false }
+]
+
+const residualsOptions = [
+  { label: '窄范围', value: 'narrowly-scoped' },
+  { label: '宽范围', value: 'broadly-scoped' },
+  { label: '无', value: 'none' }
+]
+
+function addPlaybookPosition() {
+  playbook.value = playbookService.addPosition({
+    category: '新立场',
+    standardPosition: '',
+    acceptableRange: '',
+    escalationTrigger: '',
+    severity: 'medium'
+  })
+}
+
+function removePlaybookPosition(idx) {
+  const id = playbook.value.positions[idx]?.id
+  if (id) playbook.value = playbookService.removePosition(id)
+}
+
+function addPlaybookTemplate() {
+  playbook.value = playbookService.addResponseTemplate({
+    name: '新模板',
+    category: 'general',
+    template: ''
+  })
+}
+
+function removePlaybookTemplate(idx) {
+  const id = playbook.value.responseTemplates[idx]?.id
+  if (id) playbook.value = playbookService.removeResponseTemplate(id)
+}
+
+function savePlaybook() {
+  playbookService.savePlaybook(playbook.value)
+}
+
+function resetPlaybook() {
+  playbookService.resetPlaybook()
+  playbook.value = playbookService.loadPlaybook()
+  window.$message?.success('Playbook 已恢复默认')
+}
 
 // 超时时间（秒）的计算属性
 const timeoutSeconds = computed({
