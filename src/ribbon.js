@@ -51,11 +51,16 @@ function OnAction(control) {
       }
       break
 
+    // AI对话
+    case 'btnAIChat':
+      {
+        Util.wpsService.createTaskPane('aichat', { width: 850 })
+      }
+      break
+
     // AI助理
     case 'btnShowAI':
       {
-        // 旧的元器：https://yuanqi.tencent.com/agent/oRCZyC6JyFcn
-        // 新的怨气：https://yuanqi.tencent.com/webim/#/chat/tigQTg?appid=1995670616961503232&experience=true
         const url = 'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn'
         console.log('url', url)
         Util.wpsService.createExternalTaskPane(
@@ -115,6 +120,8 @@ function GetImage(control) {
       return './images/脱敏.svg'
     case 'btnWorkflow':
       return './images/工作流.svg'
+    case 'btnAIChat':
+      return './images/logo_card.png'
     case 'btnShowAI':
       return './images/logo_card.png'
     case 'btnCommonNav':

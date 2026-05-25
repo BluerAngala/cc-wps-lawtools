@@ -1,5 +1,20 @@
 # 陈恒律师AI工具箱 - Agent 指南
 
+## 包管理器
+
+**本项目使用 npm 管理依赖，禁止使用 pnpm 或 yarn。**
+
+```bash
+# 安装依赖
+npm install
+
+# 新增依赖
+npm install <package>
+
+# 新增开发依赖
+npm install -D <package>
+```
+
 ## 开发命令
 
 ```bash
@@ -97,6 +112,7 @@ npm run create-templates          # 生成模板文档
 - **路由**: `src/router/index.js` — 使用 hash history
 - **WPS 服务**: `src/services/wps/index.js` — 文档操作、任务窗格、对话框
 - **AI 服务**: `src/services/ai/TaskScheduler.js` — 统一 AI 调用入口
+- **AI 对话服务**: `src/services/ai/chatService.js` — 对话式文档操作（读取上下文、流式输出、操作解析与执行）
 - **工作流引擎**: `src/services/workflow/index.js` — 可扩展的 Action 系统
 
 ## WPS 加载机制
@@ -136,6 +152,50 @@ npm run create-templates          # 生成模板文档
 2. 在 `src/ribbon.js` 的 `OnAction` switch 中添加 case
 3. 在 `src/ribbon.js` 的 `GetImage` 中添加图标路径
 4. 在 `src/router/index.js` 添加对应路由
+
+## AI 对话功能
+
+### 核心流程
+
+```
+用户输入 → chatService 读取文档上下文 → 构建带工具的系统提示词
+→ AI 流式回复（含 action 代码块） → 解析操作指令 → 用户确认 → 执行 WPS 文档操作
+```
+
+### 文件结构
+
+- `src/views/AIChatPage.vue` — 对话界面（消息列表、操作卡片、流式渲染）
+- `src/services/ai/chatService.js` — 对话服务核心
+  - 文档上下文注入（每次对话自动读取当前文档前 8000 字符）
+  - 流式 SSE 输出（优先 fetch + ReadableStream，降级 axios）
+  - AI 响应中的 ` ```action ``` ` 代码块解析
+  - 操作执行：复用 `workflow/actions` 的 `addCommentAction` 和 `addRevisionAction`
+  - 对话历史管理（最近 20 条）
+
+### AI 操作指令格式
+
+AI 在回复中嵌入操作指令，格式如下：
+
+````
+```action
+{"type":"comment","keyword":"违约金","comment":"建议审查违约金比例"}
+```
+````
+
+或
+
+````
+```action
+{"type":"revision","keyword":"按日千分之五","newText":"按日千分之一","reason":"违约金过高"}
+```
+````
+
+### 支持的操作类型
+
+| type | 说明 | 必填参数 |
+|------|------|---------|
+| `comment` | 添加批注 | `keyword`, `comment` |
+| `revision` | 添加修订 | `keyword`, `newText`, `reason`(可选) |
 
 ## WPS API 核心概念
 

@@ -3,6 +3,7 @@
         <tabs>
             <tab id="wpsAddinTab" label="陈恒律师AI工具箱">
 			<group id="btnDemoGroup" label="核心功能">
+                    <button id="btnAIChat" label="AI 对话" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnShowAI" label="AI 助理" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnDesensitize" label="信息脱敏" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>
                     <button id="btnRiskScan" label="风险扫描" onAction="ribbon.OnAction" getImage="ribbon.GetImage" visible="true" size="large"/>

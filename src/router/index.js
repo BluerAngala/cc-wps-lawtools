@@ -10,6 +10,7 @@ import DesensitizePage from '../views/DesensitizePage.vue'
 import PathDiagnostics from '../views/PathDiagnostics.vue'
 import WorkflowPage from '../views/WorkflowPage.vue'
 import BatchProcessingPage from '../views/BatchProcessingPage.vue'
+import AIChatPage from '../views/AIChatPage.vue'
 
 const router = createRouter({
   history: createWebHashHistory(''),
@@ -62,6 +63,11 @@ const router = createRouter({
       path: '/batch',
       name: '批量处理',
       component: BatchProcessingPage
+    },
+    {
+      path: '/aichat',
+      name: 'AI对话',
+      component: AIChatPage
     }
   ]
 })
