@@ -1,142 +1,204 @@
 <template>
   <PageLayout>
-    <div class="flex flex-col h-[calc(100vh-20px)]">
-      <!-- 顶栏 -->
-      <div class="flex items-center justify-between px-3 py-2 border-b border-gray-200 shrink-0">
-        <div class="flex items-center gap-2">
-          <span class="text-base font-semibold">AI 对话助手</span>
-          <n-tag v-if="docInfo" size="small" type="info">{{ docInfo }}</n-tag>
-          <n-tag v-else size="small" type="warning">未检测到文档</n-tag>
+    <div class="chat-root" :class="`mode-${widthMode}`">
+      <header class="chat-header">
+        <div class="header-left">
+          <div class="brand-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18m-6-4l6 4 6-4M6 7l6-4 6 4"/></svg>
+          </div>
+          <div class="header-info">
+            <h1 class="header-title">AI 法律助手</h1>
+            <p v-if="docInfo" class="header-sub">{{ docInfo }}</p>
+            <p v-else class="header-sub warn">未检测到文档</p>
+          </div>
         </div>
-        <n-space size="small">
-          <n-button size="tiny" quaternary @click="handleRefreshDoc">刷新文档</n-button>
-          <n-button size="tiny" quaternary @click="handleClear">清空</n-button>
-        </n-space>
-      </div>
+        <div class="header-right">
+          <button class="hdr-btn" @click="toggleWidth" :title="widthLabel">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line :x1="widthMode==='wide'?6:widthMode==='compact'?10:7" y1="3" :x2="widthMode==='wide'?6:widthMode==='compact'?10:7" y2="21"/></svg>
+          </button>
+          <button class="hdr-btn" @click="handleRefreshDoc" title="刷新文档上下文">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          </button>
+          <button class="hdr-btn" @click="handleClear" title="清空对话">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </header>
 
-      <!-- 消息列表 -->
-      <div ref="messagesRef" class="flex-1 overflow-y-auto px-3 py-2 space-y-3 scrollbar-smooth">
-        <div v-if="messages.length === 0 && !isLoading" class="flex flex-col items-center justify-center h-full text-gray-400">
-          <div class="text-4xl mb-3">💬</div>
-          <div class="text-sm">与 AI 助手对话，直接修改当前文档</div>
-          <div class="mt-4 grid grid-cols-2 gap-2 w-full max-w-md">
-            <div
+      <div ref="messagesRef" class="messages-area" @scroll="onScroll">
+        <div v-if="messages.length === 0 && !isLoading" class="empty-state">
+          <div class="empty-logo">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18m-6-4l6 4 6-4M6 7l6-4 6 4"/></svg>
+          </div>
+          <h2 class="empty-title">AI 法律助手</h2>
+          <p class="empty-desc">对话式审查、修改当前合同文档</p>
+          <div class="quick-grid">
+            <button
               v-for="s in quickPrompts"
               :key="s.text"
-              class="quick-prompt"
+              class="quick-card"
               @click="handleQuickPrompt(s.text)"
             >
-              <div class="text-xs font-medium text-gray-700">{{ s.title }}</div>
-              <div class="text-xs text-gray-400 mt-0.5">{{ s.desc }}</div>
-            </div>
+              <span class="qc-icon">{{ s.icon }}</span>
+              <span class="qc-title">{{ s.title }}</span>
+              <span class="qc-desc">{{ s.desc }}</span>
+            </button>
           </div>
         </div>
 
-        <div v-for="(msg, idx) in messages" :key="idx" class="message-item" :class="msg.role">
-          <div class="message-avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</div>
-          <div class="message-body">
-            <!-- 流式输出中：直接用 streamingText 避免 action 块闪烁 -->
-            <div
-              v-if="msg._streaming && streamingText"
-              class="message-text"
-              v-html="renderMarkdown(streamingText)"
-            ></div>
-            <!-- 打字等待中 -->
-            <div v-else-if="msg._streaming && !streamingText" class="message-text">
-              <div class="typing-indicator">
-                <span></span><span></span><span></span>
-              </div>
+        <TransitionGroup name="msg" tag="div" class="msg-list">
+          <div
+            v-for="(msg, idx) in messages"
+            :key="msg._id"
+            class="msg-row"
+            :class="[msg.role, { streaming: msg._streaming }]"
+          >
+            <div class="msg-avatar" :class="msg.role">
+              <svg v-if="msg.role === 'assistant'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18m-6-4l6 4 6-4M6 7l6-4 6 4"/></svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            <!-- 正常内容 -->
-            <div v-else-if="msg.displayText" class="message-text" v-html="renderMarkdown(msg.displayText)"></div>
-
-            <!-- 操作卡片 -->
-            <div v-if="msg.actions?.length && !msg._streaming" class="action-cards">
-              <div class="text-xs text-gray-500 mb-1">📄 文档操作建议：</div>
+            <div class="msg-body">
+              <div v-if="msg._streaming && !streamingText" class="status-pill">
+                <span class="status-dots"><i></i><i></i><i></i></span>
+                <span class="status-label">{{ statusLabels[streamingStatus] || '思考中...' }}</span>
+              </div>
               <div
-                v-for="(action, aIdx) in msg.actions"
-                :key="aIdx"
-                class="action-card"
-                :class="{
-                  applied: action._applied,
-                  failed: action._failed,
-                  pending: !action._applied && !action._failed
-                }"
+                v-else-if="msg._streaming && streamingText"
+                class="msg-bubble ai streaming"
+                v-html="renderMarkdown(streamingText) + cursorHtml"
+              ></div>
+              <div
+                v-else-if="msg.displayText"
+                class="msg-bubble"
+                :class="msg.role"
+                v-html="renderMarkdown(msg.displayText)"
+              ></div>
+
+              <TransitionGroup
+                v-if="msg.actions?.length && !msg._streaming"
+                name="card"
+                tag="div"
+                class="action-list"
               >
-                <div class="flex items-start gap-2">
-                  <span class="text-sm">{{ action.type === 'comment' ? '💬' : '✏️' }}</span>
-                  <div class="flex-1 min-w-0">
-                    <div class="text-xs font-medium">
-                      {{ action.type === 'comment' ? '添加批注' : '修订文本' }}
-                    </div>
-                    <div class="text-xs text-gray-500 mt-0.5">
-                      定位：<span class="text-orange-600">{{ action.keyword }}</span>
-                    </div>
-                    <div v-if="action.type === 'comment'" class="text-xs text-gray-600 mt-0.5">
-                      {{ action.comment }}
-                    </div>
-                    <div v-if="action.type === 'revision'" class="text-xs text-gray-600 mt-0.5">
-                      替换为：<span class="text-green-700">{{ action.newText }}</span>
-                    </div>
-                    <div v-if="action.reason" class="text-xs text-gray-400 mt-0.5 italic">
-                      原因：{{ action.reason }}
-                    </div>
+                <div
+                  v-for="(action, aIdx) in msg.actions"
+                  :key="aIdx"
+                  class="act-card"
+                  :class="[
+                    `act-${action.type}`,
+                    { applied: action._applied, failed: action._failed, rejected: action._rejected }
+                  ]"
+                >
+                  <div class="act-header">
+                    <span class="act-badge">{{ action.type === 'comment' ? '💬 批注' : '✏️ 修订' }}</span>
+                    <span v-if="action._applied" class="act-status ok">✓ 已应用</span>
+                    <span v-else-if="action._rejected" class="act-status skip">已跳过</span>
+                    <span v-else-if="action._failed" class="act-status err">✗ 失败</span>
+                  </div>
+
+                  <div v-if="action.type === 'revision'" class="diff-block">
+                    <div class="diff-row del"><span class="diff-p">-</span><span>{{ action.keyword }}</span></div>
+                    <div class="diff-row add"><span class="diff-p">+</span><span>{{ action.newText }}</span></div>
+                  </div>
+                  <div v-else class="cmt-block">
+                    <div class="cmt-target">📍 {{ action.keyword }}</div>
+                    <div class="cmt-body">{{ action.comment }}</div>
+                  </div>
+
+                  <div v-if="action.reason" class="act-reason">💡 {{ action.reason }}</div>
+
+                  <div v-if="!action._applied && !action._failed && !action._rejected" class="act-btns">
+                    <button class="abtn ok" @click="handleApplyAction(idx, aIdx)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>应用
+                    </button>
+                    <button class="abtn locate" @click="handleLocateAction(action)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/></svg>定位
+                    </button>
+                    <button class="abtn skip" @click="handleRejectAction(idx, aIdx)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>跳过
+                    </button>
                   </div>
                 </div>
-                <div v-if="!action._applied && !action._failed" class="action-buttons">
-                  <n-button size="tiny" type="primary" @click="handleApplyAction(idx, aIdx)">
-                    应用
-                  </n-button>
-                </div>
-                <div v-else-if="action._applied" class="text-xs text-green-600">✅ 已应用</div>
-                <div v-else class="text-xs text-red-500">❌ {{ action._errorMsg || '执行失败' }}</div>
-              </div>
-              <div v-if="msg.actions.some(a => !a._applied && !a._failed)" class="mt-1">
-                <n-button size="tiny" type="primary" @click="handleApplyAll(idx)">
-                  全部应用
-                </n-button>
+              </TransitionGroup>
+
+              <div
+                v-if="msg.actions?.some(a => !a._applied && !a._failed && !a._rejected) && !msg._streaming"
+                class="act-batch"
+              >
+                <button class="batch-btn" @click="handleApplyAll(idx)">
+                  ✓ 全部应用 ({{ msg.actions.filter(a => !a._applied && !a._failed && !a._rejected).length }})
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        </TransitionGroup>
+
+        <Transition name="fade">
+          <button v-if="showScrollBtn" class="scroll-btn" @click="smoothScrollBottom">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </Transition>
       </div>
 
-      <!-- 输入区域 -->
-      <div class="shrink-0 border-t border-gray-200 px-3 py-2">
-        <div class="flex gap-2">
-          <n-input
-            v-model:value="inputText"
-            type="textarea"
-            :autosize="{ minRows: 1, maxRows: 4 }"
-            placeholder="输入指令，如：审查违约金条款..."
-            :disabled="isLoading"
-            @keydown="handleKeydown"
-          />
-          <div class="flex flex-col gap-1">
-            <n-button
-              type="primary"
-              :disabled="!inputText.trim() || isLoading"
-              @click="handleSend"
+      <div class="input-area">
+        <Transition name="slide-up">
+          <div v-if="showSlashMenu" class="slash-menu">
+            <div class="slash-title">快捷指令</div>
+            <button
+              v-for="(cmd, ci) in filteredCommands"
+              :key="cmd.value"
+              class="slash-item"
+              :class="{ active: ci === activeCmdIdx }"
+              @click="selectCommand(cmd)"
+              @mouseenter="activeCmdIdx = ci"
             >
-              {{ isLoading ? '...' : '发送' }}
-            </n-button>
-            <n-button v-if="isLoading" size="small" type="error" @click="handleCancel">
-              停止
-            </n-button>
+              <span class="si-icon">{{ cmd.icon }}</span>
+              <div class="si-info">
+                <span class="si-label">{{ cmd.label }}</span>
+                <span class="si-desc">{{ cmd.desc }}</span>
+              </div>
+            </button>
           </div>
+        </Transition>
+        <div class="input-row">
+          <textarea
+            ref="inputRef"
+            v-model="inputText"
+            class="chat-input"
+            :placeholder="isLoading ? 'AI 正在回复...' : '输入指令，或按 / 查看快捷指令...'"
+            :disabled="isLoading"
+            rows="1"
+            @keydown="handleKeydown"
+            @input="onInputChange"
+          ></textarea>
+          <button
+            class="send-btn"
+            :class="{ ready: inputText.trim() && !isLoading }"
+            :disabled="!inputText.trim() || isLoading"
+            @click="handleSend"
+          >
+            <svg v-if="!isLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span v-else class="send-spin"></span>
+          </button>
+          <button v-if="isLoading" class="stop-btn" @click="handleCancel">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          </button>
         </div>
-        <div class="text-xs text-gray-400 mt-1">Enter 发送 / Shift+Enter 换行</div>
+        <div class="input-hint">
+          <span>Enter 发送 · Shift+Enter 换行</span>
+          <span>输入 / 快捷指令</span>
+        </div>
       </div>
     </div>
   </PageLayout>
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, computed } from 'vue'
-import { NTag, NButton, NSpace, NInput } from 'naive-ui'
+import { ref, nextTick, onMounted, computed, watch } from 'vue'
 import { marked } from 'marked'
 import { PageLayout } from '../components/common'
 import chatService from '../services/ai/chatService.js'
+import { wpsDocument } from '../services/wps/document.js'
 import { useWpsEnvironment } from '../composables/useWpsEnvironment.js'
 
 const { isAvailable, getDocument } = useWpsEnvironment()
@@ -145,8 +207,26 @@ const messages = ref([])
 const inputText = ref('')
 const isLoading = ref(false)
 const streamingText = ref('')
+const streamingStatus = ref('')
 const messagesRef = ref(null)
+const inputRef = ref(null)
 const streamingMsgIdx = ref(-1)
+const showScrollBtn = ref(false)
+const widthMode = ref('normal')
+const showSlashMenu = ref(false)
+const activeCmdIdx = ref(0)
+let msgIdCounter = 0
+let isNearBottom = true
+
+const statusLabels = {
+  thinking: '思考中...',
+  reading: '正在阅读文档...',
+  generating: '正在生成回复...'
+}
+
+const widthModes = ['compact', 'normal', 'wide']
+const widthLabelMap = { compact: '紧凑', normal: '标准', wide: '宽屏' }
+const widthLabel = computed(() => widthLabelMap[widthMode.value])
 
 const docInfo = computed(() => {
   if (!isAvailable.value) return null
@@ -154,17 +234,31 @@ const docInfo = computed(() => {
   return doc?.Name || null
 })
 
+const cursorHtml = '<span class="blink-cursor"></span>'
+
 const quickPrompts = [
-  { title: '🔍 审查合同', desc: '全面审查当前合同风险', text: '请全面审查当前合同，指出主要风险点并提供修改建议' },
-  { title: '✏️ 修改条款', desc: '对话式修改特定条款', text: '请帮我审查并指出需要改进的条款' },
-  { title: '💬 批注风险', desc: '在风险条款处添加批注', text: '请在合同的风险条款处添加批注提醒' },
-  { title: '📋 摘要总结', desc: '总结合同核心内容', text: '请总结当前合同的核心条款和关键信息' }
+  { icon: '🔍', title: '审查合同', desc: '全面审查当前合同风险', text: '请全面审查当前合同，指出主要风险点并提供修改建议' },
+  { icon: '✏️', title: '修改条款', desc: '对话式修改特定条款', text: '请帮我审查并指出需要改进的条款' },
+  { icon: '💬', title: '批注风险', desc: '在风险条款处添加批注', text: '请在合同的风险条款处添加批注提醒' },
+  { icon: '📋', title: '摘要总结', desc: '总结合同核心内容', text: '请总结当前合同的核心条款和关键信息' }
 ]
 
-marked.setOptions({
-  breaks: true,
-  gfm: true
+const slashCommands = [
+  { icon: '🔍', value: '/审查', label: '/审查 合同', desc: '全面审查合同风险' },
+  { icon: '💬', value: '/批注', label: '/批注 风险', desc: '在风险处添加批注' },
+  { icon: '✏️', value: '/修改', label: '/修改 条款', desc: '对话式修改条款' },
+  { icon: '📋', value: '/总结', label: '/总结 合同', desc: '摘要总结合同内容' },
+  { icon: '🔒', value: '/脱敏', label: '/脱敏 信息', desc: '识别并脱敏敏感信息' },
+  { icon: '📝', value: '/续写', label: '/续写 条款', desc: '续写或补充合同条款' }
+]
+
+const filteredCommands = computed(() => {
+  const slashPart = inputText.value.match(/^\/(\S*)/)?.[1] ?? ''
+  if (slashPart === '' && inputText.value.startsWith('/')) return slashCommands
+  return slashCommands.filter(c => c.value.includes(slashPart))
 })
+
+marked.setOptions({ breaks: true, gfm: true })
 
 function renderMarkdown(text) {
   if (!text) return ''
@@ -173,41 +267,79 @@ function renderMarkdown(text) {
 
 function scrollToBottom() {
   nextTick(() => {
-    if (messagesRef.value) {
-      messagesRef.value.scrollTop = messagesRef.value.scrollHeight
-    }
+    if (!messagesRef.value) return
+    messagesRef.value.scrollTop = messagesRef.value.scrollHeight
   })
+}
+
+function smoothScrollBottom() {
+  if (!messagesRef.value) return
+  messagesRef.value.scrollTo({ top: messagesRef.value.scrollHeight, behavior: 'smooth' })
+}
+
+function onScroll() {
+  if (!messagesRef.value) return
+  const el = messagesRef.value
+  isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  showScrollBtn.value = !isNearBottom
+}
+
+function autoResizeInput() {
+  const el = inputRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
+
+function onInputChange() {
+  autoResizeInput()
+  const val = inputText.value
+  showSlashMenu.value = val.startsWith('/') && val.indexOf('\n') === -1
+  if (showSlashMenu.value) activeCmdIdx.value = 0
+}
+
+function selectCommand(cmd) {
+  inputText.value = cmd.value.replace(/^\//, '') + ' '
+  showSlashMenu.value = false
+  nextTick(() => inputRef.value?.focus())
+}
+
+function toggleWidth() {
+  const i = widthModes.indexOf(widthMode.value)
+  widthMode.value = widthModes[(i + 1) % widthModes.length]
 }
 
 async function handleSend() {
   const text = inputText.value.trim()
   if (!text || isLoading.value) return
-
+  showSlashMenu.value = false
   inputText.value = ''
+  autoResizeInput()
   isLoading.value = true
   streamingText.value = ''
+  streamingStatus.value = 'thinking'
 
-  messages.value.push({
-    role: 'user',
-    displayText: text,
-    actions: []
-  })
+  messages.value.push({ role: 'user', displayText: text, actions: [], _id: ++msgIdCounter })
 
   const assistantMsg = {
     role: 'assistant',
     displayText: '',
     actions: [],
     rawText: '',
-    _streaming: true
+    _streaming: true,
+    _id: ++msgIdCounter
   }
   messages.value.push(assistantMsg)
   streamingMsgIdx.value = messages.value.length - 1
   scrollToBottom()
 
   await chatService.sendMessage(text, {
+    onStatus(status) {
+      streamingStatus.value = status
+    },
     onChunk(_delta, fullText) {
       streamingText.value = fullText
-      scrollToBottom()
+      if (isNearBottom) scrollToBottom()
     },
     onComplete({ text: cleanedText, actions }) {
       streamingText.value = ''
@@ -220,7 +352,9 @@ async function handleSend() {
       }
       streamingMsgIdx.value = -1
       isLoading.value = false
-      scrollToBottom()
+      streamingStatus.value = ''
+      scrollIfNear()
+      persistHistory()
     },
     onError(errMsg) {
       streamingText.value = ''
@@ -231,11 +365,41 @@ async function handleSend() {
       }
       streamingMsgIdx.value = -1
       isLoading.value = false
+      streamingStatus.value = ''
     }
   })
+
+  nextTick(() => inputRef.value?.focus())
+}
+
+function scrollIfNear() {
+  if (isNearBottom) scrollToBottom()
 }
 
 function handleKeydown(e) {
+  if (showSlashMenu.value) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      activeCmdIdx.value = (activeCmdIdx.value + 1) % filteredCommands.value.length
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      activeCmdIdx.value = (activeCmdIdx.value - 1 + filteredCommands.value.length) % filteredCommands.value.length
+      return
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (filteredCommands.value[activeCmdIdx.value]) {
+        selectCommand(filteredCommands.value[activeCmdIdx.value])
+      }
+      return
+    }
+    if (e.key === 'Escape') {
+      showSlashMenu.value = false
+      return
+    }
+  }
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     handleSend()
@@ -250,10 +414,8 @@ function handleQuickPrompt(text) {
 async function handleApplyAction(msgIdx, actionIdx) {
   const msg = messages.value[msgIdx]
   if (!msg?.actions?.[actionIdx]) return
-
   const action = msg.actions[actionIdx]
   const result = await chatService.applyAction(action)
-
   if (result.success) {
     action._applied = true
     window.$message?.success('操作已应用')
@@ -262,13 +424,39 @@ async function handleApplyAction(msgIdx, actionIdx) {
     action._errorMsg = result.message || '执行失败'
     window.$message?.error(action._errorMsg)
   }
+  persistHistory()
+}
+
+function handleRejectAction(msgIdx, actionIdx) {
+  const msg = messages.value[msgIdx]
+  if (!msg?.actions?.[actionIdx]) return
+  msg.actions[actionIdx]._rejected = true
+  persistHistory()
+}
+
+async function handleLocateAction(action) {
+  try {
+    const doc = wpsDocument.getDocument()
+    if (!doc) {
+      window.$message?.warning('请先打开文档')
+      return
+    }
+    const range = wpsDocument.findRangeByKeyword(action.keyword)
+    if (range) {
+      range.Select()
+      window.$message?.success('已定位到文档位置')
+    } else {
+      window.$message?.warning('未找到对应文本位置')
+    }
+  } catch {
+    window.$message?.error('定位失败')
+  }
 }
 
 async function handleApplyAll(msgIdx) {
   const msg = messages.value[msgIdx]
   if (!msg?.actions) return
-
-  const pending = msg.actions.filter(a => !a._applied && !a._failed)
+  const pending = msg.actions.filter(a => !a._applied && !a._failed && !a._rejected)
   for (const action of pending) {
     const result = await chatService.applyAction(action)
     if (result.success) {
@@ -279,6 +467,7 @@ async function handleApplyAll(msgIdx) {
     }
   }
   window.$message?.success(`已应用 ${pending.filter(a => a._applied).length} 项操作`)
+  persistHistory()
 }
 
 function handleCancel() {
@@ -295,6 +484,7 @@ function handleCancel() {
   streamingText.value = ''
   streamingMsgIdx.value = -1
   isLoading.value = false
+  streamingStatus.value = ''
 }
 
 function parseActionsPartial(text) {
@@ -314,277 +504,653 @@ function handleClear() {
   messages.value = []
   streamingText.value = ''
   streamingMsgIdx.value = -1
+  streamingStatus.value = ''
+  persistHistory()
 }
 
 function handleRefreshDoc() {
-  window.$message?.success('文档上下文已刷新，下条消息将使用最新文档内容')
+  window.$message?.success('文档上下文已刷新')
 }
 
+function persistHistory() {
+  try {
+    const app = window.Application
+    if (!app?.PluginStorage) return
+    const data = messages.value.map(m => ({
+      role: m.role,
+      displayText: m.displayText,
+      actions: m.actions?.map(a => ({
+        type: a.type,
+        keyword: a.keyword,
+        comment: a.comment,
+        newText: a.newText,
+        reason: a.reason,
+        _applied: a._applied,
+        _rejected: a._rejected,
+        _failed: a._failed,
+        _errorMsg: a._errorMsg
+      })),
+      _id: m._id
+    }))
+    app.PluginStorage.setItem('aichat_history', JSON.stringify(data))
+  } catch { /* ignore */ }
+}
+
+function restoreHistory() {
+  try {
+    const app = window.Application
+    if (!app?.PluginStorage) return
+    const raw = app.PluginStorage.getItem('aichat_history')
+    if (!raw) return
+    const data = JSON.parse(raw)
+    if (!Array.isArray(data) || data.length === 0) return
+    messages.value = data.map(m => ({ ...m, _streaming: false }))
+    msgIdCounter = Math.max(...data.map(m => m._id || 0), 0)
+    scrollToBottom()
+  } catch { /* ignore */ }
+}
+
+watch(messages, () => {
+  if (isNearBottom) scrollToBottom()
+}, { flush: 'post' })
+
 onMounted(() => {
-  scrollToBottom()
+  restoreHistory()
+  nextTick(() => inputRef.value?.focus())
 })
 </script>
 
 <style scoped>
-.message-item {
+.chat-root {
   display: flex;
-  gap: 8px;
-  align-items: flex-start;
+  flex-direction: column;
+  height: calc(100vh - 20px);
+  background: #f8fafc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --c-brand: #0A0A0A;
+  --c-brand-light: #2D2D2D;
+  --c-accent: #E63946;
+  --c-accent-light: #FEE2E2;
+  --c-highlight: #F5C518;
+  --c-highlight-light: #FFF9C4;
+  --c-surface: #ffffff;
+  --c-danger: #DC2626;
+  --c-success: #16a34a;
+  --c-text: #0A0A0A;
+  --c-text2: #666666;
+  --c-border: #E0E0E0;
+  --c-bg: #F8F8F8;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
 }
+.mode-compact .msg-bubble { font-size: 12px; }
+.mode-compact .act-card { font-size: 11px; }
+.mode-wide .msg-bubble { font-size: 14px; }
 
-.message-item.user {
-  flex-direction: row-reverse;
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--c-brand);
+  color: #fff;
+  flex-shrink: 0;
 }
-
-.message-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  flex-shrink: 0;
-  background: #f3f4f6;
+  color: var(--c-highlight);
 }
-
-.message-item.user .message-avatar {
-  background: #dbeafe;
+.header-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0;
 }
-
-.message-body {
-  max-width: 85%;
-  min-width: 0;
+.header-sub {
+  font-size: 11px;
+  margin: 2px 0 0;
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
 }
-
-.message-text {
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.6;
-  word-break: break-word;
+.header-sub.warn { color: #F5C518; opacity: 1; }
+.header-right {
+  display: flex;
+  gap: 2px;
 }
-
-.message-item.user .message-text {
-  background: #3b82f6;
+.hdr-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: none;
+  color: rgba(255,255,255,0.7);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.hdr-btn:hover {
+  background: rgba(255,255,255,0.12);
   color: #fff;
-  border-top-right-radius: 2px;
 }
 
-.message-item.assistant .message-text {
-  background: #f3f4f6;
-  color: #1f2937;
-  border-top-left-radius: 2px;
+.messages-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 6px;
+  position: relative;
 }
+.messages-area::-webkit-scrollbar { width: 5px; }
+.messages-area::-webkit-scrollbar-track { background: transparent; }
+.messages-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
-.message-text :deep(p) {
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+}
+.empty-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--c-brand), var(--c-brand-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-highlight);
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+.empty-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--c-brand);
   margin: 0 0 6px;
 }
+.empty-desc {
+  font-size: 13px;
+  color: var(--c-text2);
+  margin: 0 0 24px;
+}
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+.quick-card:hover {
+  border-color: var(--c-accent);
+  box-shadow: 0 2px 8px rgba(230,57,70,0.08);
+  transform: translateY(-1px);
+}
+.qc-icon { font-size: 18px; margin-bottom: 6px; }
+.qc-title { font-size: 13px; font-weight: 600; color: var(--c-text); }
+.qc-desc { font-size: 11px; color: var(--c-text2); margin-top: 2px; }
 
-.message-text :deep(p:last-child) {
-  margin-bottom: 0;
+.msg-list { display: flex; flex-direction: column; gap: 10px; }
+.msg-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+.msg-row.user { flex-direction: row-reverse; }
+
+.msg-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.msg-avatar.assistant {
+  background: linear-gradient(135deg, #1A1A1A, #0A0A0A);
+  color: var(--c-highlight);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.msg-avatar.user {
+  background: #E5E5E5;
+  color: var(--c-brand);
+}
+.msg-body { max-width: 90%; min-width: 0; }
+
+.msg-bubble {
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  line-height: 1.65;
+  word-break: break-word;
+  box-shadow: var(--shadow);
+}
+.msg-bubble.user {
+  background: linear-gradient(135deg, var(--c-brand), var(--c-brand-light));
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+.msg-bubble.ai {
+  background: var(--c-surface);
+  color: var(--c-text);
+  border-top-left-radius: 4px;
+  border: 1px solid var(--c-border);
+}
+.msg-bubble.streaming {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 2px rgba(230,57,70,0.15), 0 0 12px rgba(230,57,70,0.06);
 }
 
-.message-text :deep(h1),
-.message-text :deep(h2),
-.message-text :deep(h3),
-.message-text :deep(h4),
-.message-text :deep(h5),
-.message-text :deep(h6) {
-  margin: 8px 0 4px;
-  font-weight: 600;
-  line-height: 1.4;
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
 }
-
-.message-text :deep(h1) { font-size: 16px; }
-.message-text :deep(h2) { font-size: 15px; }
-.message-text :deep(h3) { font-size: 14px; }
-.message-text :deep(h4) { font-size: 13px; }
-.message-text :deep(h5) { font-size: 13px; }
-.message-text :deep(h6) { font-size: 12px; }
-
-.message-text :deep(strong) {
-  font-weight: 600;
+.status-dots {
+  display: flex;
+  gap: 4px;
 }
-
-.message-text :deep(em) {
-  font-style: italic;
+.status-dots i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--c-accent);
+  animation: dotPulse 1.4s infinite;
 }
-
-.message-text :deep(code) {
-  background: rgba(0, 0, 0, 0.06);
-  padding: 1px 4px;
-  border-radius: 3px;
+.status-dots i:nth-child(2) { animation-delay: 0.2s; }
+.status-dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotPulse {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1.1); }
+}
+.status-label {
   font-size: 12px;
-  font-family: Consolas, 'Courier New', monospace;
+  color: var(--c-text2);
 }
 
-.message-item.user .message-text :deep(code) {
-  background: rgba(255, 255, 255, 0.2);
+.blink-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--c-accent);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: cursorBlink 1s step-end infinite;
+}
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-.message-text :deep(pre) {
-  background: #1e293b;
-  border-radius: 6px;
-  margin: 6px 0;
-  padding: 10px 12px;
+.msg-bubble :deep(p) { margin: 0 0 6px; }
+.msg-bubble :deep(p:last-child) { margin-bottom: 0; }
+.msg-bubble :deep(h1), .msg-bubble :deep(h2), .msg-bubble :deep(h3),
+.msg-bubble :deep(h4), .msg-bubble :deep(h5), .msg-bubble :deep(h6) {
+  margin: 10px 0 4px; font-weight: 700; line-height: 1.35; color: #0A0A0A;
+}
+.msg-bubble :deep(h1) { font-size: 17px; }
+.msg-bubble :deep(h2) { font-size: 15px; }
+.msg-bubble :deep(h3) { font-size: 14px; }
+.msg-bubble :deep(h4) { font-size: 13px; }
+.msg-bubble.user :deep(h1), .msg-bubble.user :deep(h2), .msg-bubble.user :deep(h3) { color: #fff; }
+.msg-bubble :deep(strong) { font-weight: 700; color: #E63946; }
+.msg-bubble.user :deep(strong) { color: #F5C518; }
+.msg-bubble :deep(em) { font-style: italic; }
+.msg-bubble :deep(code) {
+  background: rgba(0,0,0,0.05);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace;
+}
+.msg-bubble.user :deep(code) { background: rgba(255,255,255,0.15); }
+.msg-bubble :deep(pre) {
+  background: #1a1a1a;
+  border-radius: var(--radius-sm);
+  margin: 8px 0;
+  padding: 12px 14px;
   overflow-x: auto;
 }
+.msg-bubble :deep(pre code) { background: none; padding: 0; color: #e2e8f0; font-size: 12px; line-height: 1.5; }
+.msg-bubble :deep(ul), .msg-bubble :deep(ol) { margin: 4px 0; padding-left: 20px; }
+.msg-bubble :deep(li) { margin: 3px 0; font-size: 13px; }
+.msg-bubble :deep(blockquote) {
+  border-left: 3px solid var(--c-highlight);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--c-text2);
+  font-style: italic;
+}
+.msg-bubble :deep(hr) { border: none; border-top: 1px solid var(--c-border); margin: 10px 0; }
+.msg-bubble :deep(table) { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 12px; }
+.msg-bubble :deep(th), .msg-bubble :deep(td) { border: 1px solid var(--c-border); padding: 5px 10px; text-align: left; }
+.msg-bubble :deep(th) { background: #f5f5f5; font-weight: 600; color: #0A0A0A; }
+.msg-bubble :deep(tr:nth-child(even)) { background: #fafafa; }
+.msg-bubble :deep(a) { color: #E63946; text-decoration: none; }
+.msg-bubble :deep(a:hover) { text-decoration: underline; }
 
-.message-text :deep(pre code) {
-  background: none;
-  padding: 0;
-  color: #e2e8f0;
+.action-list {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.act-card {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-left: 3px solid var(--c-accent);
+  box-shadow: var(--shadow);
+  transition: all 0.2s;
+}
+.act-card.act-revision { border-left-color: var(--c-accent); }
+.act-card.act-comment { border-left-color: var(--c-highlight); }
+.act-card.applied { border-left-color: var(--c-success); background: #f0fdf4; }
+.act-card.failed { border-left-color: var(--c-danger); background: #fef2f2; }
+.act-card.rejected { border-left-color: #94a3b8; background: #f8fafc; opacity: 0.65; }
+
+.act-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.act-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-brand);
+}
+.act-status {
+  font-size: 11px;
+  font-weight: 500;
+}
+.act-status.ok { color: var(--c-success); }
+.act-status.skip { color: #94a3b8; }
+.act-status.err { color: var(--c-danger); }
+
+.diff-block {
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 4px 0;
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace;
   font-size: 12px;
+  line-height: 1.6;
+}
+.diff-row {
+  padding: 4px 10px;
+  display: flex;
+  gap: 6px;
+}
+.diff-row.del { background: #fef2f2; color: #991b1b; }
+.diff-row.add { background: #f0fdf4; color: #166534; }
+.diff-p { font-weight: 700; flex-shrink: 0; width: 12px; }
+
+.cmt-block {
+  margin: 4px 0;
+}
+.cmt-target {
+  font-size: 12px;
+  color: #D97706;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.cmt-body {
+  font-size: 12px;
+  color: var(--c-text2);
   line-height: 1.5;
 }
 
-.message-text :deep(ul),
-.message-text :deep(ol) {
-  margin: 4px 0;
-  padding-left: 20px;
-}
-
-.message-text :deep(li) {
-  margin: 2px 0;
-  font-size: 13px;
-}
-
-.message-text :deep(blockquote) {
-  border-left: 3px solid #d1d5db;
-  padding-left: 10px;
-  margin: 6px 0;
-  color: #6b7280;
+.act-reason {
+  font-size: 11px;
+  color: var(--c-text2);
+  margin-top: 4px;
   font-style: italic;
+  padding-top: 4px;
+  border-top: 1px dashed var(--c-border);
 }
 
-.message-text :deep(hr) {
-  border: none;
-  border-top: 1px solid #e5e7eb;
-  margin: 8px 0;
-}
-
-.message-text :deep(table) {
-  border-collapse: collapse;
-  width: 100%;
-  margin: 6px 0;
-  font-size: 12px;
-}
-
-.message-text :deep(th),
-.message-text :deep(td) {
-  border: 1px solid #d1d5db;
-  padding: 4px 8px;
-  text-align: left;
-}
-
-.message-text :deep(th) {
-  background: #f3f4f6;
-  font-weight: 600;
-}
-
-.message-text :deep(tr:nth-child(even)) {
-  background: #f9fafb;
-}
-
-.message-text :deep(a) {
-  color: #3b82f6;
-  text-decoration: none;
-}
-
-.message-text :deep(a:hover) {
-  text-decoration: underline;
-}
-
-/* 操作卡片 */
-.action-cards {
+.act-btns {
+  display: flex;
+  gap: 6px;
   margin-top: 8px;
-  padding: 8px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+}
+.abtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--c-border);
   border-radius: 6px;
+  background: var(--c-surface);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--c-text);
+  font-weight: 500;
 }
+.abtn.ok { color: var(--c-success); border-color: #bbf7d0; }
+.abtn.ok:hover { background: #f0fdf4; border-color: var(--c-success); }
+.abtn.locate { color: #D97706; border-color: #FDE68A; }
+.abtn.locate:hover { background: #FFFBEB; border-color: #D97706; }
+.abtn.skip { color: var(--c-text2); }
+.abtn.skip:hover { background: #f8fafc; border-color: #94a3b8; }
 
-.action-card {
-  padding: 8px;
-  margin-top: 4px;
-  border-radius: 4px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-}
-
-.action-card.applied {
-  background: #f0fdf4;
-  border-color: #86efac;
-}
-
-.action-card.failed {
-  background: #fef2f2;
-  border-color: #fca5a5;
-}
-
-.action-buttons {
-  margin-top: 4px;
-}
-
-/* 快捷提示 */
-.quick-prompt {
-  padding: 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+.act-batch { margin-top: 8px; }
+.batch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: 1px solid var(--c-accent);
+  border-radius: 6px;
+  background: var(--c-highlight-light);
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
 }
+.batch-btn:hover { background: #fef3c7; }
 
-.quick-prompt:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
+.input-area {
+  flex-shrink: 0;
+  padding: 8px 6px 6px;
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border);
+  position: relative;
 }
-
-/* 打字指示器 */
-.typing-indicator {
+.input-row {
   display: flex;
-  gap: 4px;
-  padding: 4px 0;
+  gap: 8px;
+  align-items: flex-end;
 }
-
-.typing-indicator span {
-  width: 6px;
-  height: 6px;
+.chat-input {
+  flex: 1;
+  resize: none;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: inherit;
+  color: var(--c-text);
+  background: var(--c-bg);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.chat-input:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 3px rgba(230,57,70,0.08);
+  background: var(--c-surface);
+}
+.chat-input::placeholder { color: #94a3b8; }
+.chat-input:disabled { opacity: 0.5; }
+.send-btn {
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: #9ca3af;
-  animation: typing 1.4s infinite;
+  border: none;
+  background: #cbd5e1;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.send-btn.ready {
+  background: linear-gradient(135deg, #E63946, #C62828);
+  box-shadow: 0 2px 8px rgba(230,57,70,0.3);
+}
+.send-btn.ready:hover { transform: scale(1.06); }
+.send-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.send-spin {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.stop-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+  color: var(--c-danger);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.stop-btn:hover { background: #fee2e2; }
+.input-hint {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #94a3b8;
 }
 
-.typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
+.slash-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 6px;
+  right: 6px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 6px;
+  z-index: 10;
 }
+.slash-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-text2);
+  padding: 4px 10px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.slash-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.slash-item:hover, .slash-item.active { background: #f5f5f5; }
+.si-icon { font-size: 16px; flex-shrink: 0; }
+.si-info { display: flex; flex-direction: column; }
+.si-label { font-size: 13px; font-weight: 500; color: var(--c-text); }
+.si-desc { font-size: 11px; color: var(--c-text2); }
 
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
+.scroll-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  color: var(--c-text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s;
 }
+.scroll-btn:hover { background: #f5f5f5; color: var(--c-accent); }
 
-@keyframes typing {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-6px);
-    opacity: 1;
-  }
-}
+.msg-enter-active { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.msg-enter-from { opacity: 0; transform: translateY(16px) scale(0.97); }
+.msg-enter-to { opacity: 1; transform: translateY(0) scale(1); }
 
-.scrollbar-smooth::-webkit-scrollbar {
-  width: 4px;
-}
+.card-enter-active { transition: all 0.3s cubic-bezier(0.34, 1.3, 0.64, 1); }
+.card-enter-from { opacity: 0; transform: translateY(8px) scale(0.95); }
+.card-enter-to { opacity: 1; transform: translateY(0) scale(1); }
 
-.scrollbar-smooth::-webkit-scrollbar-track {
-  background: transparent;
-}
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
-.scrollbar-smooth::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 2px;
-}
+.slide-up-enter-active { transition: all 0.2s cubic-bezier(0.34, 1.3, 0.64, 1); }
+.slide-up-leave-active { transition: all 0.15s; }
+.slide-up-enter-from { opacity: 0; transform: translateY(8px); }
+.slide-up-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>

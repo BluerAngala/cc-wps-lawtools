@@ -164,13 +164,40 @@ npm run create-templates          # 生成模板文档
 
 ### 文件结构
 
-- `src/views/AIChatPage.vue` — 对话界面（消息列表、操作卡片、流式渲染）
+- `src/views/AIChatPage.vue` — 对话界面（消息列表、操作卡片、流式渲染、Slash指令等）
 - `src/services/ai/chatService.js` — 对话服务核心
   - 文档上下文注入（每次对话自动读取当前文档前 8000 字符）
   - 流式 SSE 输出（优先 fetch + ReadableStream，降级 axios）
+  - 渐进式状态回调（`onStatus`: thinking → reading → generating）
   - AI 响应中的 ` ```action ``` ` 代码块解析
   - 操作执行：复用 `workflow/actions` 的 `addCommentAction` 和 `addRevisionAction`
   - 对话历史管理（最近 20 条）
+
+### UI 特性
+
+| 特性 | 说明 |
+|------|------|
+| 消息入场动画 | `TransitionGroup` + cubic-bezier 弹性动画 |
+| 渐进式状态 | 思考中 → 阅读文档 → 生成回复（`onStatus` 回调） |
+| 流式光标 | 流式输出时末尾闪烁光标（`.blink-cursor`） |
+| 滚动到底部 | 智能检测滚动位置，浮动按钮平滑回底 |
+| Diff 预览 | 修订操作以红/绿色 diff 样式展示原文→新文 |
+| 文档定位 | 点击"定位"按钮，WPS 选中并滚动到对应文本 |
+| Slash 指令 | 输入 `/` 弹出快捷指令菜单（审查/批注/修改/总结/脱敏/续写） |
+| 操作按钮 | 每个操作卡片支持"应用/定位/跳过"三按钮 |
+| 历史持久化 | 对话记录保存到 `PluginStorage`，重开自动恢复 |
+| 宽度模式 | 紧凑/标准/宽屏 三档切换 (`mode-compact`/`mode-normal`/`mode-wide`) |
+
+### 品牌配色
+
+```css
+--c-brand: #0A0A0A       /* 纯黑（主色） */
+--c-brand-light: #2D2D2D /* 深灰（渐变辅色） */
+--c-accent: #E63946      /* 科技红（强调色） */
+--c-accent-light: #FEE2E2 /* 浅红背景 */
+--c-highlight: #F5C518   /* 明黄（高亮色） */
+--c-highlight-light: #FFF9C4 /* 浅黄背景 */
+```
 
 ### AI 操作指令格式
 

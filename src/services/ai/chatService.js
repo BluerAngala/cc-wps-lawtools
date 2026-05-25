@@ -98,7 +98,7 @@ class ChatService {
     this.currentAbortController = null
   }
 
-  async sendMessage(userMessage, { onChunk, onComplete, onError, onAction } = {}) {
+  async sendMessage(userMessage, { onChunk, onComplete, onError, onAction, onStatus } = {}) {
     if (this.isLoading) {
       onError?.('正在处理中，请等待当前操作完成')
       return
@@ -108,8 +108,11 @@ class ChatService {
     this.currentAbortController = new AbortController()
 
     try {
+      onStatus?.('thinking')
+
       let docContext = ''
       try {
+        onStatus?.('reading')
         docContext = wpsDocument.getFullText()?.substring(0, 8000) || ''
       } catch {
         docContext = ''
@@ -121,6 +124,8 @@ class ChatService {
         { role: 'system', content: buildSystemPrompt(docContext) },
         ...this.conversationHistory.slice(-20)
       ]
+
+      onStatus?.('generating')
 
       const aiConfig = appConfig.getAIConfig()
       const model = aiConfig.model || 'moonshotai/Kimi-K2-Instruct-0905'
