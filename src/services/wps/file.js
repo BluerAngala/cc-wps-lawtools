@@ -130,7 +130,7 @@ class WPSFileService {
    * @param {string} options.prefix - 文件名前缀，默认「已修订」
    * @param {boolean} options.deleteOriginal - 是否删除原文件，默认false
    */
-  async renameDocument({ prefix = '「已修订」', deleteOriginal = false } = {}) {
+  async renameDocument({ newName, prefix, deleteOriginal = false } = {}) {
     const doc = this.checkEnvironment()
 
     try {
@@ -141,9 +141,17 @@ class WPSFileService {
         ? `${directory}${pathSeparator}${originalName}`
         : originalName
 
-      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
       const extension = originalName.match(/\.[^/.]+$/)?.[0] || ''
-      const newFileName = `${prefix}${nameWithoutExt}${extension}`
+
+      let newFileName
+      if (newName) {
+        newFileName = newName.endsWith(extension) ? newName : `${newName}${extension}`
+      } else {
+        const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
+        const pfx = prefix || '「已修订」'
+        newFileName = `${pfx}${nameWithoutExt}${extension}`
+      }
+
       const newFullPath = directory ? `${directory}${pathSeparator}${newFileName}` : newFileName
 
       doc.SaveAs2(newFullPath)

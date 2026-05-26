@@ -14,7 +14,7 @@
               :class="{ active: tab === 'playbook' }"
               @click="tab = 'playbook'"
             >
-              📋 Playbook
+              📋 审查策略
             </button>
             <button class="tab-btn" :class="{ active: tab === 'rag' }" @click="tab = 'rag'">
               🔍 向量检索
@@ -23,139 +23,199 @@
 
           <div v-if="tab === 'playbook'" class="tab-content">
             <div class="section-head">
-              <span class="section-title">谈判手册</span>
+              <span class="section-title">审查策略配置</span>
               <div class="section-actions">
-                <button class="sm-btn" @click="addPosition">+ 立场</button>
-                <button class="sm-btn" @click="addTemplate">+ 模板</button>
-                <button class="sm-btn warn" @click="resetPlaybook">重置</button>
+                <button class="sm-btn warn" @click="resetPlaybook">恢复默认</button>
               </div>
             </div>
 
+            <p class="section-desc">
+              设定 AI 审查合同时的关注要点和回复风格，让审查结果更贴合您的需求。
+            </p>
+
             <div class="pb-section">
-              <div class="pb-label">标准立场</div>
-              <div v-for="(pos, idx) in playbook.positions" :key="pos.id" class="pb-card">
-                <div class="pb-card-head">
-                  <input
-                    :value="pos.category"
-                    class="pb-input-inline"
-                    placeholder="类别名称"
-                    @input="updatePos(idx, 'category', $event.target.value)"
-                  />
-                  <button class="del-btn" @click="removePosition(idx)">&times;</button>
-                </div>
-                <div class="pb-field">
-                  <label>标准立场</label>
-                  <textarea
-                    :value="pos.standardPosition"
-                    rows="2"
-                    class="pb-textarea"
-                    @input="updatePos(idx, 'standardPosition', $event.target.value)"
-                  ></textarea>
-                </div>
-                <div class="pb-field">
-                  <label>可接受范围</label>
-                  <input
-                    :value="pos.acceptableRange"
-                    class="pb-input"
-                    @input="updatePos(idx, 'acceptableRange', $event.target.value)"
-                  />
-                </div>
-                <div class="pb-field">
-                  <label>升级触发</label>
-                  <input
-                    :value="pos.escalationTrigger"
-                    class="pb-input"
-                    @input="updatePos(idx, 'escalationTrigger', $event.target.value)"
-                  />
-                </div>
-                <div class="pb-field">
-                  <label>重要度</label>
-                  <select
-                    :value="pos.severity"
-                    class="pb-select"
-                    @change="updatePos(idx, 'severity', $event.target.value)"
-                  >
-                    <option value="high">高</option>
-                    <option value="medium">中</option>
-                    <option value="low">低</option>
-                  </select>
-                </div>
+              <div class="pb-label" @click="sections.positions = !sections.positions">
+                <span>🔍 审查要点（{{ playbook.positions.length }}）</span>
+                <span class="toggle-icon">{{ sections.positions ? '▾' : '▸' }}</span>
               </div>
+              <button class="sm-btn add-btn" @click="addPosition">+ 添加要点</button>
+
+              <Transition name="collapse">
+                <div v-if="sections.positions">
+                  <div v-for="(pos, idx) in playbook.positions" :key="pos.id" class="acc-card">
+                    <div class="acc-head" @click="toggleExpand('pos', pos.id)">
+                      <span class="acc-title">
+                        <span :class="['sev-dot', pos.severity]"></span>
+                        {{ pos.category || '未命名' }}
+                      </span>
+                      <span class="acc-actions">
+                        <button class="del-btn-sm" @click.stop="removePosition(idx)" title="删除">×</button>
+                        <span class="acc-arrow">{{ expanded.pos === pos.id ? '▾' : '▸' }}</span>
+                      </span>
+                    </div>
+                    <Transition name="collapse">
+                      <div v-if="expanded.pos === pos.id" class="acc-body">
+                        <div class="pb-field">
+                          <label>条款类别</label>
+                          <input
+                            :value="pos.category"
+                            class="pb-input"
+                            placeholder="如：违约金条款"
+                            @input="updatePos(idx, 'category', $event.target.value)"
+                          />
+                        </div>
+                        <div class="pb-field">
+                          <label>我方底线</label>
+                          <textarea
+                            :value="pos.standardPosition"
+                            rows="2"
+                            class="pb-textarea"
+                            placeholder="我方对该条款的基本立场"
+                            @input="updatePos(idx, 'standardPosition', $event.target.value)"
+                          ></textarea>
+                        </div>
+                        <div class="pb-field">
+                          <label>可接受范围</label>
+                          <input
+                            :value="pos.acceptableRange"
+                            class="pb-input"
+                            placeholder="可以接受的妥协范围"
+                            @input="updatePos(idx, 'acceptableRange', $event.target.value)"
+                          />
+                        </div>
+                        <div class="pb-field">
+                          <label>必须预警的情况</label>
+                          <input
+                            :value="pos.escalationTrigger"
+                            class="pb-input"
+                            placeholder="遇到这些情况必须提醒我"
+                            @input="updatePos(idx, 'escalationTrigger', $event.target.value)"
+                          />
+                        </div>
+                        <div class="pb-field">
+                          <label>重要程度</label>
+                          <select
+                            :value="pos.severity"
+                            class="pb-select"
+                            @change="updatePos(idx, 'severity', $event.target.value)"
+                          >
+                            <option value="high">🔴 高 — 必须关注</option>
+                            <option value="medium">🟡 中 — 建议关注</option>
+                            <option value="low">🟢 低 — 可忽略</option>
+                          </select>
+                        </div>
+                      </div>
+                    </Transition>
+                  </div>
+                </div>
+              </Transition>
             </div>
 
             <div class="pb-section">
-              <div class="pb-label">NDA 默认设置</div>
-              <div class="pb-field">
-                <label>互负保密义务</label>
-                <select
-                  :value="playbook.ndaDefaults?.mutualRequired"
-                  class="pb-select"
-                  @change="updateNda('mutualRequired', $event.target.value === 'true')"
-                >
-                  <option :value="true">是</option>
-                  <option :value="false">否</option>
-                </select>
+              <div class="pb-label" @click="sections.nda = !sections.nda">
+                <span>🔒 保密协议偏好</span>
+                <span class="toggle-icon">{{ sections.nda ? '▾' : '▸' }}</span>
               </div>
-              <div class="pb-field">
-                <label>标准保密期</label>
-                <input
-                  :value="playbook.ndaDefaults?.standardTerm"
-                  class="pb-input"
-                  @input="updateNda('standardTerm', $event.target.value)"
-                />
-              </div>
-              <div class="pb-field">
-                <label>商业秘密保密期</label>
-                <input
-                  :value="playbook.ndaDefaults?.tradeSecretTerm"
-                  class="pb-input"
-                  @input="updateNda('tradeSecretTerm', $event.target.value)"
-                />
-              </div>
-              <div class="pb-field">
-                <label>标准例外条款</label>
-                <select
-                  :value="playbook.ndaDefaults?.standardCarveouts"
-                  class="pb-select"
-                  @change="updateNda('standardCarveouts', $event.target.value)"
-                >
-                  <option value="narrowly-scoped">窄范围</option>
-                  <option value="broadly-scoped">宽范围</option>
-                  <option value="none">无</option>
-                </select>
-              </div>
+
+              <Transition name="collapse">
+                <div v-if="sections.nda">
+                  <div class="pb-field">
+                    <label>是否要求互负保密义务</label>
+                    <select
+                      :value="playbook.ndaDefaults?.mutualRequired"
+                      class="pb-select"
+                      @change="updateNda('mutualRequired', $event.target.value === 'true')"
+                    >
+                      <option :value="true">是 — 双方均有保密义务</option>
+                      <option :value="false">否 — 可接受单方保密</option>
+                    </select>
+                  </div>
+                  <div class="pb-field">
+                    <label>标准保密期限</label>
+                    <input
+                      :value="playbook.ndaDefaults?.standardTerm"
+                      class="pb-input"
+                      placeholder="如：2-3年"
+                      @input="updateNda('standardTerm', $event.target.value)"
+                    />
+                  </div>
+                  <div class="pb-field">
+                    <label>商业秘密保密期限</label>
+                    <input
+                      :value="playbook.ndaDefaults?.tradeSecretTerm"
+                      class="pb-input"
+                      placeholder="如：5年"
+                      @input="updateNda('tradeSecretTerm', $event.target.value)"
+                    />
+                  </div>
+                  <div class="pb-field">
+                    <label>例外条款范围</label>
+                    <select
+                      :value="playbook.ndaDefaults?.standardCarveouts"
+                      class="pb-select"
+                      @change="updateNda('standardCarveouts', $event.target.value)"
+                    >
+                      <option value="narrowly-scoped">窄 — 仅法定例外</option>
+                      <option value="broadly-scoped">宽 — 含已有信息例外</option>
+                      <option value="none">不设例外</option>
+                    </select>
+                  </div>
+                </div>
+              </Transition>
             </div>
 
             <div class="pb-section">
-              <div class="pb-label">回复模板</div>
-              <div v-for="(tpl, idx) in playbook.responseTemplates" :key="tpl.id" class="pb-card">
-                <div class="pb-card-head">
-                  <input
-                    :value="tpl.name"
-                    class="pb-input-inline"
-                    placeholder="模板名称"
-                    @input="updateTpl(idx, 'name', $event.target.value)"
-                  />
-                  <button class="del-btn" @click="removeTemplate(idx)">&times;</button>
-                </div>
-                <div class="pb-field">
-                  <label>类别</label>
-                  <input
-                    :value="tpl.category"
-                    class="pb-input"
-                    @input="updateTpl(idx, 'category', $event.target.value)"
-                  />
-                </div>
-                <div class="pb-field">
-                  <label>模板内容</label>
-                  <textarea
-                    :value="tpl.template"
-                    rows="3"
-                    class="pb-textarea"
-                    @input="updateTpl(idx, 'template', $event.target.value)"
-                  ></textarea>
-                </div>
+              <div class="pb-label" @click="sections.templates = !sections.templates">
+                <span>💬 常用回复（{{ playbook.responseTemplates.length }}）</span>
+                <span class="toggle-icon">{{ sections.templates ? '▾' : '▸' }}</span>
               </div>
+              <button class="sm-btn add-btn" @click="addTemplate">+ 添加回复</button>
+
+              <Transition name="collapse">
+                <div v-if="sections.templates">
+                  <div v-for="(tpl, idx) in playbook.responseTemplates" :key="tpl.id" class="acc-card">
+                    <div class="acc-head" @click="toggleExpand('tpl', tpl.id)">
+                      <span class="acc-title">{{ tpl.name || '未命名回复' }}</span>
+                      <span class="acc-actions">
+                        <button class="del-btn-sm" @click.stop="removeTemplate(idx)" title="删除">×</button>
+                        <span class="acc-arrow">{{ expanded.tpl === tpl.id ? '▾' : '▸' }}</span>
+                      </span>
+                    </div>
+                    <Transition name="collapse">
+                      <div v-if="expanded.tpl === tpl.id" class="acc-body">
+                        <div class="pb-field">
+                          <label>名称</label>
+                          <input
+                            :value="tpl.name"
+                            class="pb-input"
+                            placeholder="回复模板名称"
+                            @input="updateTpl(idx, 'name', $event.target.value)"
+                          />
+                        </div>
+                        <div class="pb-field">
+                          <label>适用场景</label>
+                          <input
+                            :value="tpl.category"
+                            class="pb-input"
+                            placeholder="如：合规、争议、询价"
+                            @input="updateTpl(idx, 'category', $event.target.value)"
+                          />
+                        </div>
+                        <div class="pb-field">
+                          <label>回复内容</label>
+                          <textarea
+                            :value="tpl.template"
+                            rows="4"
+                            class="pb-textarea"
+                            placeholder="回复模板的具体内容"
+                            @input="updateTpl(idx, 'template', $event.target.value)"
+                          ></textarea>
+                        </div>
+                      </div>
+                    </Transition>
+                  </div>
+                </div>
+              </Transition>
             </div>
           </div>
 
@@ -327,6 +387,13 @@ const ragTestResult = ref(null)
 const ragStatsLoading = ref(false)
 const ragStats = ref(null)
 
+const sections = ref({ positions: false, nda: false, templates: false })
+const expanded = ref({ pos: null, tpl: null })
+
+function toggleExpand(type, id) {
+  expanded.value[type] = expanded.value[type] === id ? null : id
+}
+
 function loadRagConfig() {
   const config = appConfig.getConfig()
   const defaults = appConfig.getDefaultConfig()
@@ -347,12 +414,13 @@ function savePlaybook() {
 
 function addPosition() {
   playbook.value = playbookService.addPosition({
-    category: '新立场',
+    category: '',
     standardPosition: '',
     acceptableRange: '',
     escalationTrigger: '',
     severity: 'medium'
   })
+  sections.value.positions = true
 }
 
 function removePosition(idx) {
@@ -369,10 +437,11 @@ function updatePos(idx, field, value) {
 
 function addTemplate() {
   playbook.value = playbookService.addResponseTemplate({
-    name: '新模板',
+    name: '',
     category: 'general',
     template: ''
   })
+  sections.value.templates = true
 }
 
 function removeTemplate(idx) {
@@ -396,7 +465,7 @@ function updateNda(field, value) {
 function resetPlaybook() {
   playbookService.resetPlaybook()
   playbook.value = playbookService.loadPlaybook()
-  window.$message?.success('Playbook 已重置')
+  window.$message?.success('已恢复默认设置')
 }
 
 function updateRag(field, value) {
@@ -577,50 +646,6 @@ async function loadStats() {
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
-.pb-card {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
-}
-.pb-card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-.pb-input-inline {
-  flex: 1;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 13px;
-  font-weight: 600;
-  background: #fff;
-}
-.pb-input-inline:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-}
-.del-btn {
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: #fee2e2;
-  border-radius: 4px;
-  color: #dc2626;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 8px;
-}
-.del-btn:hover {
-  background: #fecaca;
-}
 .pb-field {
   margin-bottom: 8px;
 }
@@ -763,5 +788,116 @@ async function loadStats() {
 .drawer-enter-from .drawer-panel,
 .drawer-leave-to .drawer-panel {
   transform: translateX(100%);
+}
+
+.section-desc {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.pb-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+.toggle-icon {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.add-btn {
+  margin: 6px 0 8px;
+}
+
+.acc-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.acc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s;
+}
+.acc-head:hover {
+  background: #f3f4f6;
+}
+.acc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.acc-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.acc-arrow {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.del-btn-sm {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.del-btn-sm:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.acc-body {
+  padding: 0 12px 12px;
+}
+.sev-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.sev-dot.high {
+  background: #ef4444;
+}
+.sev-dot.medium {
+  background: #eab308;
+}
+.sev-dot.low {
+  background: #22c55e;
+}
+
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+.collapse-enter-from,
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+.collapse-enter-to,
+.collapse-leave-from {
+  opacity: 1;
+  max-height: 800px;
 }
 </style>
