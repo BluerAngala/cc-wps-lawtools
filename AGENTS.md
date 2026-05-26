@@ -38,8 +38,9 @@ wpsjs debug -c                    # 还原测试环境
 wpsjs stop                        # 停止调试
 
 # ========== 打包发布 ==========
-wpsjs build                       # 打包 WPS 加载项
-wpsjs build --exe                 # 打包成 exe（仅 Windows）
+npm run pack                      # NSIS 安装包（一键：Vite 构建 + NSIS 打包 → wps-addon-build/wps_lawtools_setup.exe）
+wpsjs build                       # 打包 WPS 加载项（散装文件）
+wpsjs build --exe                 # 打包成 7z 自解压 exe（仅 Windows）
 wpsjs publish -s <serverUrl>      # 发布到指定服务器
 wpsjs unpublish                   # 取消发布
 

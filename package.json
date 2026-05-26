@@ -10,7 +10,8 @@
 		"preview": "vite preview",
 		"lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
 		"format": "prettier --write src/",
-		"create-templates": "node scripts/create-template-docs.js"
+		"create-templates": "node scripts/create-template-docs.js",
+		"pack": "node scripts/pack.js"
 	},
 	"dependencies": {
 		"@vicons/ionicons5": "^0.13.0",
