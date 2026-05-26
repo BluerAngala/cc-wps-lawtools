@@ -38,7 +38,7 @@ wpsjs debug -c                    # 还原测试环境
 wpsjs stop                        # 停止调试
 
 # ========== 打包发布 ==========
-npm run pack                      # NSIS 安装包（一键：Vite 构建 + NSIS 打包 → wps-addon-build/wps_lawtools_setup.exe）
+npm run pack                      # 跨平台打包（一键：Vite 构建 + Windows NSIS + macOS/Linux 安装脚本）
 wpsjs build                       # 打包 WPS 加载项（散装文件）
 wpsjs build --exe                 # 打包成 7z 自解压 exe（仅 Windows）
 wpsjs publish -s <serverUrl>      # 发布到指定服务器
@@ -430,6 +430,57 @@ const data = JSON.parse(storage.getItem('key') || 'null')
 - 必须在 WPS 环境中运行，`window.Application` 才可用
 - **禁止硬编码操作列表/标签**：所有操作信息从 `actionRegistry` 统一获取
 - 新增 action 只需在 `actions/` 目录创建类并在 `index.js` 注册，无需修改其他文件
+
+## 跨平台打包与安装
+
+`npm run pack` 一键生成全部平台的安装文件到 `wps-addon-build/`：
+
+| 产物 | 平台 | 安装方式 |
+|------|------|---------|
+| `wps_lawtools_setup.exe` | Windows | 双击运行 NSIS 安装程序 |
+| `wps_lawtools_mac.zip` | macOS | 解压 → 右键打开 `.app` → 点击"安装" |
+| `install_linux.sh` / `uninstall_linux.sh` | Linux | `bash install_linux.sh` |
+| `publish.xml` | 通用 | 插件注册文件（安装脚本自动处理） |
+
+### macOS 安装包原理
+
+macOS `.app` 本质是一个特殊目录结构，双击即可执行：
+
+```
+Install WPS LawTools.app/
+  Contents/
+    Info.plist          ← 应用元数据（CFBundleExecutable 指向 install 脚本）
+    MacOS/
+      install           ← 安装脚本（0755 权限，使用 osascript 弹出原生 GUI 对话框）
+    Resources/
+      dist/             ← Vite 构建产物（HTML/JS/CSS/manifest.xml/ribbon.xml）
+```
+
+安装流程：用户双击 `.app` → macOS 执行 `MacOS/install` → 检测 WPS → `osascript` 弹出确认对话框 → 复制文件到 jsaddons → 生成/更新 `publish.xml` → 弹出成功提示
+
+> **注意**：因为 `.app` 未签名，首次打开需右键 → 选择"打开"。zip 中附带 `安装说明.txt` 引导用户。
+
+### 各平台加载项安装路径
+
+| 平台 | 路径 |
+|------|------|
+| Windows | `%APPDATA%\kingsoft\wps\jsaddons\` |
+| macOS | `~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/` |
+| Linux | `~/.local/share/Kingsoft/wps/jsaddons/` |
+
+### macOS 限制
+
+- macOS 不支持 58890 端口在线安装（`wpsjs debug` 不可用）
+- 需通过 `.app` 安装程序或手动将文件复制到沙盒目录
+- 安装后需重启 WPS Office 方可加载插件
+
+### 打包依赖
+
+| 平台 | 依赖 | 安装方式 |
+|------|------|---------|
+| Windows | NSIS (makensis) | `scoop install nsis` |
+| macOS | archiver (npm) | `npm install` 自动安装 |
+| Linux | 无额外依赖 | — |
 
 ## 官方文档链接
 
