@@ -1,13 +1,25 @@
 <template>
   <div class="relative">
-    <div v-if="isProcessing" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded">
+    <div
+      v-if="isProcessing"
+      class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded"
+    >
       <n-spin size="large" />
       <div class="mt-3 text-sm font-medium text-gray-600">{{ progressText }}</div>
-      <n-progress class="w-48 mt-2" type="line" status="info" :percentage="100" :show-indicator="false" :processing="true" />
+      <n-progress
+        class="w-48 mt-2"
+        type="line"
+        status="info"
+        :percentage="100"
+        :show-indicator="false"
+        :processing="true"
+      />
     </div>
 
     <n-space vertical :size="8">
-      <div class="text-xs text-blue-500">AI 根据合同类型自动生成审查清单，执行审查后生成修改建议</div>
+      <div class="text-xs text-blue-500">
+        AI 根据合同类型自动生成审查清单，执行审查后生成修改建议
+      </div>
 
       <div v-if="pageState === 'idle'">
         <div class="text-sm font-semibold mb-2">审查视角</div>
@@ -24,7 +36,9 @@
             <n-radio value="custom">自定义视角</n-radio>
           </n-space>
         </n-radio-group>
-        <div v-if="perspective !== 'custom'" class="text-xs text-gray-500 mt-1">{{ perspectiveDescription }}</div>
+        <div v-if="perspective !== 'custom'" class="text-xs text-gray-500 mt-1">
+          {{ perspectiveDescription }}
+        </div>
         <n-input
           v-if="perspective === 'custom'"
           v-model:value="customPerspective"
@@ -45,7 +59,9 @@
         <div class="flex items-center justify-between mb-2">
           <n-space align="center" :size="8">
             <span class="text-sm font-semibold">📋 审查清单</span>
-            <n-tag size="small" type="info">{{ selectedChecklistCount }}/{{ checklist.length }} 项已选</n-tag>
+            <n-tag size="small" type="info"
+              >{{ selectedChecklistCount }}/{{ checklist.length }} 项已选</n-tag
+            >
           </n-space>
           <n-space v-if="pageState === 'ready'" :size="4">
             <n-button size="tiny" @click="selectAllChecklist">全选</n-button>
@@ -67,7 +83,11 @@
                 @update:checked="toggleChecklistItem(item.id, $event)"
                 @click.stop
               />
-              <span class="text-sm" :class="{ 'text-gray-400': !item.selected && pageState === 'ready' }">{{ item.name }}</span>
+              <span
+                class="text-sm"
+                :class="{ 'text-gray-400': !item.selected && pageState === 'ready' }"
+                >{{ item.name }}</span
+              >
               <n-tag v-if="item.required" type="error" size="tiny">必需</n-tag>
             </div>
             <div v-if="expandedId === item.id" class="mt-2 pl-5 pb-2">
@@ -101,14 +121,16 @@
             <div class="text-xs text-gray-500">待处理</div>
           </div>
           <div class="bg-red-50 rounded p-2">
-            <div class="text-base font-bold text-red-600">{{ reviewResult.summary?.totalIssues || 0 }}</div>
+            <div class="text-base font-bold text-red-600">
+              {{ reviewResult.summary?.totalIssues || 0 }}
+            </div>
             <div class="text-xs text-gray-500">问题总数</div>
           </div>
         </div>
 
         <div class="space-y-1">
           <div
-            v-for="item in checklist.filter(i => i.selected)"
+            v-for="item in checklist.filter((i) => i.selected)"
             :key="item.id"
             class="border border-gray-200 rounded px-2 py-1"
           >
@@ -123,8 +145,12 @@
               </n-tag>
             </div>
             <div v-if="expandedId === item.id" class="mt-2 pl-5 pb-2 space-y-2">
-              <div v-if="item.reviewRequirements" class="text-xs text-gray-500 bg-blue-50 p-2 rounded">
-                <span class="font-medium text-blue-600">审查要点：</span>{{ item.reviewRequirements }}
+              <div
+                v-if="item.reviewRequirements"
+                class="text-xs text-gray-500 bg-blue-50 p-2 rounded"
+              >
+                <span class="font-medium text-blue-600">审查要点：</span
+                >{{ item.reviewRequirements }}
               </div>
               <div v-if="item.reviewBasis" class="text-xs text-gray-500">
                 <span class="font-medium">法律依据：</span>{{ item.reviewBasis }}
@@ -161,7 +187,18 @@
 
 <script setup>
 import { computed } from 'vue'
-import { NSpace, NRadioGroup, NRadio, NTag, NInput, NButton, NCheckbox, NSpin, NProgress, NEmpty } from 'naive-ui'
+import {
+  NSpace,
+  NRadioGroup,
+  NRadio,
+  NTag,
+  NInput,
+  NButton,
+  NCheckbox,
+  NSpin,
+  NProgress,
+  NEmpty
+} from 'naive-ui'
 import { useContractReview } from '../composables/useContractReview.js'
 
 defineProps({
@@ -171,14 +208,34 @@ defineProps({
 const emit = defineEmits(['stateChange'])
 
 const {
-  pageState, progressText, perspective, customPerspective, documentType,
-  checklist, reviewResult, expandedId,
-  perspectiveDescription, perspectiveLabel, selectedChecklistCount,
-  passedCount, failedCount, selectedSuggestionCount, isProcessing,
-  toggleExpand, getItemIssues, getSuggestionByIssue, toggleSuggestionByIssue,
-  getSeverityColor, getSeverityText, toggleChecklistItem,
-  selectAllChecklist, selectRequiredChecklist, handleApplyModifications,
-  handleGenerateChecklist, handleStartReview, handleReset
+  pageState,
+  progressText,
+  perspective,
+  customPerspective,
+  documentType,
+  checklist,
+  reviewResult,
+  expandedId,
+  perspectiveDescription,
+  perspectiveLabel,
+  selectedChecklistCount,
+  passedCount,
+  failedCount,
+  selectedSuggestionCount,
+  isProcessing,
+  toggleExpand,
+  getItemIssues,
+  getSuggestionByIssue,
+  toggleSuggestionByIssue,
+  getSeverityColor,
+  getSeverityText,
+  toggleChecklistItem,
+  selectAllChecklist,
+  selectRequiredChecklist,
+  handleApplyModifications,
+  handleGenerateChecklist,
+  handleStartReview,
+  handleReset
 } = useContractReview()
 
 const triggerExecute = () => {

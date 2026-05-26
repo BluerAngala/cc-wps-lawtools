@@ -38,14 +38,11 @@ export class SubmitKdocsAction extends BaseAction {
 
         this.emitProgress(params, '提交成功', `合同编号: ${result.审查编号}`)
 
-        return createSuccessResult(
-          `提交成功，合同编号: ${result.审查编号}`,
-          {
-            contractNumber: result.审查编号,
-            kdocsRecord: result.data,
-            headerAdded: result.headerAdded
-          }
-        )
+        return createSuccessResult(`提交成功，合同编号: ${result.审查编号}`, {
+          contractNumber: result.审查编号,
+          kdocsRecord: result.data,
+          headerAdded: result.headerAdded
+        })
       } else {
         return createErrorResult(result.message || '提交失败')
       }

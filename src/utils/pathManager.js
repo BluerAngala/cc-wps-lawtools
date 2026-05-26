@@ -11,13 +11,13 @@ class PathManager {
     // 从 package.json 读取项目名称和版本
     this.projectName = 'wps_lawtools'
     this.projectVersion = '1.0.0'
-    
+
     // 项目目录名称: 项目名称_版本号
     this.projectDirName = `${this.projectName}_${this.projectVersion}`
-    
+
     // 基础路径: /kingsoft/wps/jsaddons
     this.basePathSegment = '/kingsoft/wps/jsaddons'
-    
+
     unifiedLogger.info('PathManager 已初始化', {
       projectName: this.projectName,
       projectVersion: this.projectVersion,
@@ -29,10 +29,12 @@ class PathManager {
    * 检查 WPS 环境
    */
   isWPSAvailable() {
-    return typeof window !== 'undefined' && 
-           typeof window.Application !== 'undefined' &&
-           typeof window.Application.FileSystem !== 'undefined' &&
-           typeof window.Application.Env !== 'undefined'
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.Application !== 'undefined' &&
+      typeof window.Application.FileSystem !== 'undefined' &&
+      typeof window.Application.Env !== 'undefined'
+    )
   }
 
   /**
@@ -47,7 +49,7 @@ class PathManager {
 
     try {
       const appDataPath = window.Application.Env.GetAppDataPath()
-      
+
       if (!appDataPath) {
         unifiedLogger.error('无法获取应用数据路径', {
           method: 'GetAppDataPath()'
@@ -81,7 +83,8 @@ class PathManager {
     try {
       // 统一使用斜杠
       const normalizedPath = appDataPath.replace(/\\/g, '/')
-      const projectRoot = normalizedPath.replace(/\/+$/, '') + this.basePathSegment + '/' + this.projectDirName
+      const projectRoot =
+        normalizedPath.replace(/\/+$/, '') + this.basePathSegment + '/' + this.projectDirName
 
       unifiedLogger.logPath('info', '项目根目录', {
         appDataPath,
@@ -155,7 +158,7 @@ class PathManager {
   /**
    * 获取项目内置模板的相对路径（用于 HTTP 请求）
    * 这是相对于 Web 服务器根目录的路径
-   * 
+   *
    * 注意：实际使用时，建议直接使用字符串 '/templates'，无需调用此方法
    * 此方法主要用于调试和路径信息查询
    */
@@ -188,7 +191,7 @@ class PathManager {
 
     try {
       const fs = window.Application.FileSystem
-      
+
       // 检查目录是否存在
       if (fs.Exists(dirPath)) {
         return true
@@ -212,7 +215,7 @@ class PathManager {
         })
         return false
       }
-      
+
       // 验证创建成功
       if (fs.Exists(dirPath)) {
         unifiedLogger.logPath('info', '目录已创建', { dirPath })
@@ -301,7 +304,9 @@ class PathManager {
         templatesDir: info.templatesDir ? fs.Exists(info.templatesDir) : false,
         cacheDir: info.cacheDir ? fs.Exists(info.cacheDir) : false,
         logsDir: info.logsDir ? fs.Exists(info.logsDir) : false,
-        builtInTemplates: info.builtInTemplatesRealPath ? fs.Exists(info.builtInTemplatesRealPath) : false
+        builtInTemplates: info.builtInTemplatesRealPath
+          ? fs.Exists(info.builtInTemplatesRealPath)
+          : false
       }
       info.fileExists = {
         configFile: info.configFilePath ? fs.Exists(info.configFilePath) : false,
@@ -315,4 +320,3 @@ class PathManager {
 
 // 创建单例
 export const pathManager = new PathManager()
-

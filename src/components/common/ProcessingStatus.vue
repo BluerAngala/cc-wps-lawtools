@@ -5,15 +5,8 @@
         <n-spin size="small" />
         <span class="text-sm font-semibold">{{ stage }}</span>
       </div>
-      <n-progress 
-        v-if="showProgress" 
-        :percentage="percentage" 
-        type="line" 
-        status="info" 
-      />
-      <div v-if="showProgress" class="text-xs text-gray-500">
-        进度: {{ current }} / {{ total }}
-      </div>
+      <n-progress v-if="showProgress" :percentage="percentage" type="line" status="info" />
+      <div v-if="showProgress" class="text-xs text-gray-500">进度: {{ current }} / {{ total }}</div>
     </n-space>
   </div>
 </template>

@@ -213,9 +213,9 @@ export class BatchProcessor {
       const summary = {
         success: !this.shouldStop,
         total: tasks.length,
-        completed: this.results.filter(r => r.status === BatchTaskStatus.SUCCESS).length,
-        failed: this.results.filter(r => r.status === BatchTaskStatus.FAILED).length,
-        skipped: this.results.filter(r => r.status === BatchTaskStatus.SKIPPED).length,
+        completed: this.results.filter((r) => r.status === BatchTaskStatus.SUCCESS).length,
+        failed: this.results.filter((r) => r.status === BatchTaskStatus.FAILED).length,
+        skipped: this.results.filter((r) => r.status === BatchTaskStatus.SKIPPED).length,
         duration: endTime - startTime,
         results: this.results
       }
@@ -457,7 +457,7 @@ export class BatchProcessor {
    * @returns {Promise<void>}
    */
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
   /**
@@ -483,4 +483,3 @@ export class BatchProcessor {
 
 // 创建默认实例
 export const batchProcessor = new BatchProcessor()
- 

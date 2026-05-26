@@ -145,7 +145,15 @@ export class TaskScheduler {
 
       // 设置任务超时
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`任务执行超时(${this.config.taskTimeout}ms)，请检查网络连接或在设置中增加超时时间`)), this.config.taskTimeout)
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                `任务执行超时(${this.config.taskTimeout}ms)，请检查网络连接或在设置中增加超时时间`
+              )
+            ),
+          this.config.taskTimeout
+        )
       })
 
       // 执行任务
@@ -220,13 +228,13 @@ export class TaskScheduler {
         const reviewRules = options.reviewRules || ''
         const reviewRequirements = options.reviewRequirements || ''
         const actionType = options.actionType || 'comment'
-        
+
         // 生成提示词
         const prompt = generateContractReviewPrompt(reviewRules, reviewRequirements, actionType)
-        
+
         // 调用AI服务
         const response = await this.callAI(prompt, options)
-        
+
         // 解析响应
         return this.parseAIResponse(response, 'contractReview')
       }
@@ -301,8 +309,14 @@ export class TaskScheduler {
       case 'extractText': {
         // extractTags 应该是第一个参数，content 是第二个参数
         const extractTags = options.extractTags || [
-          '合同名称', '对接人', '甲方', '甲方主体信息', 
-          '乙方', '乙方主体信息', '其他方', '合同金额'
+          '合同名称',
+          '对接人',
+          '甲方',
+          '甲方主体信息',
+          '乙方',
+          '乙方主体信息',
+          '其他方',
+          '合同金额'
         ]
         return generateContractExtractionPrompt(extractTags, content)
       }
@@ -311,7 +325,10 @@ export class TaskScheduler {
         const reviewRules = options.reviewRules || ''
         const reviewRequirements = options.reviewRequirements || ''
         const actionType = options.actionType || 'comment'
-        return generateContractReviewPrompt(reviewRules, reviewRequirements, actionType).replace('{{input}}', content)
+        return generateContractReviewPrompt(reviewRules, reviewRequirements, actionType).replace(
+          '{{input}}',
+          content
+        )
       }
       default:
         return `请分析以下内容：\n\n${content}`
@@ -346,16 +363,18 @@ export class TaskScheduler {
     }
 
     const promptLength = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0)
-    console.log(`准备调用AI - 模型: ${model}, Messages数量: ${messages.length}, 总长度: ${promptLength}字符`)
+    console.log(
+      `准备调用AI - 模型: ${model}, Messages数量: ${messages.length}, 总长度: ${promptLength}字符`
+    )
 
     for (let attempt = 0; attempt < this.aiConfig.maxRetries; attempt++) {
       try {
         console.log(`AI调用尝试 ${attempt + 1}/${this.aiConfig.maxRetries}`)
-        
+
         // 获取最新的超时配置（每次调用时重新读取，确保使用最新配置）
         const currentConfig = appConfig.getAIConfig()
         const requestTimeout = options.timeout || currentConfig.timeout || 120000
-        
+
         // 创建临时axios实例，使用最新的超时配置
         const tempClient = axios.create({
           baseURL: currentConfig.baseUrl,
@@ -365,7 +384,7 @@ export class TaskScheduler {
             Authorization: `Bearer ${currentConfig.apiKey}`
           }
         })
-        
+
         // 构建请求体
         const requestBody = {
           model,
@@ -378,19 +397,22 @@ export class TaskScheduler {
         if (options.response_format) {
           requestBody.response_format = options.response_format
         }
-        
+
         const response = await tempClient.post('/chat/completions', requestBody)
 
         console.log('AI调用成功，响应长度:', response.data.choices[0].message.content.length)
         return response.data.choices[0].message.content
       } catch (error) {
-        console.error(`AI调用失败 (尝试 ${attempt + 1}/${this.aiConfig.maxRetries}):`, error.message)
-        
+        console.error(
+          `AI调用失败 (尝试 ${attempt + 1}/${this.aiConfig.maxRetries}):`,
+          error.message
+        )
+
         // 如果是配置错误或权限错误，不重试直接抛出
         if (error.message.includes('API 密钥') || error.message.includes('权限')) {
           throw error
         }
-        
+
         if (attempt < this.aiConfig.maxRetries - 1) {
           const delay = this.aiConfig.retryDelay * (attempt + 1)
           console.log(`${delay}ms后重试...`)

@@ -16,7 +16,8 @@ export class JSONLParser {
   constructor(options = {}) {
     this.buffer = '' // 数据缓冲区
     this.onLine = options.onLine || (() => {})
-    this.onError = options.onError || ((msg) => unifiedLogger.warn('JSONL解析警告', { message: msg }))
+    this.onError =
+      options.onError || ((msg) => unifiedLogger.warn('JSONL解析警告', { message: msg }))
     this.lineCount = 0 // 已解析的行数
   }
 

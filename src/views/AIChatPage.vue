@@ -4,6 +4,7 @@
       :doc-info="docInfo"
       @refresh-doc="refreshDoc"
       @clear="clearChat"
+      @toggle-settings="showSettings = !showSettings"
     />
 
     <div ref="messagesArea" class="messages-area" @scroll="onScroll">
@@ -15,12 +16,7 @@
       />
 
       <TransitionGroup name="msg">
-        <div
-          v-for="(msg, mIdx) in messages"
-          :key="msg.id"
-          class="msg-row"
-          :class="msg.role"
-        >
+        <div v-for="(msg, mIdx) in messages" :key="msg.id" class="msg-row" :class="msg.role">
           <div class="msg-avatar" :class="msg.role">
             <span v-if="msg.role === 'user'">👤</span>
             <span v-else>⚖️</span>
@@ -43,7 +39,13 @@
               <div v-if="msg.executableActions.length" class="action-list">
                 <div class="al-header">
                   <span class="al-title">操作建议 ({{ msg.executableActions.length }})</span>
-                  <button class="al-apply-all" @click="handleApplyAll(mIdx)" v-if="hasUnapplied(msg)">全部应用</button>
+                  <button
+                    class="al-apply-all"
+                    @click="handleApplyAll(mIdx)"
+                    v-if="hasUnapplied(msg)"
+                  >
+                    全部应用
+                  </button>
                 </div>
                 <ActionCard
                   v-for="(act, aIdx) in msg.executableActions"
@@ -76,6 +78,8 @@
       @keydown="onInputKeydown"
       @select-command="selectCommand"
     />
+
+    <ChatSettings :visible="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
@@ -86,6 +90,7 @@ import { chatService } from '@/services/ai/chatService.js'
 import { playbookService } from '@/services/ai/playbookService.js'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
+import ChatSettings from '@/components/chat/ChatSettings.vue'
 import EmptyState from '@/components/chat/EmptyState.vue'
 import ActionCard from '@/components/chat/ActionCard.vue'
 import RiskMatrix from '@/components/chat/RiskMatrix.vue'
@@ -93,10 +98,13 @@ import TriageCard from '@/components/chat/TriageCard.vue'
 import CompareView from '@/components/chat/CompareView.vue'
 
 let msgIdCounter = 0
-function nextId() { return ++msgIdCounter }
+function nextId() {
+  return ++msgIdCounter
+}
 
 const messages = ref([])
 const inputText = ref('')
+const showSettings = ref(false)
 const isLoading = ref(false)
 const streamingText = ref('')
 const streamingStatus = ref('')
@@ -133,23 +141,25 @@ function renderMd(text) {
   try {
     const clean = text.replace(/```action\s*[\s\S]*?```/g, '')
     return marked.parse(clean)
-  } catch { return text }
+  } catch {
+    return text
+  }
 }
 
 function getRiskAction(msg) {
-  return msg.actions?.find(a => a.type === 'risk')
+  return msg.actions?.find((a) => a.type === 'risk')
 }
 
 function getTriageAction(msg) {
-  return msg.actions?.find(a => a.type === 'triage')
+  return msg.actions?.find((a) => a.type === 'triage')
 }
 
 function getCompareAction(msg) {
-  return msg.actions?.find(a => a.type === 'compare')
+  return msg.actions?.find((a) => a.type === 'compare')
 }
 
 function hasUnapplied(msg) {
-  return msg.executableActions?.some(a => !a._applied && !a._failed && !a._rejected)
+  return msg.executableActions?.some((a) => !a._applied && !a._failed && !a._rejected)
 }
 
 function refreshDoc() {
@@ -190,8 +200,15 @@ function scrollToBottom(force = false) {
 
 function detectMode(text) {
   const t = text.trim().toLowerCase()
-  if (t.startsWith('/保密') || t.includes('nda分流') || t.includes('nda审查') || t.includes('保密协议分流')) return 'triage-nda'
-  if (t.startsWith('/风险') || t.includes('风险评估') || t.includes('风险矩阵')) return 'risk-assessment'
+  if (
+    t.startsWith('/保密') ||
+    t.includes('nda分流') ||
+    t.includes('nda审查') ||
+    t.includes('保密协议分流')
+  )
+    return 'triage-nda'
+  if (t.startsWith('/风险') || t.includes('风险评估') || t.includes('风险矩阵'))
+    return 'risk-assessment'
   if (t.startsWith('/对比') || t.includes('合同对比') || t.includes('条款对比')) return 'compare'
   if (t.startsWith('/回复') || t.includes('模板回复') || t.includes('回复模板')) return 'respond'
   return 'standard'
@@ -276,7 +293,7 @@ async function handleSend() {
         msgRef.actions = allActions
 
         msgRef.executableActions = allActions.filter(
-          a => a.type === 'comment' || a.type === 'revision'
+          (a) => a.type === 'comment' || a.type === 'revision'
         )
       }
       streamingText.value = ''
@@ -403,8 +420,10 @@ function persistHistory() {
   try {
     const app = window.Application
     if (!app?.PluginStorage) return
-    const data = messages.value.map(m => ({
-      id: m.id, role: m.role, text: m.text,
+    const data = messages.value.map((m) => ({
+      id: m.id,
+      role: m.role,
+      text: m.text,
       actions: m.actions,
       executableActions: m.executableActions
     }))
@@ -423,7 +442,7 @@ function restoreHistory() {
     const data = JSON.parse(raw)
     if (Array.isArray(data)) {
       messages.value = data
-      if (data.length) msgIdCounter = Math.max(...data.map(d => d.id)) + 1
+      if (data.length) msgIdCounter = Math.max(...data.map((d) => d.id)) + 1
     }
   } catch {
     // silent
@@ -446,25 +465,27 @@ onMounted(() => {
 
 <style scoped>
 .chat-root {
-  --c-brand: #0A0A0A;
-  --c-brand-light: #2D2D2D;
-  --c-accent: #E63946;
-  --c-accent-light: #FEE2E2;
-  --c-highlight: #F5C518;
-  --c-highlight-light: #FFF9C4;
+  --c-brand: #0a0a0a;
+  --c-brand-light: #2d2d2d;
+  --c-accent: #e63946;
+  --c-accent-light: #fee2e2;
+  --c-highlight: #f5c518;
+  --c-highlight-light: #fff9c4;
   --c-surface: #ffffff;
-  --c-danger: #DC2626;
+  --c-danger: #dc2626;
   --c-success: #16a34a;
-  --c-text: #0A0A0A;
+  --c-text: #0a0a0a;
   --c-text2: #666666;
-  --c-border: #E0E0E0;
-  --c-bg: #F8F8F8;
+  --c-border: #e0e0e0;
+  --c-bg: #f8f8f8;
   display: flex;
   flex-direction: column;
   height: 100vh;
   background: var(--c-bg);
   color: var(--c-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
 }
 
 .messages-area {
@@ -480,7 +501,9 @@ onMounted(() => {
   margin-bottom: 10px;
   padding: 0 4px;
 }
-.msg-row.user { justify-content: flex-end; }
+.msg-row.user {
+  justify-content: flex-end;
+}
 
 .msg-avatar {
   width: 26px;
@@ -492,11 +515,21 @@ onMounted(() => {
   font-size: 13px;
   flex-shrink: 0;
 }
-.msg-avatar.user { background: var(--c-accent-light); }
-.msg-avatar.assistant { background: var(--c-highlight-light); }
+.msg-avatar.user {
+  background: var(--c-accent-light);
+}
+.msg-avatar.assistant {
+  background: var(--c-highlight-light);
+}
 
-.msg-body { max-width: 90%; min-width: 60px; }
-.msg-body.user { display: flex; justify-content: flex-end; }
+.msg-body {
+  max-width: 90%;
+  min-width: 60px;
+}
+.msg-body.user {
+  display: flex;
+  justify-content: flex-end;
+}
 
 .msg-bubble {
   padding: 8px 10px;
@@ -506,7 +539,7 @@ onMounted(() => {
   word-break: break-word;
 }
 .msg-bubble.user {
-  background: linear-gradient(135deg, #E63946, #C62828);
+  background: linear-gradient(135deg, #e63946, #c62828);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -516,81 +549,198 @@ onMounted(() => {
   border-top-left-radius: 4px;
 }
 
-.md-content :deep(h1) { font-size: 16px; font-weight: 700; margin: 8px 0 4px; }
-.md-content :deep(h2) { font-size: 15px; font-weight: 700; margin: 8px 0 4px; }
-.md-content :deep(h3) { font-size: 14px; font-weight: 600; margin: 6px 0 3px; }
-.md-content :deep(p) { margin: 6px 0; line-height: 1.8; letter-spacing: 0.3px; }
-.md-content :deep(ul), .md-content :deep(ol) { padding-left: 18px; margin: 4px 0; line-height: 1.8; letter-spacing: 0.3px; }
+.md-content :deep(h1) {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.md-content :deep(h2) {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+.md-content :deep(h3) {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 6px 0 3px;
+}
+.md-content :deep(p) {
+  margin: 6px 0;
+  line-height: 1.8;
+  letter-spacing: 0.3px;
+}
+.md-content :deep(ul),
+.md-content :deep(ol) {
+  padding-left: 18px;
+  margin: 4px 0;
+  line-height: 1.8;
+  letter-spacing: 0.3px;
+}
 .md-content :deep(table) {
-  width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 12px;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 12px;
 }
-.md-content :deep(th), .md-content :deep(td) {
-  border: 1px solid var(--c-border); padding: 4px 6px; text-align: left;
+.md-content :deep(th),
+.md-content :deep(td) {
+  border: 1px solid var(--c-border);
+  padding: 4px 6px;
+  text-align: left;
 }
-.md-content :deep(th) { background: #f5f5f5; font-weight: 600; }
+.md-content :deep(th) {
+  background: #f5f5f5;
+  font-weight: 600;
+}
 .md-content :deep(code) {
-  background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 12px;
+  background: #f0f0f0;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
   color: #c62828;
 }
 .md-content :deep(pre) {
-  background: #f5f5f5; color: #1a1a1a; padding: 10px 12px;
-  border-radius: 8px; overflow-x: auto; font-size: 12px; margin: 8px 0;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  padding: 10px 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 12px;
+  margin: 8px 0;
   border: 1px solid #e0e0e0;
 }
 .md-content :deep(pre code) {
-  background: none; color: inherit; padding: 0; font-size: inherit;
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
 }
 .md-content :deep(blockquote) {
-  border-left: 3px solid var(--c-accent); padding-left: 10px; margin: 6px 0;
-  color: var(--c-text2); font-style: italic;
+  border-left: 3px solid var(--c-accent);
+  padding-left: 10px;
+  margin: 6px 0;
+  color: var(--c-text2);
+  font-style: italic;
 }
-.md-content :deep(hr) { border: none; border-top: 1px solid var(--c-border); margin: 8px 0; }
+.md-content :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--c-border);
+  margin: 8px 0;
+}
 
 .status-pill {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--c-accent); margin-bottom: 6px;
-  padding: 2px 8px; background: var(--c-accent-light); border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--c-accent);
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  background: var(--c-accent-light);
+  border-radius: 10px;
 }
 .sp-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--c-accent); animation: pulse 1s infinite;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-accent);
+  animation: pulse 1s infinite;
 }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
 
 .blink-cursor {
-  display: inline-block; width: 2px; height: 14px;
-  background: var(--c-accent); margin-left: 2px;
-  animation: blink 0.8s step-end infinite; vertical-align: middle;
+  display: inline-block;
+  width: 2px;
+  height: 14px;
+  background: var(--c-accent);
+  margin-left: 2px;
+  animation: blink 0.8s step-end infinite;
+  vertical-align: middle;
 }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
 
-.loading-bar { height: 2px; background: var(--c-border); flex-shrink: 0; overflow: hidden; }
+.loading-bar {
+  height: 2px;
+  background: var(--c-border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
 .lb-progress {
-  height: 100%; width: 30%; background: var(--c-accent);
+  height: 100%;
+  width: 30%;
+  background: var(--c-accent);
   animation: lb-slide 1.2s ease infinite;
 }
-@keyframes lb-slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(400%)} }
+@keyframes lb-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
 
 .action-list {
-  margin-top: 8px; padding-top: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--c-border);
 }
 .al-header {
-  display: flex; justify-content: space-between; align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 6px;
 }
-.al-title { font-size: 12px; font-weight: 600; color: var(--c-text2); }
-.al-apply-all {
-  font-size: 11px; font-weight: 500; color: var(--c-accent);
-  background: var(--c-accent-light); border: none; border-radius: 4px;
-  padding: 2px 8px; cursor: pointer; transition: all 0.15s;
+.al-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text2);
 }
-.al-apply-all:hover { background: #fecaca; }
+.al-apply-all {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--c-accent);
+  background: var(--c-accent-light);
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.al-apply-all:hover {
+  background: #fecaca;
+}
 
-.msg-enter-active { animation: msg-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.msg-leave-active { animation: msg-in 0.2s ease reverse; }
+.msg-enter-active {
+  animation: msg-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.msg-leave-active {
+  animation: msg-in 0.2s ease reverse;
+}
 @keyframes msg-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 </style>

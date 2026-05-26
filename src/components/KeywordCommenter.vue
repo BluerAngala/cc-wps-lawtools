@@ -1,10 +1,20 @@
 <template>
   <div class="relative">
     <!-- 执行中遮罩 -->
-    <div v-if="processing" class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded">
+    <div
+      v-if="processing"
+      class="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded"
+    >
       <n-spin size="large" />
       <div class="mt-3 text-sm font-medium text-gray-600">正在处理关键词...</div>
-      <n-progress class="w-48 mt-2" type="line" status="info" :percentage="100" :show-indicator="false" :processing="true" />
+      <n-progress
+        class="w-48 mt-2"
+        type="line"
+        status="info"
+        :percentage="100"
+        :show-indicator="false"
+        :processing="true"
+      />
     </div>
 
     <n-space vertical :size="8">
@@ -24,11 +34,7 @@
       />
 
       <!-- 配置表单 -->
-      <ConfigForm
-        :config="configForm"
-        mode="keyword"
-        @update-config="handleConfigUpdate"
-      />
+      <ConfigForm :config="configForm" mode="keyword" @update-config="handleConfigUpdate" />
     </n-space>
   </div>
 </template>
@@ -69,7 +75,7 @@ const loadSchemes = () => {
   activeSchemeId.value = data.activeSchemeId
 
   // 加载当前方案的规则
-  const activeScheme = data.schemes.find(s => s.id === data.activeSchemeId)
+  const activeScheme = data.schemes.find((s) => s.id === data.activeSchemeId)
   if (activeScheme) {
     configForm.keywordList.value = activeScheme.rules || []
   }
@@ -80,7 +86,7 @@ const handleSchemeChange = (schemeId) => {
   activeSchemeId.value = schemeId
   appConfig.setActiveScheme('keyword', schemeId)
 
-  const scheme = schemes.value.find(s => s.id === schemeId)
+  const scheme = schemes.value.find((s) => s.id === schemeId)
   if (scheme) {
     configForm.keywordList.value = scheme.rules || []
     emit('update-config', { keywordList: scheme.rules || [] })

@@ -16,16 +16,16 @@ class AIWorkflowGenerator {
    */
   getAvailableActions() {
     const actions = actionRegistry.list()
-    return actions.map(action => {
+    return actions.map((action) => {
       const schema = action.getSchema()
       const params = {}
-      
+
       // 提取参数信息
       if (schema.properties) {
         Object.entries(schema.properties).forEach(([key, prop]) => {
           // 跳过 function 类型
           if (prop.type === 'function') return
-          
+
           params[key] = {
             type: prop.type,
             title: prop.title || key,
@@ -36,7 +36,7 @@ class AIWorkflowGenerator {
           }
         })
       }
-      
+
       return {
         type: action.type,
         name: action.name,
@@ -55,30 +55,32 @@ class AIWorkflowGenerator {
    */
   buildPrompt(userInput) {
     const actions = this.getAvailableActions()
-    
+
     // 构建操作列表描述
-    const actionsDescription = actions.map(action => {
-      let desc = `- **${action.type}** (${action.name}): ${action.description}`
-      
-      // 添加参数说明
-      const paramKeys = Object.keys(action.params)
-      if (paramKeys.length > 0) {
-        const paramDescs = paramKeys.map(key => {
-          const p = action.params[key]
-          let paramStr = `    - ${key}: ${p.title}`
-          if (p.enum) {
-            paramStr += ` (可选值: ${p.enum.join(', ')})`
-          }
-          if (p.default !== undefined) {
-            paramStr += ` [默认: ${p.default}]`
-          }
-          return paramStr
-        })
-        desc += '\n  参数:\n' + paramDescs.join('\n')
-      }
-      
-      return desc
-    }).join('\n\n')
+    const actionsDescription = actions
+      .map((action) => {
+        let desc = `- **${action.type}** (${action.name}): ${action.description}`
+
+        // 添加参数说明
+        const paramKeys = Object.keys(action.params)
+        if (paramKeys.length > 0) {
+          const paramDescs = paramKeys.map((key) => {
+            const p = action.params[key]
+            let paramStr = `    - ${key}: ${p.title}`
+            if (p.enum) {
+              paramStr += ` (可选值: ${p.enum.join(', ')})`
+            }
+            if (p.default !== undefined) {
+              paramStr += ` [默认: ${p.default}]`
+            }
+            return paramStr
+          })
+          desc += '\n  参数:\n' + paramDescs.join('\n')
+        }
+
+        return desc
+      })
+      .join('\n\n')
 
     return `你是一个工作流配置助手。根据用户的自然语言描述，生成对应的工作流步骤配置。
 
@@ -127,20 +129,20 @@ ${userInput}`
   parseResponse(response) {
     // 尝试提取 JSON
     let jsonStr = response.trim()
-    
+
     // 移除可能的 markdown 代码块标记
     const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/)
     if (jsonMatch) {
       jsonStr = jsonMatch[1].trim()
     }
-    
+
     try {
       const result = JSON.parse(jsonStr)
-      
+
       if (!result.steps || !Array.isArray(result.steps)) {
         throw new Error('响应格式错误：缺少 steps 数组')
       }
-      
+
       return result
     } catch (error) {
       console.error('解析 AI 响应失败:', error, '原始响应:', response)
@@ -157,43 +159,47 @@ ${userInput}`
     const errors = []
     const warnings = []
     const validSteps = []
-    
+
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i]
       const stepNum = i + 1
-      
+
       // 检查 actionType 是否存在
       if (!step.actionType) {
         errors.push(`步骤 ${stepNum}: 缺少 actionType`)
         continue
       }
-      
+
       const action = actionRegistry.get(step.actionType)
       if (!action) {
         errors.push(`步骤 ${stepNum}: 未知的操作类型 "${step.actionType}"`)
         continue
       }
-      
+
       // 验证参数
       const schema = action.getSchema()
       const params = step.params || {}
-      
+
       // 检查必填参数
       if (schema.required) {
         for (const field of schema.required) {
           if (params[field] === undefined || params[field] === null || params[field] === '') {
             const prop = schema.properties?.[field]
-            warnings.push(`步骤 ${stepNum} (${action.name}): 缺少必填参数 "${prop?.title || field}"，将使用默认值`)
+            warnings.push(
+              `步骤 ${stepNum} (${action.name}): 缺少必填参数 "${prop?.title || field}"，将使用默认值`
+            )
           }
         }
       }
-      
+
       // 验证枚举值
       if (schema.properties) {
         for (const [key, prop] of Object.entries(schema.properties)) {
           if (prop.enum && params[key] !== undefined) {
             if (!prop.enum.includes(params[key])) {
-              warnings.push(`步骤 ${stepNum} (${action.name}): 参数 "${key}" 的值 "${params[key]}" 不在允许范围内，将使用默认值`)
+              warnings.push(
+                `步骤 ${stepNum} (${action.name}): 参数 "${key}" 的值 "${params[key]}" 不在允许范围内，将使用默认值`
+              )
               // 使用默认值
               if (prop.default !== undefined) {
                 params[key] = prop.default
@@ -204,7 +210,7 @@ ${userInput}`
           }
         }
       }
-      
+
       // 补充默认参数
       if (schema.properties) {
         for (const [key, prop] of Object.entries(schema.properties)) {
@@ -213,14 +219,14 @@ ${userInput}`
           }
         }
       }
-      
+
       validSteps.push({
         actionType: step.actionType,
         name: step.name || action.name,
         params
       })
     }
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -240,34 +246,32 @@ ${userInput}`
     if (!userInput || !userInput.trim()) {
       throw new Error('请输入工作流描述')
     }
-    
+
     const { onProgress } = options
-    
+
     try {
       // 构建提示词
       if (onProgress) onProgress({ stage: '正在分析需求...' })
       const prompt = this.buildPrompt(userInput.trim())
-      
+
       // 调用 AI
       if (onProgress) onProgress({ stage: '正在生成工作流...' })
       const response = await nonStreamChatCompletions({
-        messages: [
-          { role: 'user', content: prompt }
-        ],
+        messages: [{ role: 'user', content: prompt }],
         options: {
           temperature: 0.1,
           maxTokens: 2000
         }
       })
-      
+
       // 解析响应
       if (onProgress) onProgress({ stage: '正在解析结果...' })
       const parsed = this.parseResponse(response)
-      
+
       // 验证工作流
       if (onProgress) onProgress({ stage: '正在验证配置...' })
       const validation = this.validateWorkflow(parsed.steps)
-      
+
       return {
         steps: validation.validSteps,
         explanation: parsed.explanation || '',

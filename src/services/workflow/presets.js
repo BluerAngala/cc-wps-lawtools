@@ -454,7 +454,7 @@ export function getPresetList(category = null) {
   const presets = Object.values(allPresets)
 
   if (category) {
-    return presets.filter(preset => preset.category === category)
+    return presets.filter((preset) => preset.category === category)
   }
 
   return presets
@@ -466,7 +466,7 @@ export function getPresetList(category = null) {
  * @returns {Object|null} 预设工作流定义
  */
 export function getPresetById(id) {
-  return Object.values(allPresets).find(preset => preset.id === id) || null
+  return Object.values(allPresets).find((preset) => preset.id === id) || null
 }
 
 /**
@@ -486,7 +486,7 @@ export function createWorkflowFromPreset(presetId, overrides = {}) {
     id: overrides.id || `${preset.id}-${Date.now()}`,
     name: overrides.name || preset.name,
     description: overrides.description || preset.description,
-    steps: preset.steps.map(step => ({
+    steps: preset.steps.map((step) => ({
       ...step,
       params: {
         ...step.params,

@@ -23,8 +23,8 @@ export class DesensitizeAction extends BaseAction {
     if (!text || typeof text !== 'string') return []
     return text
       .split(/[,，\n]/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
   }
 
   async execute(params, context) {
@@ -34,19 +34,21 @@ export class DesensitizeAction extends BaseAction {
         return createErrorResult('无法获取文档内容')
       }
 
-      const whitelist = this.parseTextToArray(params.whitelist) || context.data.scanParams?.whitelist || []
-      const blacklist = this.parseTextToArray(params.blacklist) || context.data.scanParams?.blacklist || []
+      const whitelist =
+        this.parseTextToArray(params.whitelist) || context.data.scanParams?.whitelist || []
+      const blacklist =
+        this.parseTextToArray(params.blacklist) || context.data.scanParams?.blacklist || []
 
       const desensitizer = new Desensitizer({
         whitelist,
-        customSensitiveWords: blacklist.map(word => ({ word, replacement: null }))
+        customSensitiveWords: blacklist.map((word) => ({ word, replacement: null }))
       })
 
       let { desensitizedText, sensitiveInfoList } = desensitizer.desensitizeText(fullText)
 
       const scanTypes = params.scanTypes || context.data.scanParams?.scanTypes || []
       if (scanTypes.length > 0) {
-        sensitiveInfoList = sensitiveInfoList.filter(info => scanTypes.includes(info.type))
+        sensitiveInfoList = sensitiveInfoList.filter((info) => scanTypes.includes(info.type))
       }
 
       if (sensitiveInfoList.length === 0) {
@@ -85,7 +87,7 @@ export class DesensitizeAction extends BaseAction {
       }
 
       const typeStats = {}
-      sensitiveInfoList.forEach(info => {
+      sensitiveInfoList.forEach((info) => {
         typeStats[info.type] = (typeStats[info.type] || 0) + 1
       })
 
@@ -123,7 +125,7 @@ export class DesensitizeAction extends BaseAction {
           type: 'array',
           title: '脱敏类型',
           description: '选择要脱敏的敏感信息类型，不选则脱敏全部',
-          options: SENSITIVE_TYPES.map(type => ({ label: type, value: type })),
+          options: SENSITIVE_TYPES.map((type) => ({ label: type, value: type })),
           default: []
         },
         whitelist: {

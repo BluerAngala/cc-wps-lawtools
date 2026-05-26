@@ -38,21 +38,30 @@ export class ReviewContractAction extends AIBaseAction {
         // 进度回调
         onProgress: (progress) => {
           if (typeof progress === 'object') {
-            const stageText = progress.stage === 'reviewing' 
-              ? `正在审查: ${progress.segmentName || ''}` 
-              : progress.stage === 'segment_complete'
-                ? `已完成: ${progress.segmentName || ''} (${progress.percent || 0}%)`
-                : progress.stage
+            const stageText =
+              progress.stage === 'reviewing'
+                ? `正在审查: ${progress.segmentName || ''}`
+                : progress.stage === 'segment_complete'
+                  ? `已完成: ${progress.segmentName || ''} (${progress.percent || 0}%)`
+                  : progress.stage
             this.emitProgress(params, stageText, progress.content)
           }
         },
         // 发现问题时的回调（流式模式）
         onIssueFound: (info) => {
-          this.emitProgress(params, `发现问题 #${info.totalIssues}: ${info.segment}`, info.issue?.comment?.substring(0, 50))
+          this.emitProgress(
+            params,
+            `发现问题 #${info.totalIssues}: ${info.segment}`,
+            info.issue?.comment?.substring(0, 50)
+          )
         },
         // 发现风险时的回调（流式模式）
         onRiskFound: (info) => {
-          this.emitProgress(params, `发现风险 #${info.totalRisks}`, info.risk?.description?.substring(0, 50))
+          this.emitProgress(
+            params,
+            `发现风险 #${info.totalRisks}`,
+            info.risk?.description?.substring(0, 50)
+          )
         }
       }
 

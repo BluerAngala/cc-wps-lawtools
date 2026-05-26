@@ -31,7 +31,7 @@ export class ContractReviewEngine {
   async review(options = {}) {
     // 重置已应用批注记录（每次审查开始时清空）
     this._appliedComments = new Map()
-    
+
     // 是否使用流式模式（默认启用）
     const useStream = options.stream !== false
 
@@ -57,12 +57,20 @@ export class ContractReviewEngine {
     if (options.contractType && options.contractType.type && options.contractType.type !== '未知') {
       // 已指定合同类型，直接使用（跳过 AI 识别，节省时间）
       contractType = options.contractType
-      unifiedLogger.info('使用指定的合同类型', { contractCategory: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
+      unifiedLogger.info('使用指定的合同类型', {
+        contractCategory: contractType.type,
+        subtype: contractType.subtype,
+        type: 'contract_analysis'
+      })
     } else {
       // 未指定，进行 AI 识别
       unifiedLogger.info('开始识别合同类型', { type: 'contract_analysis' })
       contractType = await this.aiService.identifyContractType(fullText)
-      unifiedLogger.info('识别到合同类型', { contractCategory: contractType.type, subtype: contractType.subtype, type: 'contract_analysis' })
+      unifiedLogger.info('识别到合同类型', {
+        contractCategory: contractType.type,
+        subtype: contractType.subtype,
+        type: 'contract_analysis'
+      })
     }
 
     // 5. 审查策略选择
@@ -79,9 +87,9 @@ export class ContractReviewEngine {
         return await this.reviewBySegmentsStreaming(segments, fullText, contractType, options)
       } catch (error) {
         // 流式失败，自动降级到非流式
-        unifiedLogger.warn('流式审查失败，降级到非流式', { 
-          error: error.message, 
-          type: 'contract_analysis' 
+        unifiedLogger.warn('流式审查失败，降级到非流式', {
+          error: error.message,
+          type: 'contract_analysis'
         })
         return await this.reviewBySegments(segments, fullText, contractType, options)
       }
@@ -129,18 +137,21 @@ export class ContractReviewEngine {
             }
           }
         }
-        
+
         const globalAnalysis = await this.aiService.analyzeGlobal(fullText)
         riskAreas = globalAnalysis.riskAreas || []
         unifiedLogger.info('全局分析完成', { count: riskAreas.length, type: 'contract_analysis' })
-        
+
         // 更新合同类型（如果全局分析返回了更准确的信息）
         if (globalAnalysis.type && globalAnalysis.type !== '未知') {
           contractType.type = globalAnalysis.type
           contractType.subtype = globalAnalysis.subtype || contractType.subtype
         }
       } catch (error) {
-        unifiedLogger.warn('全局分析失败，继续使用分段审查', { error: error.message, type: 'contract_analysis' })
+        unifiedLogger.warn('全局分析失败，继续使用分段审查', {
+          error: error.message,
+          type: 'contract_analysis'
+        })
       }
     }
 
@@ -150,7 +161,10 @@ export class ContractReviewEngine {
 
     // 先审查高风险区域（批量并行，每批3个）
     if (segmentGroups.high.length > 0) {
-      unifiedLogger.info('开始审查高风险区域', { count: segmentGroups.high.length, type: 'contract_analysis' })
+      unifiedLogger.info('开始审查高风险区域', {
+        count: segmentGroups.high.length,
+        type: 'contract_analysis'
+      })
       if (options.onProgress) {
         try {
           options.onProgress({ stage: '审查高风险区域...', current: 0, total: segments.length })
@@ -162,11 +176,25 @@ export class ContractReviewEngine {
       const batchSize = 3
       for (let i = 0; i < segmentGroups.high.length; i += batchSize) {
         const batch = segmentGroups.high.slice(i, i + batchSize)
-        unifiedLogger.info('处理高风险批次', { batchNum: Math.floor(i/batchSize) + 1, totalBatches: Math.ceil(segmentGroups.high.length/batchSize), batchSize: batch.length, type: 'contract_analysis' })
-        
+        unifiedLogger.info('处理高风险批次', {
+          batchNum: Math.floor(i / batchSize) + 1,
+          totalBatches: Math.ceil(segmentGroups.high.length / batchSize),
+          batchSize: batch.length,
+          type: 'contract_analysis'
+        })
+
         const batchResults = await Promise.allSettled(
           batch.map((segment, batchIndex) =>
-            this.reviewSegmentWithProgress(segment, fullText, contractType, reviewedItems, options, checklist, i + batchIndex, segmentGroups.high.length)
+            this.reviewSegmentWithProgress(
+              segment,
+              fullText,
+              contractType,
+              reviewedItems,
+              options,
+              checklist,
+              i + batchIndex,
+              segmentGroups.high.length
+            )
           )
         )
 
@@ -176,7 +204,10 @@ export class ContractReviewEngine {
             this.mergeResults(results, result.value.segmentResult)
             results.segments.push(result.value.segmentInfo)
           } else {
-            unifiedLogger.error('高风险区域审查失败', { reason: result.reason, type: 'contract_analysis' })
+            unifiedLogger.error('高风险区域审查失败', {
+              reason: result.reason,
+              type: 'contract_analysis'
+            })
             results.segments.push({ error: result.reason?.message || '未知错误' })
           }
         })
@@ -184,10 +215,10 @@ export class ContractReviewEngine {
         // 进度回调
         if (options.onProgress) {
           const current = Math.min(i + batchSize, segmentGroups.high.length)
-          options.onProgress({ 
-            stage: '审查高风险区域...', 
-            current, 
-            total: segments.length 
+          options.onProgress({
+            stage: '审查高风险区域...',
+            current,
+            total: segments.length
           })
         }
       }
@@ -196,15 +227,27 @@ export class ContractReviewEngine {
     // 再审查中低风险区域（串行或小批量并行）
     const remainingSegments = [...segmentGroups.medium, ...segmentGroups.low]
     if (remainingSegments.length > 0) {
-      unifiedLogger.info('开始审查中低风险区域', { count: remainingSegments.length, type: 'contract_analysis' })
-      
+      unifiedLogger.info('开始审查中低风险区域', {
+        count: remainingSegments.length,
+        type: 'contract_analysis'
+      })
+
       // 小批量并行（每批3个）
       const batchSize = 3
       for (let i = 0; i < remainingSegments.length; i += batchSize) {
         const batch = remainingSegments.slice(i, i + batchSize)
         const batchResults = await Promise.allSettled(
           batch.map((segment, batchIndex) =>
-            this.reviewSegmentWithProgress(segment, fullText, contractType, reviewedItems, options, checklist, i + batchIndex, remainingSegments.length)
+            this.reviewSegmentWithProgress(
+              segment,
+              fullText,
+              contractType,
+              reviewedItems,
+              options,
+              checklist,
+              i + batchIndex,
+              remainingSegments.length
+            )
           )
         )
 
@@ -213,7 +256,10 @@ export class ContractReviewEngine {
             this.mergeResults(results, result.value.segmentResult)
             results.segments.push(result.value.segmentInfo)
           } else {
-            unifiedLogger.error('中低风险区域审查失败', { reason: result.reason, type: 'contract_analysis' })
+            unifiedLogger.error('中低风险区域审查失败', {
+              reason: result.reason,
+              type: 'contract_analysis'
+            })
             results.segments.push({ error: result.reason?.message || '未知错误' })
           }
         })
@@ -221,10 +267,10 @@ export class ContractReviewEngine {
         // 进度回调
         if (options.onProgress) {
           const current = Math.min(i + batchSize, remainingSegments.length)
-          options.onProgress({ 
-            stage: '审查中低风险区域...', 
-            current: segmentGroups.high.length + current, 
-            total: segments.length 
+          options.onProgress({
+            stage: '审查中低风险区域...',
+            current: segmentGroups.high.length + current,
+            total: segments.length
           })
         }
       }
@@ -250,14 +296,14 @@ export class ContractReviewEngine {
 
     // 构建风险区域映射
     const riskMap = new Map()
-    riskAreas.forEach(area => {
+    riskAreas.forEach((area) => {
       riskMap.set(area.section, area.riskLevel)
     })
 
-    segments.forEach(segment => {
+    segments.forEach((segment) => {
       const sectionTitle = segment.section.title
       const riskLevel = riskMap.get(sectionTitle) || 'low'
-      
+
       if (riskLevel === 'high') {
         groups.high.push(segment)
       } else if (riskLevel === 'medium') {
@@ -273,8 +319,22 @@ export class ContractReviewEngine {
   /**
    * 审查段（带进度信息）
    */
-  async reviewSegmentWithProgress(segment, fullText, contractType, reviewedItems, options, checklist, currentIndex, total) {
-    unifiedLogger.info('审查段落', { current: currentIndex + 1, total: total, title: segment.section.title, type: 'contract_analysis' })
+  async reviewSegmentWithProgress(
+    segment,
+    fullText,
+    contractType,
+    reviewedItems,
+    options,
+    checklist,
+    currentIndex,
+    total
+  ) {
+    unifiedLogger.info('审查段落', {
+      current: currentIndex + 1,
+      total: total,
+      title: segment.section.title,
+      type: 'contract_analysis'
+    })
 
     try {
       const segmentResult = await this.reviewSegment(
@@ -289,7 +349,11 @@ export class ContractReviewEngine {
       // 立即应用批注（如果启用）
       if (options.autoApply && segmentResult.issues.length > 0) {
         const appliedCount = await this.applyComments(segment, segmentResult.issues)
-        unifiedLogger.info('批注应用进度', { applied: appliedCount, total: segmentResult.issues.length, type: 'contract_analysis' })
+        unifiedLogger.info('批注应用进度', {
+          applied: appliedCount,
+          total: segmentResult.issues.length,
+          type: 'contract_analysis'
+        })
       }
 
       return {
@@ -310,7 +374,14 @@ export class ContractReviewEngine {
   /**
    * 审查单个段（结合审查清单）
    */
-  async reviewSegment(segment, fullText, contractType, reviewedItems, options, preloadedChecklist = null) {
+  async reviewSegment(
+    segment,
+    fullText,
+    contractType,
+    reviewedItems,
+    options,
+    preloadedChecklist = null
+  ) {
     // 1. 获取审查清单（若未传入，则重新生成）
     let checklist = preloadedChecklist
     if (!checklist || checklist.length === 0) {
@@ -318,7 +389,7 @@ export class ContractReviewEngine {
       const userRules = options.useCustomRules ? this.getUserReviewRules() : []
       checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
     }
-    
+
     // 2. 关键：使用完整上下文，而不是只发送段内容
     const context = {
       currentSegment: segment.content,
@@ -331,28 +402,28 @@ export class ContractReviewEngine {
     }
 
     // 3. AI审查（传递完整上下文和审查清单）
-    const aiResult = await this.aiService.reviewClause(
-      context,
-      contractType,
-      options
-    )
+    const aiResult = await this.aiService.reviewClause(context, contractType, options)
 
     // 4. 去重（改进：使用更准确的key，包含keyword和comment的核心部分）
-    const uniqueIssues = (aiResult.issues || []).filter(issue => {
+    const uniqueIssues = (aiResult.issues || []).filter((issue) => {
       // 提取keyword的核心部分（去除特殊字符，只保留核心文本）
-      const keywordCore = (issue.keyword || '').trim()
+      const keywordCore = (issue.keyword || '')
+        .trim()
         .replace(/[：:]/g, '')
         .replace(/\s+/g, '')
         .substring(0, 30)
-      
+
       // 提取comment的核心部分（前50字符）
       const commentCore = (issue.comment || '').trim().substring(0, 50)
-      
+
       // 生成唯一key
       const key = `${keywordCore}_${commentCore}`
-      
+
       if (reviewedItems.has(key)) {
-        unifiedLogger.info('跳过重复问题', { keyword: keywordCore.substring(0, 20), type: 'contract_analysis' })
+        unifiedLogger.info('跳过重复问题', {
+          keyword: keywordCore.substring(0, 20),
+          type: 'contract_analysis'
+        })
         return false
       }
       reviewedItems.add(key)
@@ -378,9 +449,9 @@ export class ContractReviewEngine {
       const config = appConfig.getConfig()
       const reviewConfig = config.review || {}
       const userRules = reviewConfig.contractReviewRules || []
-      
+
       unifiedLogger.info('加载用户规则', { count: userRules.length, type: 'contract_analysis' })
-      
+
       return userRules
     } catch (error) {
       unifiedLogger.error('获取用户规则失败', { error: error.message, type: 'contract_analysis' })
@@ -394,29 +465,40 @@ export class ContractReviewEngine {
   async reviewByFullText(fullText, contractType, options) {
     unifiedLogger.info('全文审查开始', { type: 'contract_analysis' })
     unifiedLogger.info('文档长度', { length: fullText?.length || 0, type: 'contract_analysis' })
-    unifiedLogger.info('合同类型', { contractCategory: contractType?.type, subtype: contractType?.subtype, contractType: contractType, type: 'contract_analysis' })
+    unifiedLogger.info('合同类型', {
+      contractCategory: contractType?.type,
+      subtype: contractType?.subtype,
+      contractType: contractType,
+      type: 'contract_analysis'
+    })
     unifiedLogger.info('审查选项', { options: options, type: 'contract_analysis' })
-    
+
     // 1. 获取审查清单（优先使用传入的清单，否则生成新清单）
     let checklist
     if (options.checklist && options.checklist.length > 0) {
       // 使用用户确认的清单
       checklist = options.checklist
-      unifiedLogger.info('使用用户确认的清单', { count: checklist.length, type: 'contract_analysis' })
+      unifiedLogger.info('使用用户确认的清单', {
+        count: checklist.length,
+        type: 'contract_analysis'
+      })
     } else {
       // 生成新清单
-      const baseChecklist = reviewChecklistGenerator.generateChecklist(contractType, options.perspective)
+      const baseChecklist = reviewChecklistGenerator.generateChecklist(
+        contractType,
+        options.perspective
+      )
       unifiedLogger.info('基础审查清单', { count: baseChecklist.length, type: 'contract_analysis' })
-      
+
       // 获取用户自定义规则（仅在useCustomRules为true时）
       const userRules = options.useCustomRules ? this.getUserReviewRules() : []
       unifiedLogger.info('用户自定义规则', { count: userRules.length, type: 'contract_analysis' })
-      
+
       // 合并清单
       checklist = reviewChecklistGenerator.mergeUserRules(baseChecklist, userRules)
     }
     unifiedLogger.info('最终审查清单', { count: checklist.length, type: 'contract_analysis' })
-    
+
     const context = {
       currentSegment: fullText,
       fullDocument: fullText,
@@ -429,18 +511,20 @@ export class ContractReviewEngine {
 
     unifiedLogger.info('开始调用AI审查服务', { type: 'contract_analysis' })
     const aiStartTime = Date.now()
-    
-    const aiResult = await this.aiService.reviewClause(
-      context,
-      contractType,
-      options
-    )
-    
+
+    const aiResult = await this.aiService.reviewClause(context, contractType, options)
+
     const aiDuration = Date.now() - aiStartTime
     unifiedLogger.info('AI审查完成', { duration: aiDuration, type: 'contract_analysis' })
     unifiedLogger.info('AI返回结果', { type: 'contract_analysis' })
-    unifiedLogger.info('AI问题数量', { count: aiResult.issues?.length || 0, type: 'contract_analysis' })
-    unifiedLogger.info('AI风险数量', { count: aiResult.risks?.length || 0, type: 'contract_analysis' })
+    unifiedLogger.info('AI问题数量', {
+      count: aiResult.issues?.length || 0,
+      type: 'contract_analysis'
+    })
+    unifiedLogger.info('AI风险数量', {
+      count: aiResult.risks?.length || 0,
+      type: 'contract_analysis'
+    })
 
     const matchedIssues = this.matchIssuesToChecklist(aiResult.issues || [], checklist)
     const checklistStats = this.buildChecklistStats(matchedIssues)
@@ -449,7 +533,10 @@ export class ContractReviewEngine {
     unifiedLogger.info('匹配审查清单完成', { type: 'contract_analysis' })
     unifiedLogger.info('匹配后问题数量', { count: matchedIssues.length, type: 'contract_analysis' })
     unifiedLogger.info('风险数量', { count: risks.length, type: 'contract_analysis' })
-    unifiedLogger.info('清单统计', { count: Object.keys(checklistStats).length, type: 'contract_analysis' })
+    unifiedLogger.info('清单统计', {
+      count: Object.keys(checklistStats).length,
+      type: 'contract_analysis'
+    })
 
     // 应用批注到文档（全文审查模式）
     let appliedCount = 0
@@ -496,7 +583,10 @@ export class ContractReviewEngine {
     unifiedLogger.info('最终结果', { type: 'contract_analysis' })
     unifiedLogger.info('总问题数', { count: result.summary.totalIssues, type: 'contract_analysis' })
     unifiedLogger.info('总风险数', { count: result.summary.totalRisks, type: 'contract_analysis' })
-    unifiedLogger.info('审查清单项数', { count: result.summary.checklistCount, type: 'contract_analysis' })
+    unifiedLogger.info('审查清单项数', {
+      count: result.summary.checklistCount,
+      type: 'contract_analysis'
+    })
     unifiedLogger.info('已应用批注数', { count: appliedCount, type: 'contract_analysis' })
     unifiedLogger.info('审查流程结束', { type: 'contract_analysis' })
 
@@ -519,7 +609,11 @@ export class ContractReviewEngine {
 
     // 第一步：去重和合并位置接近的批注
     const mergedIssues = this.mergeNearbyComments(issues)
-    unifiedLogger.info('批注合并', { before: issues.length, after: mergedIssues.length, type: 'contract_analysis' })
+    unifiedLogger.info('批注合并', {
+      before: issues.length,
+      after: mergedIssues.length,
+      type: 'contract_analysis'
+    })
     mergedCount = issues.length - mergedIssues.length
 
     for (const issue of mergedIssues) {
@@ -533,7 +627,10 @@ export class ContractReviewEngine {
           const positionKey = `${range.Start}_${range.End}`
           if (this._appliedComments.has(positionKey)) {
             duplicateCount++
-            unifiedLogger.info('跳过已应用的批注', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_analysis' })
+            unifiedLogger.info('跳过已应用的批注', {
+              keyword: (searchKeyword || issue.position || '未知').substring(0, 30),
+              type: 'contract_analysis'
+            })
             continue
           }
 
@@ -547,7 +644,10 @@ export class ContractReviewEngine {
               comment: issue.comment,
               timestamp: Date.now()
             })
-            unifiedLogger.info('批注已添加', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_analysis' })
+            unifiedLogger.info('批注已添加', {
+              keyword: (searchKeyword || issue.position || '未知').substring(0, 30),
+              type: 'contract_analysis'
+            })
           } else {
             skippedCount++
             // 即使添加失败，也记录（可能是重复）
@@ -556,15 +656,25 @@ export class ContractReviewEngine {
               comment: issue.comment,
               timestamp: Date.now()
             })
-            unifiedLogger.warn('批注添加失败（可能重复）', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_annotation' })
+            unifiedLogger.warn('批注添加失败（可能重复）', {
+              keyword: (searchKeyword || issue.position || '未知').substring(0, 30),
+              type: 'contract_annotation'
+            })
           }
         } else {
           skippedCount++
-          unifiedLogger.warn('未找到定位点，跳过批注', { keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_annotation' })
+          unifiedLogger.warn('未找到定位点，跳过批注', {
+            keyword: (searchKeyword || issue.position || '未知').substring(0, 30),
+            type: 'contract_annotation'
+          })
         }
       } catch (error) {
         skippedCount++
-        unifiedLogger.error('添加批注失败', { error: error.message, keyword: (searchKeyword || issue.position || '未知').substring(0, 30), type: 'contract_analysis' })
+        unifiedLogger.error('添加批注失败', {
+          error: error.message,
+          keyword: (searchKeyword || issue.position || '未知').substring(0, 30),
+          type: 'contract_analysis'
+        })
       }
     }
 
@@ -599,7 +709,7 @@ export class ContractReviewEngine {
 
       const currentIssue = issues[i]
       const currentKeyword = (currentIssue.searchKeyword || currentIssue.keyword || '').trim()
-      
+
       // 查找接近的批注
       const nearbyIssues = [currentIssue]
       for (let j = i + 1; j < issues.length; j++) {
@@ -607,10 +717,10 @@ export class ContractReviewEngine {
 
         const nextIssue = issues[j]
         const nextKeyword = (nextIssue.searchKeyword || nextIssue.keyword || '').trim()
-        
+
         // 检查关键词是否接近（简单的字符串相似度检查）
         const distance = this.calculateKeywordDistance(currentKeyword, nextKeyword)
-        
+
         if (distance < DISTANCE_THRESHOLD) {
           nearbyIssues.push(nextIssue)
           processed.add(j)
@@ -642,12 +752,12 @@ export class ContractReviewEngine {
     if (!keyword1 || !keyword2) return 100
 
     // 简化版本：如果包含相同的核心词，距离为0
-    const words1 = keyword1.split(/[\s、。，]/g).filter(w => w.length >= 2)
-    const words2 = keyword2.split(/[\s、。，]/g).filter(w => w.length >= 2)
+    const words1 = keyword1.split(/[\s、。，]/g).filter((w) => w.length >= 2)
+    const words2 = keyword2.split(/[\s、。，]/g).filter((w) => w.length >= 2)
 
     // 计算共同词的数量
-    const commonWords = words1.filter(w => words2.some(w2 => w2.includes(w) || w.includes(w2)))
-    
+    const commonWords = words1.filter((w) => words2.some((w2) => w2.includes(w) || w.includes(w2)))
+
     if (commonWords.length > 0) {
       return 0 // 有共同词，视为相同位置
     }
@@ -661,8 +771,8 @@ export class ContractReviewEngine {
    */
   mergeComments(issues) {
     const comments = issues
-      .map(issue => (issue.comment || '').trim())
-      .filter(comment => comment.length > 0)
+      .map((issue) => (issue.comment || '').trim())
+      .filter((comment) => comment.length > 0)
       .filter((comment, index, self) => self.indexOf(comment) === index) // 去重
 
     if (comments.length === 0) {
@@ -688,7 +798,7 @@ export class ContractReviewEngine {
       if (conditionMatch) {
         return `第${conditionMatch[1]}条`
       }
-      
+
       // 对于"合同首部"、"合同尾部"等，返回原值
       if (position.length >= 3 && position.length <= 20) {
         return position
@@ -698,10 +808,12 @@ export class ContractReviewEngine {
     // 从comment中提取关键词（取前20-30个字符中的核心词）
     if (comment && comment.trim().length > 0) {
       const commentTrimmed = comment.trim()
-      
+
       // 提取第一句话（以。！？结尾）
-      const firstSentence = commentTrimmed.match(/^([^。！？\n]{10,50})[。！？]/)?.[1] || commentTrimmed.substring(0, 30)
-      
+      const firstSentence =
+        commentTrimmed.match(/^([^。！？\n]{10,50})[。！？]/)?.[1] ||
+        commentTrimmed.substring(0, 30)
+
       if (firstSentence && firstSentence.length >= 5) {
         return firstSentence
       }
@@ -716,30 +828,33 @@ export class ContractReviewEngine {
   locateIssue(segment, issue) {
     // 方法1：优先使用searchKeyword定位（AI专门返回的定位关键字，最准确）
     let searchKeyword = issue.searchKeyword || issue.keyword
-    
+
     // 如果searchKeyword为空，尝试从comment中提取关键词
     if (!searchKeyword || searchKeyword.trim().length < 3) {
       searchKeyword = this.extractKeywordFromComment(issue.comment, issue.position)
     }
-    
+
     if (searchKeyword && searchKeyword.trim().length >= 3) {
       // 清理keyword，去除特殊字符和标点符号，提取核心文本
       let cleanKeyword = searchKeyword.trim()
-      
+
       // 去除常见的占位符和特殊字符
       cleanKeyword = cleanKeyword
         .replace(/[……]/g, '') // 中文省略号
         .replace(/\.{3,}/g, '') // 英文省略号
-        .replace(/【/g, '').replace(/】/g, '') // 中文方括号
-        .replace(/\[/g, '').replace(/\]/g, '') // 英文方括号
-        .replace(/（/g, '(').replace(/）/g, ')') // 统一括号格式
+        .replace(/【/g, '')
+        .replace(/】/g, '') // 中文方括号
+        .replace(/\[/g, '')
+        .replace(/\]/g, '') // 英文方括号
+        .replace(/（/g, '(')
+        .replace(/）/g, ')') // 统一括号格式
         .replace(/\s+/g, ' ') // 统一空格
         .trim()
-      
+
       // 提取keyword的核心部分（用于更精准的匹配）
       // 优先提取连续的汉字和数字，去除标点符号
       let searchKeywords = []
-      
+
       // 提取核心文本片段（连续的汉字、数字、字母）
       const extractCoreText = (text) => {
         // 提取连续的汉字、数字、字母（至少3个字符）
@@ -750,13 +865,13 @@ export class ContractReviewEngine {
         }
         return null
       }
-      
+
       // 尝试提取核心文本
       const coreText = extractCoreText(cleanKeyword)
       if (coreText && coreText.length >= 3) {
         searchKeywords.push(coreText)
       }
-      
+
       // 根据长度提取不同片段
       if (cleanKeyword.length > 100) {
         // 提取最后50字符和开头50字符的核心部分
@@ -788,29 +903,32 @@ export class ContractReviewEngine {
           searchKeywords.push(cleanKeyword)
         }
       }
-      
+
       // 去重
       searchKeywords = [...new Set(searchKeywords)]
-      
+
       // 按优先级尝试匹配（从最长的核心文本开始）
       searchKeywords.sort((a, b) => b.length - a.length)
-      
+
       for (const searchKeyword of searchKeywords) {
         if (searchKeyword.length < 3) continue
-        
+
         // 先在段内查找
         const keywordRange = this.wpsService.findRangeByKeyword(
           searchKeyword,
           segment.startChar,
           segment.endChar
         )
-        
+
         if (keywordRange) {
-          unifiedLogger.info('找到关键词', { keyword: searchKeyword.substring(0, 30), type: 'keyword_search' })
+          unifiedLogger.info('找到关键词', {
+            keyword: searchKeyword.substring(0, 30),
+            type: 'keyword_search'
+          })
           return keywordRange
         }
       }
-      
+
       // 如果核心文本都失败，尝试使用清理后的完整keyword（去除特殊字符）
       if (cleanKeyword.length >= 5) {
         const keywordRange = this.wpsService.findRangeByKeyword(
@@ -818,19 +936,23 @@ export class ContractReviewEngine {
           segment.startChar,
           segment.endChar
         )
-        
+
         if (keywordRange) {
           unifiedLogger.info('找到清理后的完整关键词', { type: 'keyword_search' })
           return keywordRange
         }
       }
-      
+
       // 优化：如果在段内找不到关键词，直接跳过，不要强制全文档查找
       // 这样可以避免跨段批注导致的问题
-      const displayKeyword = searchKeywords.length > 0 
-        ? searchKeywords[0].substring(0, 30) 
-        : cleanKeyword.substring(0, 30)
-      unifiedLogger.warn('段内未找到关键词，跳过批注', { keyword: displayKeyword.substring(0, 30), type: 'keyword_search' })
+      const displayKeyword =
+        searchKeywords.length > 0
+          ? searchKeywords[0].substring(0, 30)
+          : cleanKeyword.substring(0, 30)
+      unifiedLogger.warn('段内未找到关键词，跳过批注', {
+        keyword: displayKeyword.substring(0, 30),
+        type: 'keyword_search'
+      })
     }
 
     // 方法2：基于position定位（如果提供了章节号）
@@ -843,7 +965,11 @@ export class ContractReviewEngine {
     }
 
     // 方法3：如果所有定位都失败，返回null（不添加批注，避免错误定位）
-    unifiedLogger.warn('无法定位问题，跳过批注', { keyword: issue.keyword?.substring(0, 30) || '无', position: issue.position || '无', type: 'keyword_search' })
+    unifiedLogger.warn('无法定位问题，跳过批注', {
+      keyword: issue.keyword?.substring(0, 30) || '无',
+      position: issue.position || '无',
+      type: 'keyword_search'
+    })
     return null
   }
 
@@ -856,53 +982,45 @@ export class ContractReviewEngine {
     }
 
     if (!Array.isArray(checklist) || checklist.length === 0) {
-      return issues.map(issue => ({ ...issue, checklistId: issue.checklistId || null }))
+      return issues.map((issue) => ({ ...issue, checklistId: issue.checklistId || null }))
     }
 
     const checklistMap = new Map()
-    checklist.forEach(item => {
+    checklist.forEach((item) => {
       if (item && item.id) {
         checklistMap.set(item.id, {
           id: item.id,
           name: (item.name || '').toLowerCase(),
-          keywords: (item.keywords || []).map(keyword => (keyword || '').toLowerCase())
+          keywords: (item.keywords || []).map((keyword) => (keyword || '').toLowerCase())
         })
       }
     })
 
-    return issues.map(issue => {
+    return issues.map((issue) => {
       if (issue.checklistId && checklistMap.has(issue.checklistId)) {
         return { ...issue, checklistId: issue.checklistId }
       }
 
-      const textParts = [
-        issue.keyword || '',
-        issue.comment || '',
-        issue.position || ''
-      ]
+      const textParts = [issue.keyword || '', issue.comment || '', issue.position || '']
       const combinedText = textParts.join(' ').toLowerCase()
 
       let bestMatchId = null
       let bestScore = 0
 
-      checklistMap.forEach(item => {
+      checklistMap.forEach((item) => {
         let score = 0
 
         if (item.name && combinedText.includes(item.name)) {
           score += 10
         }
 
-        item.keywords.forEach(keyword => {
+        item.keywords.forEach((keyword) => {
           if (keyword && combinedText.includes(keyword)) {
             score += keyword.length >= 4 ? 6 : 3
           }
         })
 
-        if (
-          issue.position &&
-          item.name &&
-          issue.position.toLowerCase().includes(item.name)
-        ) {
+        if (issue.position && item.name && issue.position.toLowerCase().includes(item.name)) {
           score += 4
         }
 
@@ -929,7 +1047,7 @@ export class ContractReviewEngine {
       return stats
     }
 
-    issues.forEach(issue => {
+    issues.forEach((issue) => {
       if (!issue || !issue.checklistId) {
         return
       }
@@ -982,7 +1100,8 @@ export class ContractReviewEngine {
    * @private
    */
   _generateIssueKey(issue) {
-    const keywordCore = (issue.searchKeyword || issue.keyword || '').trim()
+    const keywordCore = (issue.searchKeyword || issue.keyword || '')
+      .trim()
       .replace(/[：:]/g, '')
       .replace(/\s+/g, '')
       .substring(0, 30)
@@ -1035,9 +1154,9 @@ export class ContractReviewEngine {
     let completedSegments = 0
     const totalSegments = segments.length
 
-    unifiedLogger.info('开始流式分段审查', { 
-      segmentCount: totalSegments, 
-      type: 'streaming_review' 
+    unifiedLogger.info('开始流式分段审查', {
+      segmentCount: totalSegments,
+      type: 'streaming_review'
     })
 
     // 并行处理分段，限制并发数为 2
@@ -1046,87 +1165,89 @@ export class ContractReviewEngine {
     for (let i = 0; i < segments.length; i += concurrency) {
       const batch = segments.slice(i, i + concurrency)
 
-      await Promise.all(batch.map(async (segment, batchIndex) => {
-        const segmentIndex = i + batchIndex
+      await Promise.all(
+        batch.map(async (segment, batchIndex) => {
+          const segmentIndex = i + batchIndex
 
-        // 通知开始审查该分段
-        options.onProgress?.({
-          stage: 'reviewing',
-          segmentName: segment.section.title,
-          current: segmentIndex,
-          total: totalSegments,
-          percent: Math.round((segmentIndex / totalSegments) * 100)
-        })
-
-        try {
-          const segmentResult = await this.reviewSegmentStreaming(
-            segment,
-            fullText,
-            contractType,
-            reviewedItems,
-            {
-              ...options,
-              checklist,
-              // 每发现一个问题就立即处理
-              onIssue: async (issue) => {
-                // 去重检查
-                const key = this._generateIssueKey(issue)
-                if (reviewedItems.has(key)) {
-                  unifiedLogger.info('跳过重复问题（流式）', { 
-                    keyword: issue.searchKeyword?.substring(0, 20),
-                    type: 'streaming_review' 
-                  })
-                  return
-                }
-                reviewedItems.add(key)
-
-                // 匹配审查清单
-                const matchedIssue = this._matchIssueToChecklist(issue, checklist)
-                results.issues.push(matchedIssue)
-
-                // 立即应用批注
-                if (options.autoApply !== false) {
-                  await this.applyCommentImmediately(segment, matchedIssue)
-                }
-
-                // 通知上层发现了新问题
-                options.onIssueFound?.({
-                  issue: matchedIssue,
-                  totalIssues: results.issues.length,
-                  segment: segment.section.title
-                })
-              },
-              onRisk: (risk) => {
-                results.risks.push(risk)
-                options.onRiskFound?.({
-                  risk,
-                  totalRisks: results.risks.length
-                })
-              }
-            }
-          )
-
-          completedSegments++
-          results.segments.push(segmentResult)
-
-          // 通知分段完成
+          // 通知开始审查该分段
           options.onProgress?.({
-            stage: 'segment_complete',
+            stage: 'reviewing',
             segmentName: segment.section.title,
-            current: completedSegments,
+            current: segmentIndex,
             total: totalSegments,
-            percent: Math.round((completedSegments / totalSegments) * 100)
+            percent: Math.round((segmentIndex / totalSegments) * 100)
           })
-        } catch (error) {
-          unifiedLogger.error('流式分段审查失败', { 
-            segment: segment.section.title,
-            error: error.message,
-            type: 'streaming_review' 
-          })
-          results.segments.push({ error: error.message })
-          completedSegments++
-        }
-      }))
+
+          try {
+            const segmentResult = await this.reviewSegmentStreaming(
+              segment,
+              fullText,
+              contractType,
+              reviewedItems,
+              {
+                ...options,
+                checklist,
+                // 每发现一个问题就立即处理
+                onIssue: async (issue) => {
+                  // 去重检查
+                  const key = this._generateIssueKey(issue)
+                  if (reviewedItems.has(key)) {
+                    unifiedLogger.info('跳过重复问题（流式）', {
+                      keyword: issue.searchKeyword?.substring(0, 20),
+                      type: 'streaming_review'
+                    })
+                    return
+                  }
+                  reviewedItems.add(key)
+
+                  // 匹配审查清单
+                  const matchedIssue = this._matchIssueToChecklist(issue, checklist)
+                  results.issues.push(matchedIssue)
+
+                  // 立即应用批注
+                  if (options.autoApply !== false) {
+                    await this.applyCommentImmediately(segment, matchedIssue)
+                  }
+
+                  // 通知上层发现了新问题
+                  options.onIssueFound?.({
+                    issue: matchedIssue,
+                    totalIssues: results.issues.length,
+                    segment: segment.section.title
+                  })
+                },
+                onRisk: (risk) => {
+                  results.risks.push(risk)
+                  options.onRiskFound?.({
+                    risk,
+                    totalRisks: results.risks.length
+                  })
+                }
+              }
+            )
+
+            completedSegments++
+            results.segments.push(segmentResult)
+
+            // 通知分段完成
+            options.onProgress?.({
+              stage: 'segment_complete',
+              segmentName: segment.section.title,
+              current: completedSegments,
+              total: totalSegments,
+              percent: Math.round((completedSegments / totalSegments) * 100)
+            })
+          } catch (error) {
+            unifiedLogger.error('流式分段审查失败', {
+              segment: segment.section.title,
+              error: error.message,
+              type: 'streaming_review'
+            })
+            results.segments.push({ error: error.message })
+            completedSegments++
+          }
+        })
+      )
     }
 
     // 生成总结
@@ -1138,10 +1259,10 @@ export class ContractReviewEngine {
     }
     results.checklistSummary = this.buildChecklistStats(results.issues)
 
-    unifiedLogger.info('流式分段审查完成', { 
+    unifiedLogger.info('流式分段审查完成', {
       totalIssues: results.issues.length,
       totalRisks: results.risks.length,
-      type: 'streaming_review' 
+      type: 'streaming_review'
     })
 
     return results
@@ -1166,20 +1287,16 @@ export class ContractReviewEngine {
       }
     }
 
-    unifiedLogger.info('开始流式审查分段', { 
+    unifiedLogger.info('开始流式审查分段', {
       section: segment.section.title,
-      type: 'streaming_review' 
+      type: 'streaming_review'
     })
 
-    const result = await this.aiService.reviewClauseStreaming(
-      context,
-      contractType,
-      {
-        onIssue: options.onIssue,
-        onRisk: options.onRisk,
-        onProgress: options.onProgress
-      }
-    )
+    const result = await this.aiService.reviewClauseStreaming(context, contractType, {
+      onIssue: options.onIssue,
+      onRisk: options.onRisk,
+      onProgress: options.onProgress
+    })
 
     return {
       issues: result.issues?.length || 0,
@@ -1206,9 +1323,9 @@ export class ContractReviewEngine {
               comment: issue.comment,
               timestamp: Date.now()
             })
-            unifiedLogger.info('实时批注已添加', { 
+            unifiedLogger.info('实时批注已添加', {
               keyword: (issue.searchKeyword || issue.keyword || '').substring(0, 20),
-              type: 'streaming_review' 
+              type: 'streaming_review'
             })
             return true
           }
@@ -1216,9 +1333,9 @@ export class ContractReviewEngine {
       }
       return false
     } catch (error) {
-      unifiedLogger.warn('实时批注失败', { 
+      unifiedLogger.warn('实时批注失败', {
         error: error.message,
-        type: 'streaming_review' 
+        type: 'streaming_review'
       })
       return false
     }
@@ -1226,4 +1343,3 @@ export class ContractReviewEngine {
 }
 
 export const contractReviewEngine = new ContractReviewEngine()
-

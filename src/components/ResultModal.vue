@@ -11,11 +11,7 @@
 
       <!-- 步骤列表 -->
       <div class="space-y-3 max-h-96 overflow-y-auto">
-        <div
-          v-for="(item, index) in result.steps"
-          :key="index"
-          class="p-3 bg-gray-50 rounded-lg"
-        >
+        <div v-for="(item, index) in result.steps" :key="index" class="p-3 bg-gray-50 rounded-lg">
           <!-- 步骤标题 -->
           <div class="flex items-center gap-2 mb-2">
             <span :class="item.result.success ? 'text-green-500' : 'text-red-500'" class="text-lg">
@@ -43,7 +39,10 @@
                 </div>
                 <div class="result-item">
                   <span class="label">置信度：</span>
-                  <n-tag :type="getConfidenceType(item.result.data.contractType.confidence)" size="small">
+                  <n-tag
+                    :type="getConfidenceType(item.result.data.contractType.confidence)"
+                    size="small"
+                  >
                     {{ getConfidenceLabel(item.result.data.contractType.confidence) }}
                   </n-tag>
                 </div>
@@ -54,11 +53,18 @@
             <div v-if="item.result.data.elements" class="ai-result-card">
               <div class="ai-result-title">📋 提取要素</div>
               <div class="ai-result-content">
-                <div v-for="(value, key) in item.result.data.elements" :key="key" class="result-item">
+                <div
+                  v-for="(value, key) in item.result.data.elements"
+                  :key="key"
+                  class="result-item"
+                >
                   <span class="label">{{ key }}：</span>
                   <span class="value">{{ formatValue(value) }}</span>
                 </div>
-                <div v-if="Object.keys(item.result.data.elements).length === 0" class="text-gray-400 text-xs">
+                <div
+                  v-if="Object.keys(item.result.data.elements).length === 0"
+                  class="text-gray-400 text-xs"
+                >
                   未提取到要素
                 </div>
               </div>
@@ -70,13 +76,19 @@
               <div class="ai-result-content">
                 <div class="result-item">
                   <span class="label">发现问题：</span>
-                  <n-tag :type="item.result.data.reviewResult.issues?.length > 0 ? 'warning' : 'success'" size="small">
+                  <n-tag
+                    :type="item.result.data.reviewResult.issues?.length > 0 ? 'warning' : 'success'"
+                    size="small"
+                  >
                     {{ item.result.data.reviewResult.issues?.length || 0 }} 个
                   </n-tag>
                 </div>
                 <div class="result-item">
                   <span class="label">风险提示：</span>
-                  <n-tag :type="item.result.data.reviewResult.risks?.length > 0 ? 'error' : 'success'" size="small">
+                  <n-tag
+                    :type="item.result.data.reviewResult.risks?.length > 0 ? 'error' : 'success'"
+                    size="small"
+                  >
                     {{ item.result.data.reviewResult.risks?.length || 0 }} 个
                   </n-tag>
                 </div>
@@ -88,10 +100,15 @@
                     :key="idx"
                     class="issue-item"
                   >
-                    <span class="issue-keyword">{{ issue.keyword || issue.position || '问题' + (idx + 1) }}</span>
+                    <span class="issue-keyword">{{
+                      issue.keyword || issue.position || '问题' + (idx + 1)
+                    }}</span>
                     <span class="issue-comment">{{ truncateText(issue.comment, 50) }}</span>
                   </div>
-                  <div v-if="item.result.data.reviewResult.issues.length > 3" class="text-xs text-gray-400 mt-1">
+                  <div
+                    v-if="item.result.data.reviewResult.issues.length > 3"
+                    class="text-xs text-gray-400 mt-1"
+                  >
                     还有 {{ item.result.data.reviewResult.issues.length - 3 }} 个问题...
                   </div>
                 </div>
@@ -132,7 +149,11 @@
                 </div>
                 <div class="result-item flex-col items-start!">
                   <span class="label">保存路径（点击复制）：</span>
-                  <span class="value path-text" @click="copyPath(item.result.data.pdfFullPath)" title="点击复制路径">
+                  <span
+                    class="value path-text"
+                    @click="copyPath(item.result.data.pdfFullPath)"
+                    title="点击复制路径"
+                  >
                     {{ item.result.data.pdfFullPath }}
                   </span>
                 </div>

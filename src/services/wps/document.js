@@ -92,7 +92,7 @@ class WPSDocumentService {
         /^第[一二三四五六七八九十百千万\d]+[条款章]/,
         /^第[一二三四五六七八九十百千万\d]+条/
       ]
-      return headingPatterns.some(pattern => pattern.test(text))
+      return headingPatterns.some((pattern) => pattern.test(text))
     } catch {
       return false
     }
@@ -207,7 +207,11 @@ class WPSDocumentService {
   _splitKeyword(keyword) {
     const chunks = []
     for (let len = Math.floor(keyword.length * 0.6); len >= Math.min(6, keyword.length); len--) {
-      for (let offset = 0; offset + len <= keyword.length; offset += Math.max(1, Math.floor(len / 2))) {
+      for (
+        let offset = 0;
+        offset + len <= keyword.length;
+        offset += Math.max(1, Math.floor(len / 2))
+      ) {
         chunks.push(keyword.substring(offset, offset + len))
       }
     }
@@ -303,7 +307,9 @@ class WPSDocumentService {
       const keywordLen = originalEnd - originalStart
 
       if (keywordLen <= 0 || keywordLen > 500) {
-        console.warn(`[修订] Range 长度异常: ${keywordLen}，Start=${originalStart}, End=${originalEnd}，可能指向了全文`)
+        console.warn(
+          `[修订] Range 长度异常: ${keywordLen}，Start=${originalStart}, End=${originalEnd}，可能指向了全文`
+        )
         return false
       }
 
@@ -383,7 +389,7 @@ class WPSDocumentService {
     const newText = (action.newText || '').trim()
     if (!newText) return null
 
-    const commonParts = newText.split(/[。；，、\n]/).filter(p => p.trim().length >= 6)
+    const commonParts = newText.split(/[。；，、\n]/).filter((p) => p.trim().length >= 6)
     for (const part of commonParts) {
       const trimmed = part.trim()
       if (trimmed.length >= 6 && !keyword.includes(trimmed.substring(0, 4))) {

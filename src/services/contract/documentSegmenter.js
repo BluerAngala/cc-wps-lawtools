@@ -81,7 +81,7 @@ export class DocumentSegmenter {
       // 情况2：当前段太短，尝试与下一段合并
       else if (contentLength < minLength && i + 1 < segments.length) {
         const merged = this.mergeSegments(segment, segments[i + 1])
-        
+
         // 如果合并后仍然太短，继续合并
         if (merged.content.length < minLength && i + 2 < segments.length) {
           const merged2 = this.mergeSegments(merged, segments[i + 2])
@@ -157,7 +157,7 @@ export class DocumentSegmenter {
 
       // 优先在章节标题处切割
       let actualEnd = this.findSectionBreakPoint(content, start, preferredEnd, sectionPatterns)
-      
+
       // 如果没找到章节标题，再在句号/段落边界处切割
       if (actualEnd === preferredEnd) {
         actualEnd = this.findBreakPoint(content, start, preferredEnd)
@@ -170,9 +170,10 @@ export class DocumentSegmenter {
 
       splits.push({
         section: {
-          title: partIndex === 1 
-            ? segment.section.title 
-            : `${segment.section.title}（续${partIndex - 1}）`,
+          title:
+            partIndex === 1
+              ? segment.section.title
+              : `${segment.section.title}（续${partIndex - 1}）`,
           number: segment.section.number,
           titleText: segment.section.titleText
         },
@@ -208,7 +209,7 @@ export class DocumentSegmenter {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim()
-      
+
       // 检查是否是章节标题
       for (const pattern of sectionPatterns) {
         if (pattern.test(line)) {
@@ -306,7 +307,7 @@ export class DocumentSegmenter {
 
       currentContent.push(paraText)
       charOffset += paraText.length + 1 // +1 for \n
-      
+
       // 如果当前段已经很长（超过3000字符），强制分段（避免单段过长）
       const currentContentLength = currentContent.join('\n').length
       if (currentContentLength > 3000 && currentSegment) {
@@ -444,7 +445,7 @@ export class DocumentSegmenter {
   segmentBySemantics(text) {
     const segments = []
     const lines = text.split('\n')
-    
+
     // 合同常见的关键结构标识
     const semanticMarkers = [
       // 合同主体信息
@@ -453,7 +454,7 @@ export class DocumentSegmenter {
       /^(发包方|承包方)[：:]/,
       /^(出租方|承租方)[：:]/,
       /^(转让方|受让方)[：:]/,
-      
+
       // 合同关键条款
       /^(合同标的|标的物|服务内容|项目内容)[：:]/,
       /^(合同金额|总金额|价款|费用|服务费)[：:]/,
@@ -462,21 +463,21 @@ export class DocumentSegmenter {
       /^(违约责任|违约处理)[：:]/,
       /^(争议解决|纠纷处理)[：:]/,
       /^(合同生效|生效条件)[：:]/,
-      
+
       // 其他常见结构
       /^(第一条|第二条|第三条|第四条|第五条|第六条|第七条|第八条|第九条|第十条)/,
       /^(一[、．]|二[、．]|三[、．]|四[、．]|五[、．]|六[、．]|七[、．]|八[、．]|九[、．]|十[、．])/,
-      /^(\d+[、．])/,
+      /^(\d+[、．])/
     ]
-    
+
     let currentSegment = null
     let currentContent = []
     let charOffset = 0
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]
       const trimmedLine = line.trim()
-      
+
       // 检查是否是语义标记
       let isMarker = false
       for (const marker of semanticMarkers) {
@@ -491,7 +492,7 @@ export class DocumentSegmenter {
               endChar: charOffset
             })
           }
-          
+
           // 开始新段
           currentSegment = {
             title: trimmedLine.substring(0, 50), // 取前50字符作为标题
@@ -504,7 +505,7 @@ export class DocumentSegmenter {
           break
         }
       }
-      
+
       if (!isMarker) {
         if (currentSegment) {
           currentContent.push(line)
@@ -520,7 +521,7 @@ export class DocumentSegmenter {
         charOffset += line.length + 1
       }
     }
-    
+
     // 保存最后一段
     if (currentSegment) {
       const content = currentContent.join('\n')
@@ -531,7 +532,7 @@ export class DocumentSegmenter {
         endChar: charOffset
       })
     }
-    
+
     return segments
   }
 
@@ -542,11 +543,11 @@ export class DocumentSegmenter {
     const segments = []
     // 改进：支持多种段落分隔符
     const paragraphSeparators = [
-      /\n\s*\n/,  // 空行分隔
-      /\n{2,}/,   // 多个换行符
-      /[。！？]\s*\n/  // 句号+换行
+      /\n\s*\n/, // 空行分隔
+      /\n{2,}/, // 多个换行符
+      /[。！？]\s*\n/ // 句号+换行
     ]
-    
+
     let paragraphs = [text]
     for (const separator of paragraphSeparators) {
       const newParagraphs = []
@@ -637,7 +638,11 @@ export class DocumentSegmenter {
     // 优先级顺序：章节标题 > 段落分隔 > 句号 > 换行
     const breakPatterns = [
       // 最高优先级：章节标题（在章节标题前切割）
-      { pattern: /\n(第([一二三四五六七八九十百千万\d]+)[条款章]\s*(.+)?)$/m, offset: 0, priority: 10 },
+      {
+        pattern: /\n(第([一二三四五六七八九十百千万\d]+)[条款章]\s*(.+)?)$/m,
+        offset: 0,
+        priority: 10
+      },
       { pattern: /\n(([一二三四五六七八九十百千万]+)[、．.]\s*(.+)?)$/m, offset: 0, priority: 10 },
       { pattern: /\n((\d+)[、．.]\s*(.+)?)$/m, offset: 0, priority: 10 },
       // 高优先级：段落分隔（空行）
@@ -680,14 +685,10 @@ export class DocumentSegmenter {
   enrichSegments(segments) {
     return segments.map((seg, index) => {
       // 添加上下文（前一段的最后几句）
-      const contextBefore = index > 0
-        ? this.getContext(segments[index - 1].content, 3)
-        : ''
+      const contextBefore = index > 0 ? this.getContext(segments[index - 1].content, 3) : ''
 
       // 添加完整上下文（用于审查）
-      const fullContext = contextBefore
-        ? `${contextBefore}\n\n${seg.content}`
-        : seg.content
+      const fullContext = contextBefore ? `${contextBefore}\n\n${seg.content}` : seg.content
 
       return {
         ...seg,
@@ -701,10 +702,9 @@ export class DocumentSegmenter {
    * 获取上下文（最后几句）
    */
   getContext(text, sentenceCount = 3) {
-    const sentences = text.split(/[。！？]/).filter(s => s.trim())
+    const sentences = text.split(/[。！？]/).filter((s) => s.trim())
     return sentences.slice(-sentenceCount).join('。') + '。'
   }
 }
 
 export const documentSegmenter = new DocumentSegmenter()
-

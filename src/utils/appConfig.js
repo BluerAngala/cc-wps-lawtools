@@ -17,14 +17,32 @@ class AppConfigManager {
         maxTokens: 8000,
         temperature: 0.1,
         defaultModels: [
-          { label: 'Qwen2.5-7B-Instruct (推荐-快速)', value: 'Qwen/Qwen2.5-7B-Instruct', tag: '推荐' },
-          { label: 'Qwen2.5-14B-Instruct (推荐-平衡)', value: 'Qwen/Qwen2.5-14B-Instruct', tag: '推荐' },
+          {
+            label: 'Qwen2.5-7B-Instruct (推荐-快速)',
+            value: 'Qwen/Qwen2.5-7B-Instruct',
+            tag: '推荐'
+          },
+          {
+            label: 'Qwen2.5-14B-Instruct (推荐-平衡)',
+            value: 'Qwen/Qwen2.5-14B-Instruct',
+            tag: '推荐'
+          },
           { label: 'Qwen2.5-72B-Instruct (强大)', value: 'Qwen/Qwen2.5-72B-Instruct', tag: '高级' },
           { label: 'DeepSeek-V3 (高性能)', value: 'deepseek-ai/DeepSeek-V3', tag: '高级' },
           { label: 'GLM-4-9B (快速)', value: 'Pro/THUDM/glm-4-9b-chat', tag: '推荐' }
         ]
       },
-      
+
+      // RAG 向量检索配置
+      rag: {
+        enabled: false,
+        qdrantUrl: import.meta.env.VITE_QDRANT_URL || '',
+        qdrantApiKey: import.meta.env.VITE_QDRANT_API_KEY || '',
+        embeddingBaseUrl: import.meta.env.VITE_EMBEDDING_BASE_URL || '',
+        embeddingApiKey: import.meta.env.VITE_EMBEDDING_API_KEY || '',
+        embeddingModel: import.meta.env.VITE_EMBEDDING_MODEL || 'BAAI/bge-large-zh-v1.5'
+      },
+
       // 金山文档配置
       kdocs: {
         webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL || '',
@@ -32,10 +50,11 @@ class AppConfigManager {
         sheetId: Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
         cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
         workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '', // 用于金山文档操作的工作流ID
-        companyInfoWorkflowId: import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034', // 用于获取企业信息的工作流ID
+        companyInfoWorkflowId:
+          import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034', // 用于获取企业信息的工作流ID
         contractNumberPrefix: 'SWXCBHT' // 合同编号前缀，默认为 SWXCBHT
       },
-      
+
       // 金山文档方案管理
       kdocsSchemes: {
         schemes: [
@@ -49,7 +68,8 @@ class AppConfigManager {
               sheetId: Number(import.meta.env.VITE_KDOCS_SHEETID) || 5,
               cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
               workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '',
-              companyInfoWorkflowId: import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034',
+              companyInfoWorkflowId:
+                import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034',
               contractNumberPrefix: 'SWXCBHT'
             },
             createdAt: new Date().toISOString(),
@@ -58,28 +78,91 @@ class AppConfigManager {
         ],
         activeSchemeId: 'default_kdocs'
       },
-      
+
       // 合同要素提取配置
       extractor: {
-        extractTags: ['合同名称', '对接人', '甲方', '甲方主体信息', '乙方', '乙方主体信息', '其他方', '合同金额']
+        extractTags: [
+          '合同名称',
+          '对接人',
+          '甲方',
+          '甲方主体信息',
+          '乙方',
+          '乙方主体信息',
+          '其他方',
+          '合同金额'
+        ]
       },
-      
+
       // 关键词批注配置（保留兼容性）
       keyword: {
         keywordList: [
-          { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' },
-          { keyword: '付款方式', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
-          { keyword: '费用', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
-          { keyword: '验收', comment: '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。', actionType: '批注', suggestedText: '' },
-          { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误', actionType: '批注', suggestedText: '' },
-          { keyword: '仲裁', comment: '建议约定统一约定法院管辖', actionType: '修订', suggestedText: '' },
-          { keyword: '"广东特支计划"', comment: '提醒确认项目名称以及期数是否准确无误', actionType: '批注', suggestedText: '' },
-          { keyword: '培养期为', comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！', actionType: '批注', suggestedText: '' },
-          { keyword: '资金发放安排', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
-          { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' }
+          {
+            keyword: '第一条',
+            comment: '提醒确认此部分内容是否准确无误。',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '付款方式',
+            comment:
+              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '费用',
+            comment:
+              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '验收',
+            comment:
+              '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '银行账号',
+            comment: '提醒确认支付账号是否准确无误',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '仲裁',
+            comment: '建议约定统一约定法院管辖',
+            actionType: '修订',
+            suggestedText: ''
+          },
+          {
+            keyword: '"广东特支计划"',
+            comment: '提醒确认项目名称以及期数是否准确无误',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '培养期为',
+            comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '资金发放安排',
+            comment:
+              '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
+            actionType: '批注',
+            suggestedText: ''
+          },
+          {
+            keyword: '榜单项目信息',
+            comment: '提醒确认此部分内容是否准确无误。',
+            actionType: '批注',
+            suggestedText: ''
+          }
         ]
       },
-      
+
       // 关键词方案管理（新增）
       keywordSchemes: {
         schemes: [
@@ -88,16 +171,70 @@ class AppConfigManager {
             name: '默认方案',
             type: 'keyword',
             rules: [
-              { keyword: '第一条', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' },
-              { keyword: '付款方式', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
-              { keyword: '费用', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
-              { keyword: '验收', comment: '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。', actionType: '批注', suggestedText: '' },
-              { keyword: '银行账号', comment: '提醒确认支付账号是否准确无误', actionType: '批注', suggestedText: '' },
-              { keyword: '仲裁', comment: '建议约定统一约定法院管辖', actionType: '修订', suggestedText: '' },
-              { keyword: '"广东特支计划"', comment: '提醒确认项目名称以及期数是否准确无误', actionType: '批注', suggestedText: '' },
-              { keyword: '培养期为', comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！', actionType: '批注', suggestedText: '' },
-              { keyword: '资金发放安排', comment: '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。', actionType: '批注', suggestedText: '' },
-              { keyword: '榜单项目信息', comment: '提醒确认此部分内容是否准确无误。', actionType: '批注', suggestedText: '' }
+              {
+                keyword: '第一条',
+                comment: '提醒确认此部分内容是否准确无误。',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '付款方式',
+                comment:
+                  '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '费用',
+                comment:
+                  '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '验收',
+                comment:
+                  '提醒经办人员注意加强验收，并注意检查验收材料的真实性、准确性、完整性，妥善保管好验收有关资料。',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '银行账号',
+                comment: '提醒确认支付账号是否准确无误',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '仲裁',
+                comment: '建议约定统一约定法院管辖',
+                actionType: '修订',
+                suggestedText: ''
+              },
+              {
+                keyword: '"广东特支计划"',
+                comment: '提醒确认项目名称以及期数是否准确无误',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '培养期为',
+                comment: '提醒确认培养期是否准确无误。请注意签约时间是否合理！！！',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '资金发放安排',
+                comment:
+                  '提醒经办人员在签订前应再次确认预算构成是否合理、协议金额是否准确无误、是否可以按期足额支付，支付方式和支付账户信息是否准确无误，且符合最新财务及有关管理规定。',
+                actionType: '批注',
+                suggestedText: ''
+              },
+              {
+                keyword: '榜单项目信息',
+                comment: '提醒确认此部分内容是否准确无误。',
+                actionType: '批注',
+                suggestedText: ''
+              }
             ],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -105,38 +242,43 @@ class AppConfigManager {
         ],
         activeSchemeId: 'default_keyword'
       },
-      
+
       // 合同审查配置（保留兼容性）
       review: {
         contractReviewRules: [
           {
             reviewRules: '争议解决',
-            reviewRequirements: '请AI审查合同中的争议解决条款，检查是否约定了明确的纠纷处理方式（仲裁或法院管辖），并评估条款的有效性和合理性',
+            reviewRequirements:
+              '请AI审查合同中的争议解决条款，检查是否约定了明确的纠纷处理方式（仲裁或法院管辖），并评估条款的有效性和合理性',
             actionType: '批注'
           },
           {
             reviewRules: '违约责任',
-            reviewRequirements: '请AI分析违约责任条款的完整性，检查违约金标准是否合理，免责条款是否过于宽泛，并提出改进建议',
+            reviewRequirements:
+              '请AI分析违约责任条款的完整性，检查违约金标准是否合理，免责条款是否过于宽泛，并提出改进建议',
             actionType: '批注'
           },
           {
             reviewRules: '付款条件',
-            reviewRequirements: '请AI审查并优化付款条款，确保付款方式、期限、条件表述清晰，识别潜在的付款风险并提出修订建议',
+            reviewRequirements:
+              '请AI审查并优化付款条款，确保付款方式、期限、条件表述清晰，识别潜在的付款风险并提出修订建议',
             actionType: '修订'
           },
           {
             reviewRules: '合同期限',
-            reviewRequirements: '请AI检查合同期限条款的明确性，包括起止时间、续约机制、提前终止条件，并评估是否存在歧义',
+            reviewRequirements:
+              '请AI检查合同期限条款的明确性，包括起止时间、续约机制、提前终止条件，并评估是否存在歧义',
             actionType: '批注'
           },
           {
             reviewRules: '知识产权',
-            reviewRequirements: '请AI全面审查知识产权相关条款，包括权利归属、使用范围、侵权责任分担、保密义务等，确保权责清晰',
+            reviewRequirements:
+              '请AI全面审查知识产权相关条款，包括权利归属、使用范围、侵权责任分担、保密义务等，确保权责清晰',
             actionType: '批注'
           }
         ]
       },
-      
+
       // 审查方案管理（新增）
       reviewSchemes: {
         schemes: [
@@ -147,42 +289,50 @@ class AppConfigManager {
             rules: [
               {
                 keyword: '合同主体',
-                comment: '审查合同双方主体资格是否合法有效，检查是否有营业执照、统一社会信用代码、法定代表人信息、授权委托书等资质文件',
+                comment:
+                  '审查合同双方主体资格是否合法有效，检查是否有营业执照、统一社会信用代码、法定代表人信息、授权委托书等资质文件',
                 actionType: '批注'
               },
               {
                 keyword: '付款条款',
-                comment: '审查付款方式、付款期限、付款条件是否明确具体，检查是否存在付款风险或对一方明显不利的条款',
+                comment:
+                  '审查付款方式、付款期限、付款条件是否明确具体，检查是否存在付款风险或对一方明显不利的条款',
                 actionType: '批注'
               },
               {
                 keyword: '违约责任',
-                comment: '审查违约金标准是否合理（一般不超过实际损失的30%），检查免责条款是否过于宽泛，双方违约责任是否对等',
+                comment:
+                  '审查违约金标准是否合理（一般不超过实际损失的30%），检查免责条款是否过于宽泛，双方违约责任是否对等',
                 actionType: '批注'
               },
               {
                 keyword: '争议解决',
-                comment: '审查是否约定了明确的管辖法院或仲裁机构，检查管辖约定是否有效，是否存在约定不明的情况',
+                comment:
+                  '审查是否约定了明确的管辖法院或仲裁机构，检查管辖约定是否有效，是否存在约定不明的情况',
                 actionType: '批注'
               },
               {
                 keyword: '合同期限',
-                comment: '审查合同起止时间是否明确，检查续约机制、提前终止条件、合同解除情形是否清晰约定',
+                comment:
+                  '审查合同起止时间是否明确，检查续约机制、提前终止条件、合同解除情形是否清晰约定',
                 actionType: '批注'
               },
               {
                 keyword: '保密条款',
-                comment: '审查保密信息范围、保密期限、保密义务、违约责任是否明确，检查是否有合理的例外情形',
+                comment:
+                  '审查保密信息范围、保密期限、保密义务、违约责任是否明确，检查是否有合理的例外情形',
                 actionType: '批注'
               },
               {
                 keyword: '知识产权',
-                comment: '审查知识产权归属、使用范围、许可方式、侵权责任分担是否清晰，检查是否有权利瑕疵担保',
+                comment:
+                  '审查知识产权归属、使用范围、许可方式、侵权责任分担是否清晰，检查是否有权利瑕疵担保',
                 actionType: '批注'
               },
               {
                 keyword: '不可抗力',
-                comment: '审查不可抗力条款的定义范围是否合理，检查通知义务、证明责任、后果处理是否明确约定',
+                comment:
+                  '审查不可抗力条款的定义范围是否合理，检查通知义务、证明责任、后果处理是否明确约定',
                 actionType: '批注'
               }
             ],
@@ -192,7 +342,7 @@ class AppConfigManager {
         ],
         activeSchemeId: 'default_review'
       },
-      
+
       // 系统配置
       system: {
         autoSave: true,
@@ -205,9 +355,11 @@ class AppConfigManager {
    * 检查 WPS 环境
    */
   isWPSAvailable() {
-    return typeof window !== 'undefined' && 
-           typeof window.Application !== 'undefined' &&
-           typeof window.Application.FileSystem !== 'undefined'
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.Application !== 'undefined' &&
+      typeof window.Application.FileSystem !== 'undefined'
+    )
   }
 
   /**
@@ -260,12 +412,12 @@ class AppConfigManager {
     try {
       const fs = window.Application.FileSystem
       const configFile = this.getConfigFullPath()
-      
+
       if (!configFile) {
         console.error('无法获取配置文件路径')
         return { ...this.defaultConfig }
       }
-      
+
       // 检查文件是否存在
       if (!fs.Exists(configFile)) {
         // 自动初始化配置文件
@@ -294,25 +446,25 @@ class AppConfigManager {
   initializeConfig() {
     try {
       const fs = window.Application.FileSystem
-      
+
       // 确保配置目录存在
       if (!this.ensureConfigDir()) {
         console.error('无法创建配置目录')
         return false
       }
-      
+
       const configFile = this.getConfigFullPath()
       if (!configFile) {
         console.error('无法获取配置文件路径')
         return false
       }
-      
+
       // 写入默认配置
       const jsonString = JSON.stringify(this.defaultConfig, null, 2)
-      
+
       // 使用 WriteFile（支持绝对路径）
       const writeResult = fs.WriteFile(configFile, jsonString)
-      
+
       // 验证
       if (writeResult && fs.Exists(configFile)) {
         return true
@@ -337,23 +489,23 @@ class AppConfigManager {
 
     try {
       const fs = window.Application.FileSystem
-      
+
       // 确保配置目录存在
       if (!this.ensureConfigDir()) {
         window.$message?.error('无法创建配置目录')
         return false
       }
-      
+
       const configFile = this.getConfigFullPath()
       if (!configFile) {
         window.$message?.error('无法获取配置文件路径')
         return false
       }
-      
+
       // 保存配置 - 使用 WriteFile（支持绝对路径）
       const jsonString = JSON.stringify(config, null, 2)
       const writeResult = fs.WriteFile(configFile, jsonString)
-      
+
       // 验证保存
       if (writeResult && fs.Exists(configFile)) {
         return true
@@ -396,7 +548,7 @@ class AppConfigManager {
     try {
       const fs = window.Application.FileSystem
       const configFile = this.getConfigFullPath()
-      
+
       if (configFile && fs.Exists(configFile)) {
         // 使用 Remove 删除文件（支持绝对路径）
         fs.Remove(configFile)
@@ -443,7 +595,6 @@ class AppConfigManager {
     })
   }
 
-
   /**
    * 获取配置信息（用于调试）
    */
@@ -470,9 +621,9 @@ class AppConfigManager {
       kdocs: 'kdocsSchemes'
     }
     const schemeKey = schemeKeyMap[type]
-    
+
     if (!schemeKey) return { schemes: [], activeSchemeId: '' }
-    
+
     // 如果没有方案配置，从旧配置迁移或返回默认
     if (!config[schemeKey] || !config[schemeKey].schemes) {
       if (type === 'kdocs') {
@@ -481,7 +632,7 @@ class AppConfigManager {
       }
       return this.migrateToSchemes(type)
     }
-    
+
     return config[schemeKey]
   }
 
@@ -509,7 +660,7 @@ class AppConfigManager {
    */
   getActiveScheme(type) {
     const schemesData = this.getSchemes(type)
-    const activeScheme = schemesData.schemes.find(s => s.id === schemesData.activeSchemeId)
+    const activeScheme = schemesData.schemes.find((s) => s.id === schemesData.activeSchemeId)
     return activeScheme || schemesData.schemes[0]
   }
 
@@ -544,7 +695,7 @@ class AppConfigManager {
    */
   updateScheme(type, schemeId, updates) {
     const schemesData = this.getSchemes(type)
-    const scheme = schemesData.schemes.find(s => s.id === schemeId)
+    const scheme = schemesData.schemes.find((s) => s.id === schemeId)
     if (scheme) {
       Object.assign(scheme, updates)
       scheme.updatedAt = new Date().toISOString()
@@ -560,21 +711,21 @@ class AppConfigManager {
    */
   deleteScheme(type, schemeId) {
     const schemesData = this.getSchemes(type)
-    
+
     // 不能删除最后一个方案
     if (schemesData.schemes.length <= 1) {
       return false
     }
-    
-    const index = schemesData.schemes.findIndex(s => s.id === schemeId)
+
+    const index = schemesData.schemes.findIndex((s) => s.id === schemeId)
     if (index !== -1) {
       schemesData.schemes.splice(index, 1)
-      
+
       // 如果删除的是当前激活方案，切换到第一个方案
       if (schemesData.activeSchemeId === schemeId) {
         schemesData.activeSchemeId = schemesData.schemes[0].id
       }
-      
+
       return this.saveSchemes(type, schemesData)
     }
     return false
@@ -588,28 +739,29 @@ class AppConfigManager {
     const config = this.getConfig()
     const schemeKey = type === 'keyword' ? 'keywordSchemes' : 'reviewSchemes'
     const oldKey = type === 'keyword' ? 'keyword' : 'review'
-    
+
     // 从旧配置创建默认方案
     const defaultScheme = {
       id: `default_${type}`,
       name: '默认方案',
       type: type,
-      rules: type === 'keyword' 
-        ? (config[oldKey]?.keywordList || [])
-        : (config[oldKey]?.contractReviewRules || []),
+      rules:
+        type === 'keyword'
+          ? config[oldKey]?.keywordList || []
+          : config[oldKey]?.contractReviewRules || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    
+
     const schemesData = {
       schemes: [defaultScheme],
       activeSchemeId: defaultScheme.id
     }
-    
+
     // 保存迁移后的配置
     config[schemeKey] = schemesData
     this.saveConfig(config)
-    
+
     return schemesData
   }
 
@@ -621,7 +773,8 @@ class AppConfigManager {
     const config = this.get('ai') || {}
     return {
       apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
-      baseUrl: config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
+      baseUrl:
+        config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
       model: config.model || 'Qwen/Qwen2.5-7B-Instruct',
       timeout: config.timeout || 120000,
       maxTokens: config.maxTokens || 8000,

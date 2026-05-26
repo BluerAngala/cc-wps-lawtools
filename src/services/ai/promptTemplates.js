@@ -181,25 +181,38 @@ ${templateContent || '未配置模板。请提醒用户在Playbook中配置回�
   return prompt
 }
 
-export function buildSystemPrompt(mode = 'standard', { docContext, referenceText, templateContent, inquiryType } = {}) {
+export function buildSystemPrompt(
+  mode = 'standard',
+  { docContext, ragContext, referenceText, templateContent, inquiryType } = {}
+) {
   const playbook = playbookService.loadPlaybook()
-  const playbookText = playbook.positions?.length > 0
-    ? playbookService.formatPlaybookForPrompt(playbook)
-    : ''
+  const playbookText =
+    playbook.positions?.length > 0 ? playbookService.formatPlaybookForPrompt(playbook) : ''
 
+  let prompt = ''
   switch (mode) {
     case 'triage-nda':
-      return buildTriageNdaprompt(docContext, playbookText)
+      prompt = buildTriageNdaprompt(docContext, playbookText)
+      break
     case 'risk-assessment':
-      return buildRiskAssessmentPrompt(docContext, playbookText)
+      prompt = buildRiskAssessmentPrompt(docContext, playbookText)
+      break
     case 'compare':
-      return buildComparePrompt(docContext, referenceText, playbookText)
+      prompt = buildComparePrompt(docContext, referenceText, playbookText)
+      break
     case 'respond':
-      return buildResponsePrompt(docContext, templateContent, inquiryType)
+      prompt = buildResponsePrompt(docContext, templateContent, inquiryType)
+      break
     case 'standard':
     default:
-      return buildStandardPrompt(docContext, playbookText)
+      prompt = buildStandardPrompt(docContext, playbookText)
   }
+
+  if (ragContext) {
+    prompt += `\n\n## RAG 检索增强上下文\n以下是通过向量检索获取的相关内容，请优先参考这些信息：\n\n${ragContext}`
+  }
+
+  return prompt
 }
 
 export const PROMPT_MODES = {

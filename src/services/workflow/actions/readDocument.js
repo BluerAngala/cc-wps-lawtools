@@ -20,7 +20,7 @@ export class ReadDocumentAction extends BaseAction {
     try {
       const text = wpsDocument.getFullText()
       const doc = wpsDocument.getDocument()
-      
+
       // 更新上下文
       context.documentText = text
       context.documentInfo = {

@@ -97,17 +97,19 @@ function getLogoPath() {
         const url = new URL(href)
         // decodeURIComponent 处理路径中的中文和空格
         let pathname = decodeURIComponent(url.pathname)
-        
+
         // Windows 路径处理：去掉开头的斜杠（例如 /C:/path -> C:/path）
         if (pathname.startsWith('/') && /^[a-zA-Z]:/.test(pathname.substring(1))) {
           pathname = pathname.substring(1)
         }
-        
+
         // 获取目录路径
         pluginDir = pathname.substring(0, pathname.lastIndexOf('/')).replace(/\//g, '\\')
       } catch (e) {
         // 备选方案
-        pluginDir = decodeURIComponent(href.substring(href.indexOf('file://') + 7, href.lastIndexOf('/'))).replace(/\//g, '\\')
+        pluginDir = decodeURIComponent(
+          href.substring(href.indexOf('file://') + 7, href.lastIndexOf('/'))
+        ).replace(/\//g, '\\')
         // 处理可能多出的开头的斜杠
         if (pluginDir.startsWith('\\')) pluginDir = pluginDir.substring(1)
       }
@@ -117,7 +119,7 @@ function getLogoPath() {
     }
 
     const fs = window.Application?.FileSystem
-    
+
     // 尝试多个可能的路径
     const possiblePaths = [
       pluginDir + '\\images\\' + LOGO.FILE_NAME,
@@ -403,9 +405,9 @@ function insertDetailPage(selection, docTypeName, checklist, reviewResult) {
 
   insertLevel1Title(selection, `关于${docTypeName}的审查报告`)
 
-  const selectedItems = checklist.filter(item => item.selected)
+  const selectedItems = checklist.filter((item) => item.selected)
   selectedItems.forEach((item, index) => {
-    const itemIssues = (reviewResult.issues || []).filter(i => i.checklistId === item.id)
+    const itemIssues = (reviewResult.issues || []).filter((i) => i.checklistId === item.id)
     insertChecklistItem(selection, item, itemIssues, index)
   })
 

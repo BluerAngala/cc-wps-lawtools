@@ -14,8 +14,7 @@ export function useWpsEnvironment() {
 
   // 计算属性：WPS 环境是否可用
   const isAvailable = computed(() => {
-    return typeof window !== 'undefined' && 
-           typeof window.Application !== 'undefined'
+    return typeof window !== 'undefined' && typeof window.Application !== 'undefined'
   })
 
   // 计算属性：WPS Application 对象
@@ -49,14 +48,14 @@ export function useWpsEnvironment() {
    */
   const getDocument = () => {
     if (!checkEnvironment()) return null
-    
+
     const doc = activeDocument.value
     if (!doc) {
       error.value = '未找到活动文档'
       window.$message?.error(error.value)
       return null
     }
-    
+
     error.value = null
     return doc
   }
@@ -68,7 +67,7 @@ export function useWpsEnvironment() {
   const getFullText = () => {
     const doc = getDocument()
     if (!doc) return null
-    
+
     try {
       const text = doc.Range().Text
       if (!text || text.trim().length === 0) {
@@ -92,13 +91,13 @@ export function useWpsEnvironment() {
    */
   const withDocument = async (fn, options = {}) => {
     const { requireDocument = true } = options
-    
+
     if (!checkEnvironment()) return null
-    
+
     if (requireDocument) {
       const doc = getDocument()
       if (!doc) return null
-      
+
       try {
         return await fn(doc, application.value)
       } catch (err) {
@@ -107,7 +106,7 @@ export function useWpsEnvironment() {
         return null
       }
     }
-    
+
     try {
       return await fn(null, application.value)
     } catch (err) {

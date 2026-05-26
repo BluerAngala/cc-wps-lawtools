@@ -10,145 +10,206 @@
 
       <!-- 功能卡片网格 -->
       <div class="grid grid-cols-2 gap-3">
-      <div
-        v-for="item in featureCards"
-        :key="item.key"
-        class="feature-card"
-        :class="{ 'is-processing': item.processing }"
-        @click="openModal(item.key)"
-      >
-        <div class="card-icon">{{ item.icon }}</div>
-        <div class="card-title">{{ item.title }}</div>
-        <div class="card-desc">{{ item.desc }}</div>
-        <n-spin v-if="item.processing" size="small" class="card-spin" />
+        <div
+          v-for="item in featureCards"
+          :key="item.key"
+          class="feature-card"
+          :class="{ 'is-processing': item.processing }"
+          @click="openModal(item.key)"
+        >
+          <div class="card-icon">{{ item.icon }}</div>
+          <div class="card-title">{{ item.title }}</div>
+          <div class="card-desc">{{ item.desc }}</div>
+          <n-spin v-if="item.processing" size="small" class="card-spin" />
+        </div>
       </div>
-    </div>
 
-    <!-- AI提取合同信息弹窗 -->
-    <n-modal v-model:show="modals.extractor" preset="card" title="🤖 AI提取合同信息" class="feature-modal" :mask-closable="false">
-      <ContractExtractor
-        :processing="extracting"
-        :extracted-data="extractedData"
-        :submitting="submitting"
-        :extractor-config="configs.extractor"
-        @submit-data="submitExtractedData"
-        @update:extracted-data="extractedData = $event"
-        @update-config="updateExtractorConfig"
-      />
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="modals.extractor = false">关闭</n-button>
-          <n-button type="primary" :loading="extracting" @click="executeExtraction">
-            {{ extracting ? '提取中...' : '开始提取' }}
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
-
-    <!-- 关键词修订批注弹窗 -->
-    <n-modal v-model:show="modals.keyword" preset="card" title="🔍 关键词修订批注" class="feature-modal" :mask-closable="false">
-      <KeywordCommenter
-        ref="keywordCommenterRef"
-        :processing="keywordProcessing"
-        :keyword-config="configs.keyword"
-        @execute="executeKeywordComment"
-        @update-config="updateKeywordConfig"
-      />
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="modals.keyword = false">关闭</n-button>
-          <n-button type="primary" :loading="keywordProcessing" @click="keywordCommenterRef?.triggerExecute()">
-            {{ keywordProcessing ? '处理中...' : '开始处理' }}
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
-
-    <!-- AI全流程审查弹窗 -->
-    <n-modal v-model:show="modals.aiFullReview" preset="card" title="⚖️ AI全流程审查" class="feature-modal" :mask-closable="false">
-      <AIFullReview ref="aiFullReviewRef" @state-change="handleAIFullReviewStateChange" />
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="modals.aiFullReview = false">关闭</n-button>
-          <n-button 
-            v-if="aiFullReviewState === 'complete' && aiFullReviewRef?.selectedSuggestionCount?.value > 0"
-            type="primary" 
-            :disabled="aiFullReviewRef?.applyingModifications?.value"
-            :loading="aiFullReviewRef?.applyingModifications?.value"
-            @click="aiFullReviewRef?.handleApplyModifications()"
-          >
-            {{ aiFullReviewRef?.applyingModifications?.value ? '执行中...' : `应用批注 (${aiFullReviewRef?.selectedSuggestionCount?.value || 0})` }}
-          </n-button>
-          <n-button 
-            v-if="aiFullReviewState !== 'complete'"
-            type="primary" 
-            :loading="aiFullReviewProcessing" 
-            @click="aiFullReviewRef?.triggerExecute()"
-          >
-            {{ aiFullReviewRef?.buttonText?.value || '开始任务' }}
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
-
-    <!-- AI+律师共同审查弹窗 -->
-    <n-modal v-model:show="modals.aiLawyerReview" preset="card" title="👨‍⚖️ AI+律师共同审查" class="feature-modal" :mask-closable="false">
-      <AILawyerReview ref="aiLawyerReviewRef" @state-change="handleAILawyerReviewStateChange" />
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="modals.aiLawyerReview = false">关闭</n-button>
-          <n-button 
-            v-if="aiLawyerReviewState === 'complete' && aiLawyerReviewRef?.selectedSuggestionCount?.value > 0"
-            type="primary" 
-            :disabled="aiLawyerReviewRef?.applyingModifications?.value"
-            :loading="aiLawyerReviewRef?.applyingModifications?.value"
-            @click="aiLawyerReviewRef?.handleApplyModifications()"
-          >
-            {{ aiLawyerReviewRef?.applyingModifications?.value ? '执行中...' : `应用批注 (${aiLawyerReviewRef?.selectedSuggestionCount?.value || 0})` }}
-          </n-button>
-          <n-button 
-            v-if="aiLawyerReviewState !== 'complete'"
-            type="primary" 
-            :loading="aiLawyerReviewProcessing" 
-            @click="aiLawyerReviewRef?.triggerExecute()"
-          >
-            {{ aiLawyerReviewRef?.buttonText?.value || '开始任务' }}
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
-
-    <!-- 执行工作流弹窗 -->
-    <n-modal v-model:show="modals.workflow" preset="card" title="📄 执行工作流" class="feature-modal" :mask-closable="false">
-      <BatchWorkflow ref="batchWorkflowRef" />
-      <template #footer>
-        <div class="flex justify-between items-center">
-          <n-button type="info" size="small" @click="batchWorkflowRef?.openCreateModal()">+ 新建工作流</n-button>
-          <n-space>
-            <n-button @click="modals.workflow = false">关闭</n-button>
-            <n-button type="primary" :disabled="!batchWorkflowRef?.canExecute" :loading="batchWorkflowRef?.isProcessing" @click="batchWorkflowRef?.triggerExecute()">
-              {{ batchWorkflowRef?.buttonText || '开始处理' }}
+      <!-- AI提取合同信息弹窗 -->
+      <n-modal
+        v-model:show="modals.extractor"
+        preset="card"
+        title="🤖 AI提取合同信息"
+        class="feature-modal"
+        :mask-closable="false"
+      >
+        <ContractExtractor
+          :processing="extracting"
+          :extracted-data="extractedData"
+          :submitting="submitting"
+          :extractor-config="configs.extractor"
+          @submit-data="submitExtractedData"
+          @update:extracted-data="extractedData = $event"
+          @update-config="updateExtractorConfig"
+        />
+        <template #footer>
+          <n-space justify="end">
+            <n-button @click="modals.extractor = false">关闭</n-button>
+            <n-button type="primary" :loading="extracting" @click="executeExtraction">
+              {{ extracting ? '提取中...' : '开始提取' }}
             </n-button>
           </n-space>
-        </div>
-      </template>
-    </n-modal>
+        </template>
+      </n-modal>
 
-    <!-- 更多功能定制弹窗 -->
-    <n-modal v-model:show="modals.custom" preset="card" title="🎨 更多功能定制" class="feature-modal" :mask-closable="false">
-      <div class="flex flex-col items-center py-8">
-        <img :src="logoCard" alt="联系客服" class=" h-[200px]" />
-        <div class="text-center text-sm text-gray-600 mt-4">
-          <p class="mb-1">扫描二维码联系我</p>
-          <p class="text-xs text-gray-500">定制专属功能，满足您的个性化需求</p>
+      <!-- 关键词修订批注弹窗 -->
+      <n-modal
+        v-model:show="modals.keyword"
+        preset="card"
+        title="🔍 关键词修订批注"
+        class="feature-modal"
+        :mask-closable="false"
+      >
+        <KeywordCommenter
+          ref="keywordCommenterRef"
+          :processing="keywordProcessing"
+          :keyword-config="configs.keyword"
+          @execute="executeKeywordComment"
+          @update-config="updateKeywordConfig"
+        />
+        <template #footer>
+          <n-space justify="end">
+            <n-button @click="modals.keyword = false">关闭</n-button>
+            <n-button
+              type="primary"
+              :loading="keywordProcessing"
+              @click="keywordCommenterRef?.triggerExecute()"
+            >
+              {{ keywordProcessing ? '处理中...' : '开始处理' }}
+            </n-button>
+          </n-space>
+        </template>
+      </n-modal>
+
+      <!-- AI全流程审查弹窗 -->
+      <n-modal
+        v-model:show="modals.aiFullReview"
+        preset="card"
+        title="⚖️ AI全流程审查"
+        class="feature-modal"
+        :mask-closable="false"
+      >
+        <AIFullReview ref="aiFullReviewRef" @state-change="handleAIFullReviewStateChange" />
+        <template #footer>
+          <n-space justify="end">
+            <n-button @click="modals.aiFullReview = false">关闭</n-button>
+            <n-button
+              v-if="
+                aiFullReviewState === 'complete' &&
+                aiFullReviewRef?.selectedSuggestionCount?.value > 0
+              "
+              type="primary"
+              :disabled="aiFullReviewRef?.applyingModifications?.value"
+              :loading="aiFullReviewRef?.applyingModifications?.value"
+              @click="aiFullReviewRef?.handleApplyModifications()"
+            >
+              {{
+                aiFullReviewRef?.applyingModifications?.value
+                  ? '执行中...'
+                  : `应用批注 (${aiFullReviewRef?.selectedSuggestionCount?.value || 0})`
+              }}
+            </n-button>
+            <n-button
+              v-if="aiFullReviewState !== 'complete'"
+              type="primary"
+              :loading="aiFullReviewProcessing"
+              @click="aiFullReviewRef?.triggerExecute()"
+            >
+              {{ aiFullReviewRef?.buttonText?.value || '开始任务' }}
+            </n-button>
+          </n-space>
+        </template>
+      </n-modal>
+
+      <!-- AI+律师共同审查弹窗 -->
+      <n-modal
+        v-model:show="modals.aiLawyerReview"
+        preset="card"
+        title="👨‍⚖️ AI+律师共同审查"
+        class="feature-modal"
+        :mask-closable="false"
+      >
+        <AILawyerReview ref="aiLawyerReviewRef" @state-change="handleAILawyerReviewStateChange" />
+        <template #footer>
+          <n-space justify="end">
+            <n-button @click="modals.aiLawyerReview = false">关闭</n-button>
+            <n-button
+              v-if="
+                aiLawyerReviewState === 'complete' &&
+                aiLawyerReviewRef?.selectedSuggestionCount?.value > 0
+              "
+              type="primary"
+              :disabled="aiLawyerReviewRef?.applyingModifications?.value"
+              :loading="aiLawyerReviewRef?.applyingModifications?.value"
+              @click="aiLawyerReviewRef?.handleApplyModifications()"
+            >
+              {{
+                aiLawyerReviewRef?.applyingModifications?.value
+                  ? '执行中...'
+                  : `应用批注 (${aiLawyerReviewRef?.selectedSuggestionCount?.value || 0})`
+              }}
+            </n-button>
+            <n-button
+              v-if="aiLawyerReviewState !== 'complete'"
+              type="primary"
+              :loading="aiLawyerReviewProcessing"
+              @click="aiLawyerReviewRef?.triggerExecute()"
+            >
+              {{ aiLawyerReviewRef?.buttonText?.value || '开始任务' }}
+            </n-button>
+          </n-space>
+        </template>
+      </n-modal>
+
+      <!-- 执行工作流弹窗 -->
+      <n-modal
+        v-model:show="modals.workflow"
+        preset="card"
+        title="📄 执行工作流"
+        class="feature-modal"
+        :mask-closable="false"
+      >
+        <BatchWorkflow ref="batchWorkflowRef" />
+        <template #footer>
+          <div class="flex justify-between items-center">
+            <n-button type="info" size="small" @click="batchWorkflowRef?.openCreateModal()"
+              >+ 新建工作流</n-button
+            >
+            <n-space>
+              <n-button @click="modals.workflow = false">关闭</n-button>
+              <n-button
+                type="primary"
+                :disabled="!batchWorkflowRef?.canExecute"
+                :loading="batchWorkflowRef?.isProcessing"
+                @click="batchWorkflowRef?.triggerExecute()"
+              >
+                {{ batchWorkflowRef?.buttonText || '开始处理' }}
+              </n-button>
+            </n-space>
+          </div>
+        </template>
+      </n-modal>
+
+      <!-- 更多功能定制弹窗 -->
+      <n-modal
+        v-model:show="modals.custom"
+        preset="card"
+        title="🎨 更多功能定制"
+        class="feature-modal"
+        :mask-closable="false"
+      >
+        <div class="flex flex-col items-center py-8">
+          <img :src="logoCard" alt="联系客服" class="h-[200px]" />
+          <div class="text-center text-sm text-gray-600 mt-4">
+            <p class="mb-1">扫描二维码联系我</p>
+            <p class="text-xs text-gray-500">定制专属功能，满足您的个性化需求</p>
+          </div>
         </div>
-      </div>
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="modals.custom = false">关闭</n-button>
-        </n-space>
-      </template>
-    </n-modal>
+        <template #footer>
+          <n-space justify="end">
+            <n-button @click="modals.custom = false">关闭</n-button>
+          </n-space>
+        </template>
+      </n-modal>
     </div>
   </PageLayout>
 </template>
@@ -200,18 +261,61 @@ const keywordProcessing = computed(() => contractService.isTaskProcessing('keywo
 
 // 功能卡片配置
 const featureCards = computed(() => [
-  { key: 'extractor', icon: '🤖', title: 'AI提取合同信息', desc: '智能识别合同关键要素', processing: extracting.value },
-  { key: 'keyword', icon: '🔍', title: '关键词修订批注', desc: '匹配关键词添加批注', processing: keywordProcessing.value },
-  { key: 'aiFullReview', icon: '⚖️', title: 'AI全流程审查', desc: 'AI自动生成审查清单', processing: aiFullReviewProcessing.value },
-  { key: 'aiLawyerReview', icon: '👨‍⚖️', title: 'AI+律师共同审查', desc: 'AI清单+律师规则整合', processing: aiLawyerReviewProcessing.value },
-  { key: 'workflow', icon: '📄', title: '执行工作流', desc: '一键完成批量操作', processing: batchWorkflowRef.value?.isProcessing },
-  { key: 'batch', icon: '📦', title: '批量合同处理', desc: '批量识别+提交+编号+批注', processing: false, route: '/batch' },
-  { key: 'custom', icon: '🎨', title: '更多功能定制', desc: '联系客服定制专属功能', processing: false }
+  {
+    key: 'extractor',
+    icon: '🤖',
+    title: 'AI提取合同信息',
+    desc: '智能识别合同关键要素',
+    processing: extracting.value
+  },
+  {
+    key: 'keyword',
+    icon: '🔍',
+    title: '关键词修订批注',
+    desc: '匹配关键词添加批注',
+    processing: keywordProcessing.value
+  },
+  {
+    key: 'aiFullReview',
+    icon: '⚖️',
+    title: 'AI全流程审查',
+    desc: 'AI自动生成审查清单',
+    processing: aiFullReviewProcessing.value
+  },
+  {
+    key: 'aiLawyerReview',
+    icon: '👨‍⚖️',
+    title: 'AI+律师共同审查',
+    desc: 'AI清单+律师规则整合',
+    processing: aiLawyerReviewProcessing.value
+  },
+  {
+    key: 'workflow',
+    icon: '📄',
+    title: '执行工作流',
+    desc: '一键完成批量操作',
+    processing: batchWorkflowRef.value?.isProcessing
+  },
+  {
+    key: 'batch',
+    icon: '📦',
+    title: '批量合同处理',
+    desc: '批量识别+提交+编号+批注',
+    processing: false,
+    route: '/batch'
+  },
+  {
+    key: 'custom',
+    icon: '🎨',
+    title: '更多功能定制',
+    desc: '联系客服定制专属功能',
+    processing: false
+  }
 ])
 
 // 打开弹窗或跳转页面
 const openModal = (key) => {
-  const card = featureCards.value.find(c => c.key === key)
+  const card = featureCards.value.find((c) => c.key === key)
   if (card?.route) {
     // 如果有路由配置，则跳转到对应页面
     router.push(card.route)

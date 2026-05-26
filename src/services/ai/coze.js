@@ -15,7 +15,7 @@ export async function fetchCompanyInfo(companyName) {
   const config = appConfig.get('kdocs') || {}
   const cozeApiKey = config.cozeApiKey || ''
   const companyInfoWorkflowId = config.companyInfoWorkflowId || '7550481844523221034'
-  
+
   if (!cozeApiKey) {
     throw new Error('Coze API Key未配置，请在设置页面配置')
   }
@@ -75,4 +75,3 @@ export async function fetchCompanyInfo(companyName) {
     throw error
   }
 }
-  

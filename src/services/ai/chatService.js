@@ -3,6 +3,7 @@ import { appConfig } from '../../utils/appConfig.js'
 import { addCommentAction } from '../workflow/actions/addComment.js'
 import { addRevisionAction } from '../workflow/actions/addRevision.js'
 import { buildSystemPrompt } from './promptTemplates.js'
+import { ragService } from '../rag/index.js'
 
 const TOOL_DEFINITIONS = [
   {
@@ -70,7 +71,7 @@ function parseActionsFromResponse(text) {
       const raw = jsonStr.trim()
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) {
-        parsed.forEach(a => _pushAction(actions, a))
+        parsed.forEach((a) => _pushAction(actions, a))
       } else {
         _pushAction(actions, parsed)
       }
@@ -81,7 +82,7 @@ function parseActionsFromResponse(text) {
         const fixed = trimmed.replace(/,\s*]/g, ']').replace(/}\s*{/g, '},{')
         try {
           const parsed = JSON.parse(fixed)
-          if (Array.isArray(parsed)) parsed.forEach(a => _pushAction(actions, a))
+          if (Array.isArray(parsed)) parsed.forEach((a) => _pushAction(actions, a))
         } catch {
           console.warn('解析操作指令失败:', e)
         }
@@ -127,7 +128,20 @@ class ChatService {
     return this.currentMode
   }
 
-  async sendMessage(userMessage, { onChunk, onComplete, onError, onAction, onStatus, mode, referenceText, templateContent, inquiryType } = {}) {
+  async sendMessage(
+    userMessage,
+    {
+      onChunk,
+      onComplete,
+      onError,
+      onAction,
+      onStatus,
+      mode,
+      referenceText,
+      templateContent,
+      inquiryType
+    } = {}
+  ) {
     if (this.isLoading) {
       onError?.('正在处理中，请等待当前操作完成')
       return
@@ -141,17 +155,61 @@ class ChatService {
       onStatus?.('thinking')
 
       let docContext = ''
+      let ragContext = ''
+      let docName = ''
+
       try {
         onStatus?.('reading')
         docContext = wpsDocument.getFullText()?.substring(0, 8000) || ''
+        try {
+          const doc = wpsDocument.getDocument()
+          docName = doc?.Name || ''
+        } catch {
+          /* ignore */
+        }
       } catch {
         docContext = ''
+      }
+
+      if (docContext && ragService._isRagEnabled()) {
+        try {
+          await ragService.indexDocument(docContext, { docName, docType: 'contract' })
+
+          const docResults = await ragService.searchDocumentContext(userMessage, 3, docName || null)
+          if (docResults.length > 0) {
+            ragContext += ragService.buildContextFromResults(docResults, '文档相关段落')
+          }
+
+          const reviewResults = await ragService.searchReviewHistory(userMessage, 2)
+          if (reviewResults.length > 0) {
+            ragContext += '\n\n' + ragService.buildContextFromResults(reviewResults, '历史审查参考')
+          }
+
+          const memResults = await ragService.searchConversationMemory(userMessage, 2)
+          if (memResults.length > 0) {
+            ragContext += '\n\n' + ragService.buildContextFromResults(memResults, '历史对话参考')
+          }
+
+          const lawResults = await ragService.searchLawKnowledge(userMessage, 2)
+          if (lawResults.length > 0) {
+            ragContext += '\n\n' + ragService.buildContextFromResults(lawResults, '法律知识参考')
+          }
+
+          if (ragContext) {
+            const ragOnlyLength = ragContext.length
+            const docBudget = Math.max(3000, 8000 - ragOnlyLength)
+            docContext = docContext.substring(0, docBudget)
+          }
+        } catch (e) {
+          console.warn('[RAG] 检索增强失败，回退全文模式:', e)
+        }
       }
 
       this.conversationHistory.push({ role: 'user', content: userMessage })
 
       const systemPrompt = buildSystemPrompt(effectiveMode, {
         docContext,
+        ragContext,
         referenceText,
         templateContent,
         inquiryType
@@ -178,6 +236,19 @@ class ChatService {
       const { cleanedText, actions } = parseActionsFromResponse(fullResponse)
 
       this.conversationHistory.push({ role: 'assistant', content: fullResponse })
+
+      if (ragService._isRagEnabled()) {
+        if (actions.length > 0) {
+          ragService.indexReviewHistory({ actions }, { docName }).catch((e) => {
+            console.warn('[RAG] 索引审查历史失败:', e)
+          })
+        }
+        if (this.conversationHistory.length >= 4) {
+          ragService.indexConversationMemory(this.conversationHistory, { docName }).catch((e) => {
+            console.warn('[RAG] 索引对话记忆失败:', e)
+          })
+        }
+      }
 
       onComplete?.({ text: cleanedText, actions, rawText: fullResponse, mode: effectiveMode })
 

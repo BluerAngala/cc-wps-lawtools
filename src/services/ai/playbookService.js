@@ -79,25 +79,29 @@ const DEFAULT_PLAYBOOK = {
       id: 'data-subject-request',
       name: '数据主体请求回复',
       category: 'compliance',
-      template: '感谢您的请求。根据适用的数据保护法律，我们确认收到您的请求，并将在法定期限内处理。我们可能需要验证您的身份以确保数据安全。请提供以下信息以便我们处理您的请求：\n1. 身份验证信息\n2. 具体请求内容\n3. 相关数据范围'
+      template:
+        '感谢您的请求。根据适用的数据保护法律，我们确认收到您的请求，并将在法定期限内处理。我们可能需要验证您的身份以确保数据安全。请提供以下信息以便我们处理您的请求：\n1. 身份验证信息\n2. 具体请求内容\n3. 相关数据范围'
     },
     {
       id: 'nda-request',
       name: 'NDA签署请求',
       category: 'nda',
-      template: '感谢您提出的保密协议签署请求。我们已审核您提供的NDA草案，现回复如下：\n1. 我方可接受互负保密义务的NDA\n2. 保密期限建议为2-3年\n3. 请确认是否采用我方标准NDA模板'
+      template:
+        '感谢您提出的保密协议签署请求。我们已审核您提供的NDA草案，现回复如下：\n1. 我方可接受互负保密义务的NDA\n2. 保密期限建议为2-3年\n3. 请确认是否采用我方标准NDA模板'
     },
     {
       id: 'vendor-inquiry',
       name: '供应商询价回复',
       category: 'vendor',
-      template: '感谢您的询价。我们已收到您的服务/产品报价请求，现回复如下：\n1. 我方需签订正式服务协议\n2. 合同条款需经法务审核\n3. 预计审核周期为5-10个工作日'
+      template:
+        '感谢您的询价。我们已收到您的服务/产品报价请求，现回复如下：\n1. 我方需签订正式服务协议\n2. 合同条款需经法务审核\n3. 预计审核周期为5-10个工作日'
     },
     {
       id: 'discovery-hold',
       name: '证据保全通知',
       category: 'litigation',
-      template: '【证据保全通知】根据相关法律规定及公司合规要求，现通知如下：\n1. 即日起暂停销毁与以下事项相关的所有文件和电子数据\n2. 包括但不限于邮件、即时通讯记录、合同文本、会议纪要等\n3. 本通知持续有效直至书面撤销'
+      template:
+        '【证据保全通知】根据相关法律规定及公司合规要求，现通知如下：\n1. 即日起暂停销毁与以下事项相关的所有文件和电子数据\n2. 包括但不限于邮件、即时通讯记录、合同文本、会议纪要等\n3. 本通知持续有效直至书面撤销'
     }
   ]
 }
@@ -153,7 +157,7 @@ function addPosition(position) {
 
 function updatePosition(id, updates) {
   const playbook = loadPlaybook()
-  const idx = playbook.positions.findIndex(p => p.id === id)
+  const idx = playbook.positions.findIndex((p) => p.id === id)
   if (idx === -1) return playbook
   playbook.positions[idx] = { ...playbook.positions[idx], ...updates }
   savePlaybook(playbook)
@@ -162,7 +166,7 @@ function updatePosition(id, updates) {
 
 function removePosition(id) {
   const playbook = loadPlaybook()
-  playbook.positions = playbook.positions.filter(p => p.id !== id)
+  playbook.positions = playbook.positions.filter((p) => p.id !== id)
   savePlaybook(playbook)
   return playbook
 }
@@ -177,7 +181,7 @@ function addResponseTemplate(template) {
 
 function updateResponseTemplate(id, updates) {
   const playbook = loadPlaybook()
-  const idx = playbook.responseTemplates.findIndex(t => t.id === id)
+  const idx = playbook.responseTemplates.findIndex((t) => t.id === id)
   if (idx === -1) return playbook
   playbook.responseTemplates[idx] = { ...playbook.responseTemplates[idx], ...updates }
   savePlaybook(playbook)
@@ -186,7 +190,7 @@ function updateResponseTemplate(id, updates) {
 
 function removeResponseTemplate(id) {
   const playbook = loadPlaybook()
-  playbook.responseTemplates = playbook.responseTemplates.filter(t => t.id !== id)
+  playbook.responseTemplates = playbook.responseTemplates.filter((t) => t.id !== id)
   savePlaybook(playbook)
   return playbook
 }

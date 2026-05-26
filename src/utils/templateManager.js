@@ -20,14 +20,14 @@ class TemplateManager {
     try {
       const basePath = this.getBasePath()
       const configUrl = `${basePath}templates/templates.json`
-      
+
       unifiedLogger.info('加载内置模板配置', { configUrl })
-      
+
       const response = await fetch(configUrl)
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
-      
+
       builtInTemplatesConfig = await response.json()
       return builtInTemplatesConfig
     } catch (error) {
@@ -95,7 +95,7 @@ class TemplateManager {
       })
 
       const allTemplates = [...userTemplates, ...builtInTemplates]
-      
+
       unifiedLogger.info(`所有模板加载完成: ${allTemplates.length} 个`, {
         total: allTemplates.length,
         builtIn: builtInTemplates.length,
@@ -117,11 +117,11 @@ class TemplateManager {
     try {
       const url = new URL(window.location.href)
       const pathname = url.pathname.replace(/\/[^/]+$/, '') || '/'
-      
+
       if (url.protocol === 'file:') {
         return `${url.protocol}//${pathname}/`
       }
-      
+
       return `${url.protocol}//${url.host}${pathname}/`
     } catch (error) {
       const href = window.location.href
@@ -222,7 +222,7 @@ class TemplateManager {
         pathManager.ensureDir(templatesDir)
       }
 
-      const userTemplates = templates.filter(t => !t.isBuiltIn)
+      const userTemplates = templates.filter((t) => !t.isBuiltIn)
 
       const configData = {
         templates: userTemplates,
@@ -245,7 +245,12 @@ class TemplateManager {
         })
         return true
       } else {
-        unifiedLogger.logFileOperation('write', configPath, 'failed', new Error('WriteFile 返回 false'))
+        unifiedLogger.logFileOperation(
+          'write',
+          configPath,
+          'failed',
+          new Error('WriteFile 返回 false')
+        )
         unifiedLogger.error('保存配置文件失败', {
           configPath,
           method: 'saveTemplates'

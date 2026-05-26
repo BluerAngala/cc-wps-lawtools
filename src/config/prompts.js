@@ -10,11 +10,13 @@ export const PromptConfig = {
    */
   system: {
     // 通用法律助手
-    legal: '你是专业的法律文书AI助手。核心原则：保持专业、准确、客观；遵守法律职业道德；只提供参考建议，不提供具体法律意见。',
-    
+    legal:
+      '你是专业的法律文书AI助手。核心原则：保持专业、准确、客观；遵守法律职业道德；只提供参考建议，不提供具体法律意见。',
+
     // 合同审查专用
-    contractReview: '你是专业的法律文书AI助手，专注于合同审查。核心原则：保持专业、准确、客观；遵守法律职业道德；只提供风险分析和参考建议，不提供具体法律意见。输出要求：必须返回完整、有效的JSON格式；不要截断输出，确保JSON正确闭合；严格遵守输出格式规范。',
-    
+    contractReview:
+      '你是专业的法律文书AI助手，专注于合同审查。核心原则：保持专业、准确、客观；遵守法律职业道德；只提供风险分析和参考建议，不提供具体法律意见。输出要求：必须返回完整、有效的JSON格式；不要截断输出，确保JSON正确闭合；严格遵守输出格式规范。',
+
     // 合同审查流式版本（JSONL格式输出）
     contractReviewStreaming: `你是专业的法律文书AI助手，专注于合同审查。
 
@@ -35,12 +37,14 @@ export const PromptConfig = {
 4. 发现一个问题就输出一行，不要等待
 5. searchKeyword 必须是文档中真实存在的连续文本（8-20字符）
 6. 没有问题时输出空行或不输出`,
-    
+
     // 合同类型识别
-    contractClassification: '你是专业的法律文书AI助手，擅长合同类型识别和分类。核心要求：1.必须返回有效的JSON格式；2.不要包含任何markdown代码块或额外文本；3.JSON必须包含type、subtype、confidence三个字段；4.严格遵守输出格式。',
-    
+    contractClassification:
+      '你是专业的法律文书AI助手，擅长合同类型识别和分类。核心要求：1.必须返回有效的JSON格式；2.不要包含任何markdown代码块或额外文本；3.JSON必须包含type、subtype、confidence三个字段；4.严格遵守输出格式。',
+
     // 合同分析
-    contractAnalysis: '你是专业的法律文书AI助手，擅长合同结构分析和风险预判。输出必须是有效的JSON格式。'
+    contractAnalysis:
+      '你是专业的法律文书AI助手，擅长合同结构分析和风险预判。输出必须是有效的JSON格式。'
   },
 
   /**
@@ -287,20 +291,15 @@ ${data.content}
 export const PromptBuilder = {
   // 构建合同审查消息
   forContractReview(context, contractType, checklistText, options = {}) {
-    return PromptConfig.buildMessages(
-      'contractReview',
-      'contractReviewer',
-      'contractReview',
-      {
-        contractType,
-        section: context.segmentPosition?.section,
-        content: context.currentSegment,
-        summary: context.summary,
-        checklist: checklistText || context.checklistText,
-        perspective: options.perspective || context.perspective, // 传递审查视角
-        customPrompt: options.customPrompt || context.customPrompt // 传递自定义指令
-      }
-    )
+    return PromptConfig.buildMessages('contractReview', 'contractReviewer', 'contractReview', {
+      contractType,
+      section: context.segmentPosition?.section,
+      content: context.currentSegment,
+      summary: context.summary,
+      checklist: checklistText || context.checklistText,
+      perspective: options.perspective || context.perspective, // 传递审查视角
+      customPrompt: options.customPrompt || context.customPrompt // 传递自定义指令
+    })
   },
 
   // 构建流式合同审查消息（JSONL格式输出）
@@ -335,22 +334,15 @@ ${context.currentSegment}
 
   // 构建合同全局分析消息
   forContractAnalysis(documentText) {
-    return PromptConfig.buildMessages(
-      'contractAnalysis',
-      'contractAnalyzer',
-      'contractAnalysis',
-      { content: documentText }
-    )
+    return PromptConfig.buildMessages('contractAnalysis', 'contractAnalyzer', 'contractAnalysis', {
+      content: documentText
+    })
   },
 
   // 构建合同要素提取消息
   forContractExtraction(documentText) {
-    return PromptConfig.buildMessages(
-      'legal',
-      'contractExtractor',
-      'contractExtraction',
-      { content: documentText }
-    )
+    return PromptConfig.buildMessages('legal', 'contractExtractor', 'contractExtraction', {
+      content: documentText
+    })
   }
 }
-

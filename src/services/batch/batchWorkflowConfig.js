@@ -168,7 +168,7 @@ export const presetBatchWorkflows = [
  * @returns {Object|null} 工作流配置
  */
 export function getPresetBatchWorkflow(id) {
-  return presetBatchWorkflows.find(w => w.id === id) || null
+  return presetBatchWorkflows.find((w) => w.id === id) || null
 }
 
 /**
@@ -189,7 +189,7 @@ export function cloneBatchWorkflow(presetId, customizations = {}) {
 
   // 应用自定义参数
   if (customizations.params) {
-    cloned.steps.forEach(step => {
+    cloned.steps.forEach((step) => {
       if (customizations.params[step.actionType]) {
         step.params = {
           ...step.params,
@@ -208,7 +208,7 @@ export function cloneBatchWorkflow(presetId, customizations = {}) {
  * @returns {Array} 格式化的关键词列表
  */
 export function buildKeywordList(keywords) {
-  return keywords.map(k => ({
+  return keywords.map((k) => ({
     keyword: k.keyword || k,
     actionType: k.actionType || '批注',
     comment: k.comment || `关键词"${k.keyword || k}"需要重点关注`,

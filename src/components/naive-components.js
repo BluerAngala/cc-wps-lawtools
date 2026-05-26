@@ -30,14 +30,14 @@ export { NButton, NTag, NIcon } from 'naive-ui'
 export { NAlert, NEmpty, NSpin, NProgress, NModal, NPopconfirm } from 'naive-ui'
 
 // 数据展示组件
-export { 
-  NList, 
-  NListItem, 
-  NThing, 
-  NStatistic, 
-  NCollapse, 
-  NCollapseItem, 
-  NTabs, 
+export {
+  NList,
+  NListItem,
+  NThing,
+  NStatistic,
+  NCollapse,
+  NCollapseItem,
+  NTabs,
   NTabPane,
   NText
 } from 'naive-ui'

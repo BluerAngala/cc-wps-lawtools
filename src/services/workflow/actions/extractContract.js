@@ -35,9 +35,7 @@ export class ExtractContractAction extends AIBaseAction {
 
       // 根据提取模式设置提取标签
       const extractTags =
-        params.extractMode === 'basic'
-          ? ['甲方', '乙方', '合同金额', '签订日期', '合同期限']
-          : null // full 模式提取所有
+        params.extractMode === 'basic' ? ['甲方', '乙方', '合同金额', '签订日期', '合同期限'] : null // full 模式提取所有
 
       // 调用 AI 服务提取合同要素
       const rawResponse = await processContractElements({

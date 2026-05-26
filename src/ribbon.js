@@ -15,7 +15,6 @@ function OnAction(control) {
 
   console.log('点击了 ribbon.js 的 OnAction', eleId)
   switch (eleId) {
-
     // 模板管理
     case 'btnTemplateManager':
       {
@@ -63,10 +62,7 @@ function OnAction(control) {
       {
         const url = 'https://yuanqi.tencent.com/agent/oRCZyC6JyFcn'
         console.log('url', url)
-        Util.wpsService.createExternalTaskPane(
-          url,
-          850
-        )
+        Util.wpsService.createExternalTaskPane(url, 850)
       }
       break
 
@@ -84,9 +80,7 @@ function OnAction(control) {
       {
         const url = 'https://lawyerch.feishu.cn/wiki/space/7467382510423506963'
         console.log('url', url)
-        const externalTaskPane = Util.wpsService.createExternalTaskPane(
-          url
-        )
+        const externalTaskPane = Util.wpsService.createExternalTaskPane(url)
         externalTaskPane.Visible = false
       }
       break
