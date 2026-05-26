@@ -14,7 +14,7 @@ export async function fetchCompanyInfo(companyName) {
   // 从配置中获取Coze API密钥和工作流ID
   const config = appConfig.get('kdocs') || {}
   const cozeApiKey = config.cozeApiKey || ''
-  const companyInfoWorkflowId = config.companyInfoWorkflowId || '7550481844523221034'
+  const companyInfoWorkflowId = config.companyInfoWorkflowId || ''
 
   if (!cozeApiKey) {
     throw new Error('Coze API Key未配置，请在设置页面配置')
@@ -25,7 +25,7 @@ export async function fetchCompanyInfo(companyName) {
     parameters: {
       companyName: companyName.trim()
     },
-    // 250916更新 新版添加检查公司名称  https://www.coze.cn/work_flow?workflow_id=7550481657011421226&space_id=7500398729041117234
+    // 新版添加检查公司名称
     workflow_id: companyInfoWorkflowId
   }
 

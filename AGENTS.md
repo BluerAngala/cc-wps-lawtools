@@ -438,9 +438,7 @@ const data = JSON.parse(storage.getItem('key') || 'null')
 | 产物 | 平台 | 安装方式 |
 |------|------|---------|
 | `wps_lawtools_setup.exe` | Windows | 双击运行 NSIS 安装程序 |
-| `wps_lawtools_mac.zip` | macOS | 解压 → 右键打开 `.app` → 点击"安装" |
-| `install_linux.sh` / `uninstall_linux.sh` | Linux | `bash install_linux.sh` |
-| `publish.xml` | 通用 | 插件注册文件（安装脚本自动处理） |
+| `wps_lawtools_mac.zip` | macOS | 双击解压 → 右键打开 `.app` → 点击"安装" |
 
 ### macOS 安装包原理
 
@@ -454,6 +452,7 @@ Install WPS LawTools.app/
       install           ← 安装脚本（0755 权限，使用 osascript 弹出原生 GUI 对话框）
     Resources/
       dist/             ← Vite 构建产物（HTML/JS/CSS/manifest.xml/ribbon.xml）
+      安装说明.txt      ← 用户安装引导
 ```
 
 安装流程：用户双击 `.app` → macOS 执行 `MacOS/install` → 检测 WPS → `osascript` 弹出确认对话框 → 复制文件到 jsaddons → 生成/更新 `publish.xml` → 弹出成功提示

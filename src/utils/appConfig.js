@@ -51,8 +51,8 @@ class AppConfigManager {
         cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
         workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '', // 用于金山文档操作的工作流ID
         companyInfoWorkflowId:
-          import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034', // 用于获取企业信息的工作流ID
-        contractNumberPrefix: 'SWXCBHT' // 合同编号前缀，默认为 SWXCBHT
+          import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '',
+        contractNumberPrefix: ''
       },
 
       // 金山文档方案管理
@@ -69,8 +69,8 @@ class AppConfigManager {
               cozeApiKey: import.meta.env.VITE_COZE_API_KEY || '',
               workflowId: import.meta.env.VITE_COZE_KDOCS_WORKFLOW_ID || '',
               companyInfoWorkflowId:
-                import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '7550481844523221034',
-              contractNumberPrefix: 'SWXCBHT'
+                import.meta.env.VITE_COZE_COMPANY_WORKFLOW_ID || '',
+              contractNumberPrefix: ''
             },
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -565,7 +565,18 @@ class AppConfigManager {
    */
   exportConfig() {
     const config = this.getConfig()
-    const dataStr = JSON.stringify(config, null, 2)
+    const userSections = ['ai', 'kdocs', 'rag', 'system', 'kdocsSchemes', 'keywordSchemes', 'reviewSchemes']
+    const exportData = {
+      _version: 1,
+      _warning: '此文件包含敏感信息（API Key、Token 等），请勿分享给他人',
+      _exportTime: new Date().toISOString()
+    }
+    for (const key of userSections) {
+      if (config[key] !== undefined) {
+        exportData[key] = config[key]
+      }
+    }
+    const dataStr = JSON.stringify(exportData, null, 2)
     const blob = new Blob([dataStr], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -583,9 +594,26 @@ class AppConfigManager {
       const reader = new FileReader()
       reader.onload = (e) => {
         try {
-          const config = JSON.parse(e.target.result)
-          this.saveConfig(config)
-          resolve(config)
+          const imported = JSON.parse(e.target.result)
+          const userSections = ['ai', 'kdocs', 'rag', 'system', 'kdocsSchemes', 'keywordSchemes', 'reviewSchemes']
+          const defaults = this.getDefaultConfig()
+          const cleanConfig = {}
+          for (const key of userSections) {
+            if (imported[key] !== undefined) {
+              if (typeof defaults[key] === 'object' && !Array.isArray(defaults[key]) && defaults[key] !== null) {
+                cleanConfig[key] = this.deepMerge(defaults[key], imported[key])
+              } else {
+                cleanConfig[key] = imported[key]
+              }
+            }
+          }
+          if (Object.keys(cleanConfig).length === 0) {
+            reject(new Error('配置文件中无可识别的配置项'))
+            return
+          }
+          const mergedConfig = this.deepMerge(defaults, cleanConfig)
+          this.saveConfig(mergedConfig)
+          resolve(mergedConfig)
         } catch (error) {
           reject(new Error('配置文件格式错误'))
         }

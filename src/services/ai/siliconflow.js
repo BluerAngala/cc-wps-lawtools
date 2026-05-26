@@ -131,7 +131,7 @@ async function streamChatCompletions({ messages, model, onChunk, onProgress, opt
   console.log('=== 流式请求详情 ===')
   console.log('模型:', currentModel)
   console.log('API地址:', config.baseUrl)
-  console.log('API Key:', config.apiKey ? `${config.apiKey.substring(0, 10)}...` : '未配置')
+  console.log('API Key:', config.apiKey ? '***已配置' : '未配置')
   console.log('Temperature:', requestBody.temperature)
   console.log('Max Tokens:', requestBody.max_tokens)
   console.log('Messages 数量:', messages.length)
@@ -300,7 +300,7 @@ async function nonStreamChatCompletions({ messages, model, options = {} }) {
 
   console.log('========== 非流式请求详情 ==========')
   console.log('🌐 API地址:', config.baseUrl)
-  console.log('🔑 API Key:', config.apiKey ? `${config.apiKey.substring(0, 10)}...` : '未配置')
+  console.log('🔑 API Key:', config.apiKey ? '***已配置' : '未配置')
   console.log('🤖 模型:', currentModel)
   console.log('🌡️ Temperature:', requestBody.temperature)
   console.log('📏 Max Tokens:', requestBody.max_tokens)
@@ -664,15 +664,6 @@ async function getAvailableModels() {
   }
 }
 
-// 测试
-async function test() {
-  const res = await fetch('https://env-00jxgx7alqyz.dev-hz.cloudbasefunction.cn/test_kdocs', {
-    method: 'get'
-  })
-  console.log(res)
-  return res
-}
-
 export {
   streamChatCompletions,
   nonStreamChatCompletions,
@@ -680,6 +671,5 @@ export {
   processContractElements,
   processContractReview,
   processDocumentStructure,
-  getAvailableModels,
-  test
+  getAvailableModels
 }

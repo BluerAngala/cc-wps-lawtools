@@ -7,16 +7,7 @@ import { taskPane } from '../wps'
 import { fetchCompanyInfo } from '../ai/coze.js'
 import { appConfig } from '../../utils/appConfig.js'
 
-// 特定主体信息映射
-const specialSubjects = {
-  中共广东省委宣传部: {
-    info: '广东省委宣传部是广东省委主管意识形态的综合职能部门，位于广东省广州市越秀区合群三马路26号省委大院。统一社会信用代码为11440000006939561H。'
-  },
-  中共广东省委宣传部机关工会委员会: {
-    info: '广东省委宣传部是依法设立的工会，位于广东省广州市越秀区合群三马路26号省委大院。统一社会信用代码为81440000742971228Y。'
-  }
-  // 可以继续添加更多特定主体
-}
+const specialSubjects = {}
 
 export class DataSubmitter {
   constructor() {
@@ -283,9 +274,9 @@ export class DataSubmitter {
         const 编号 = recordData?.fields?.编号
         // 是否存在编号
         if (编号) {
-          // 从配置获取合同编号前缀，默认为 SWXCBHT
+          // 从配置获取合同编号前缀
           const kdocsConfig = appConfig.get('kdocs') || {}
-          const prefix = kdocsConfig.contractNumberPrefix || 'SWXCBHT'
+          const prefix = kdocsConfig.contractNumberPrefix || 'HT'
           // 自定义构建审查编号 前缀-年份-编号
           审查编号 = `${prefix}-${new Date().getFullYear()}-${编号}`
           console.log('构建的审查编号:', 审查编号)

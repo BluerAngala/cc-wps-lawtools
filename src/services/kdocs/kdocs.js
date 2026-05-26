@@ -118,7 +118,7 @@ async function kdocsHandler({ type, recordID, sheetID, inputData, isAsync = fals
         requestData: requestData,
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${cozeApiKey.substring(0, 10)}...`,
+          Authorization: `Bearer ***`,
           'Content-Type': 'application/json'
         }
       }

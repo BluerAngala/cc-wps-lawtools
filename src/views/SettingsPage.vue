@@ -305,11 +305,11 @@
                     <n-input
                       v-model:value="config.kdocs.contractNumberPrefix"
                       @update:value="autoSave"
-                      placeholder="SWXCBHT"
+                      placeholder=""
                     />
                     <template #feedback>
                       <n-text depth="3" style="font-size: 12px">
-                        合同编号格式：前缀-年份-编号，如 SWXCBHT-2025-001
+                        合同编号格式：前缀-年份-编号，如 HT-2025-001
                       </n-text>
                     </template>
                   </n-form-item>
