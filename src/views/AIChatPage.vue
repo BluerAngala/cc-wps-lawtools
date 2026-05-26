@@ -4,6 +4,7 @@
       :doc-info="docInfo"
       @refresh-doc="refreshDoc"
       @clear="clearChat"
+      @export-chat="toggleSelectMode"
       @toggle-settings="showSettings = !showSettings"
     />
 
@@ -16,7 +17,17 @@
       />
 
       <TransitionGroup name="msg">
-        <div v-for="(msg, mIdx) in messages" :key="msg.id" class="msg-row" :class="msg.role">
+        <div
+          v-for="(msg, mIdx) in messages"
+          :key="msg.id"
+          class="msg-row"
+          :class="[msg.role, { selected: selectMode && selectedIds.has(msg.id), selecting: selectMode }]"
+          @click="selectMode && toggleSelect(msg.id)"
+        >
+          <label v-if="selectMode" class="msg-check" @click.stop>
+            <input type="checkbox" :checked="selectedIds.has(msg.id)" @change="toggleSelect(msg.id)" />
+            <span class="check-box"></span>
+          </label>
           <div class="msg-avatar" :class="msg.role">
             <span v-if="msg.role === 'user'">👤</span>
             <span v-else>⚖️</span>
@@ -40,22 +51,53 @@
                 <div class="al-header">
                   <span class="al-title">操作建议 ({{ msg.executableActions.length }})</span>
                   <button
+                    v-if="msg.executableActions.length > 1 && hasUnapplied(msg)"
                     class="al-apply-all"
                     @click="handleApplyAll(mIdx)"
-                    v-if="hasUnapplied(msg)"
                   >
-                    全部应用
+                    ⚡ 全部应用
                   </button>
                 </div>
                 <ActionCard
                   v-for="(act, aIdx) in msg.executableActions"
                   :key="aIdx"
                   :action="act"
-                  @apply="handleApplyAction(mIdx, aIdx)"
+                  @apply="(params) => handleApplyAction(mIdx, aIdx, params)"
                   @locate="handleLocateAction(act)"
                   @reject="handleRejectAction(mIdx, aIdx)"
                 />
               </div>
+            </div>
+
+            <div v-if="!msg.isStreaming && !selectMode" class="msg-actions">
+              <button class="ma-btn" title="复制" @click="copyMessage(msg)">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+              <button class="ma-btn" title="删除" @click="deleteMessage(mIdx)">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -64,11 +106,25 @@
       <div ref="scrollAnchor"></div>
     </div>
 
-    <div v-if="isLoading && !streamingText" class="loading-bar">
+    <div v-if="selectMode" class="select-bar">
+      <label class="sb-check" @click.stop>
+        <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
+        <span class="check-box"></span>
+        <span class="sb-label">全选</span>
+      </label>
+      <span class="sb-count">已选 {{ selectedIds.size }} 条</span>
+      <button class="sb-btn export" :disabled="!selectedIds.size" @click="exportSelected">
+        📋 导出选中
+      </button>
+      <button class="sb-btn cancel" @click="exitSelectMode">取消</button>
+    </div>
+
+    <div v-if="isLoading && !streamingText && !selectMode" class="loading-bar">
       <div class="lb-progress"></div>
     </div>
 
     <ChatInput
+      v-if="!selectMode"
       v-model="inputText"
       :is-loading="isLoading"
       :show-slash-menu="showSlashMenu"
@@ -84,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 import { chatService } from '@/services/ai/chatService.js'
 import { playbookService } from '@/services/ai/playbookService.js'
@@ -114,6 +170,35 @@ const messagesArea = ref(null)
 const scrollAnchor = ref(null)
 const isNearBottom = ref(true)
 const currentMode = ref('standard')
+const selectMode = ref(false)
+const selectedIds = ref(new Set())
+
+const isAllSelected = computed(() => messages.value.length > 0 && selectedIds.value.size === messages.value.length)
+
+function toggleSelectMode() {
+  selectMode.value = !selectMode.value
+  if (!selectMode.value) selectedIds.value = new Set()
+}
+
+function exitSelectMode() {
+  selectMode.value = false
+  selectedIds.value = new Set()
+}
+
+function toggleSelect(id) {
+  const s = new Set(selectedIds.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  selectedIds.value = s
+}
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedIds.value = new Set()
+  } else {
+    selectedIds.value = new Set(messages.value.map((m) => m.id))
+  }
+}
 
 const slashCommands = [
   { icon: '🔍', value: '/审查', label: '/审查 合同', desc: '全面审查合同风险' },
@@ -290,11 +375,25 @@ async function handleSend() {
         msgRef.statusText = ''
 
         const allActions = result.actions || []
+
         msgRef.actions = allActions
 
-        msgRef.executableActions = allActions.filter(
-          (a) => a.type === 'comment' || a.type === 'revision'
-        )
+        const _execTypes = new Set([
+          'addComment',
+          'addRevision',
+          'addHeader',
+          'addFooter',
+          'addPageNumber',
+          'addWatermark',
+          'renameDocument',
+          'exportPDF',
+          'scanSensitive',
+          'desensitize',
+          'batchKeyword',
+          'comment',
+          'revision'
+        ])
+        msgRef.executableActions = allActions.filter((a) => _execTypes.has(a.type))
       }
       streamingText.value = ''
       streamingStatus.value = ''
@@ -325,15 +424,19 @@ function handleCancel() {
   isLoading.value = false
 }
 
-async function handleApplyAction(msgIdx, actionIdx) {
+async function handleApplyAction(msgIdx, actionIdx, mergedParams) {
   const msg = messages.value[msgIdx]
   if (!msg?.executableActions[actionIdx]) return
 
   const action = msg.executableActions[actionIdx]
+  if (mergedParams) {
+    Object.assign(action, mergedParams)
+  }
   const result = await chatService.applyAction(action)
 
   if (result.success) {
     action._applied = true
+    window.$message?.info('已应用，可在文档中 Ctrl+Z 撤销')
   } else {
     action._failed = true
     action._errorMsg = result.message
@@ -345,15 +448,20 @@ async function handleApplyAll(msgIdx) {
   const msg = messages.value[msgIdx]
   if (!msg) return
 
+  let applied = 0
   for (const action of msg.executableActions) {
     if (!action._applied && !action._failed && !action._rejected) {
       const result = await chatService.applyAction(action)
       if (result.success) {
         action._applied = true
+        applied++
       } else {
         action._failed = true
       }
     }
+  }
+  if (applied > 0) {
+    window.$message?.info(`已应用 ${applied} 个操作，可在文档中 Ctrl+Z 撤销`)
   }
   persistHistory()
 }
@@ -363,6 +471,87 @@ function handleRejectAction(msgIdx, actionIdx) {
   if (msg?.executableActions[actionIdx]) {
     msg.executableActions[actionIdx]._rejected = true
   }
+  persistHistory()
+}
+
+function copyMessage(msg) {
+  const text = msg.text || ''
+  if (!text) return
+  navigator.clipboard.writeText(text).then(
+    () => window.$message?.success('已复制'),
+    () => {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      window.$message?.success('已复制')
+    }
+  )
+}
+
+function _copyText(text) {
+  navigator.clipboard.writeText(text).then(
+    () => window.$message?.success('对话记录已复制到剪贴板'),
+    () => {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      window.$message?.success('对话记录已复制到剪贴板')
+    }
+  )
+}
+
+function exportSelected() {
+  const selected = messages.value.filter((m) => selectedIds.value.has(m.id))
+  if (!selected.length) {
+    window.$message?.info('请先选择要导出的对话')
+    return
+  }
+
+  const actionLabels = {
+    addComment: '添加批注',
+    addRevision: '添加修订',
+    addHeader: '添加页眉',
+    addFooter: '添加页脚',
+    addPageNumber: '添加页码',
+    addWatermark: '添加水印',
+    renameDocument: '重命名文档',
+    exportPDF: '导出PDF',
+    scanSensitive: '扫描敏感信息',
+    desensitize: '信息脱敏',
+    batchKeyword: '批量关键词标注'
+  }
+
+  const lines = selected.map((msg) => {
+    const role = msg.role === 'user' ? '👤 用户' : '⚖️ AI'
+    let text = msg.text || ''
+
+    const actions = msg.executableActions || msg.actions || []
+    if (actions.length > 0) {
+      const actionLines = actions.map((a) => {
+        const label = actionLabels[a.type] || a.type
+        const status = a._applied ? ' ✅已应用' : a._rejected ? ' 已跳过' : a._failed ? ' ❌失败' : ''
+        const json = JSON.stringify(a, null, 2).split('\n').map((l) => '    ' + l).join('\n')
+        return `  - ${label}${status}\n${json}`
+      })
+      text += '\n\n操作建议:\n' + actionLines.join('\n\n')
+    }
+
+    return `${role}:\n${text}`
+  })
+
+  const header = `📋 对话记录导出\n文档: ${docInfo.value || '未知'}\n时间: ${new Date().toLocaleString()}\n选中: ${selected.length} 条\n${'─'.repeat(40)}\n\n`
+  _copyText(header + lines.join('\n\n' + '─'.repeat(30) + '\n\n'))
+  exitSelectMode()
+}
+
+function deleteMessage(idx) {
+  messages.value.splice(idx, 1)
   persistHistory()
 }
 
@@ -478,6 +667,7 @@ onMounted(() => {
   --c-text2: #666666;
   --c-border: #e0e0e0;
   --c-bg: #f8f8f8;
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -498,11 +688,63 @@ onMounted(() => {
 .msg-row {
   display: flex;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   padding: 0 4px;
+  transition: background 0.15s;
+  position: relative;
+}
+.msg-row.selected {
+  background: #eff6ff;
+  border-radius: 8px;
+  justify-content: flex-start;
+}
+.msg-check {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+  padding-right: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 26px;
+  order: -1;
+}
+.msg-check input {
+  display: none;
+}
+.check-box {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.msg-check input:checked + .check-box {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+.msg-check input:checked + .check-box::after {
+  content: '';
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-1px);
 }
 .msg-row.user {
   justify-content: flex-end;
+}
+.msg-row.selecting {
+  justify-content: flex-start;
+}
+.msg-row.user.selecting .msg-avatar {
+  margin-left: auto;
+}
+.msg-row.selected {
+  background: #eff6ff;
+  border-radius: 8px;
 }
 
 .msg-avatar {
@@ -525,10 +767,17 @@ onMounted(() => {
 .msg-body {
   max-width: 90%;
   min-width: 60px;
+  display: flex;
+  flex-direction: column;
 }
 .msg-body.user {
-  display: flex;
-  justify-content: flex-end;
+  align-items: flex-end;
+}
+.msg-body.assistant {
+  max-width: 100%;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
 }
 
 .msg-bubble {
@@ -547,7 +796,36 @@ onMounted(() => {
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-top-left-radius: 4px;
+  width: 100%;
 }
+.msg-actions {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.msg-row:hover .msg-actions {
+  opacity: 1;
+}
+.ma-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #999;
+  transition: all 0.15s;
+}
+.ma-btn:hover {
+  background: #f3f4f6;
+  color: #333;
+}
+
 
 .md-content :deep(h1) {
   font-size: 16px;
@@ -713,18 +991,18 @@ onMounted(() => {
   color: var(--c-text2);
 }
 .al-apply-all {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--c-accent);
-  background: var(--c-accent-light);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: #16a34a;
   border: none;
-  border-radius: 4px;
-  padding: 2px 8px;
+  border-radius: 6px;
+  padding: 5px 14px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .al-apply-all:hover {
-  background: #fecaca;
+  background: #15803d;
 }
 
 .msg-enter-active {
@@ -742,5 +1020,58 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+.select-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+.sb-check {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.sb-label {
+  font-size: 13px;
+  color: #334155;
+}
+.sb-count {
+  font-size: 12px;
+  color: #64748b;
+  margin-right: auto;
+}
+.sb-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sb-btn.export {
+  background: #3b82f6;
+  color: #fff;
+}
+.sb-btn.export:hover:not(:disabled) {
+  background: #2563eb;
+}
+.sb-btn.export:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.sb-btn.cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+.sb-btn.cancel:hover {
+  background: #e2e8f0;
 }
 </style>

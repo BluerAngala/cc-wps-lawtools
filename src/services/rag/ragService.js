@@ -67,6 +67,10 @@ class RagService {
     this._initialized = false
   }
 
+  static isRagEnabled() {
+    return _isRagEnabled()
+  }
+
   async ensureCollections() {
     if (this._initialized) return
 
@@ -385,3 +389,4 @@ class RagService {
 }
 
 export const ragService = new RagService()
+export { RagService }

@@ -1,21 +1,43 @@
 import { wpsDocument } from '../wps/document.js'
 import { appConfig } from '../../utils/appConfig.js'
-import { addCommentAction } from '../workflow/actions/addComment.js'
-import { addRevisionAction } from '../workflow/actions/addRevision.js'
 import { buildSystemPrompt } from './promptTemplates.js'
-import { ragService } from '../rag/index.js'
+import { ragService, RagService } from '../rag/index.js'
+import { actionRegistry } from '../workflow/actionRegistry.js'
+import { registerAllActions } from '../workflow/actions/index.js'
+
+registerAllActions(actionRegistry)
+
+const CHAT_TOOL_ACTIONS = [
+  'addComment',
+  'addRevision',
+  'readDocument',
+  'saveDocument',
+  'addHeader',
+  'addFooter',
+  'addPageNumber',
+  'addWatermark',
+  'renameDocument',
+  'exportPDF',
+  'scanSensitive',
+  'desensitize',
+  'batchKeyword'
+]
+
+function _buildToolDefinitions() {
+  return CHAT_TOOL_ACTIONS.map((type) => {
+    const action = actionRegistry.get(type)
+    if (!action) return null
+    const schema = action.getSchema()
+    const params = {}
+    for (const [key, prop] of Object.entries(schema.properties || {})) {
+      params[key] = prop.description || prop.title || key
+    }
+    return { name: type, description: action.description, parameters: params }
+  }).filter(Boolean)
+}
 
 const TOOL_DEFINITIONS = [
-  {
-    name: 'add_comment',
-    description: '在文档指定关键词位置添加批注',
-    parameters: { keyword: '文档中要添加批注的精确文本', comment: '批注内容' }
-  },
-  {
-    name: 'add_revision',
-    description: '修订文档中指定文本（以修订标记呈现，用户可接受或拒绝）',
-    parameters: { keyword: '要替换的原文精确文本', newText: '替换后的新文本', reason: '修订原因' }
-  },
+  ..._buildToolDefinitions(),
   {
     name: 'risk_assessment',
     description: '结构化风险评估，输出严重度×可能性矩阵',
@@ -42,12 +64,19 @@ const TOOL_DEFINITIONS = [
   }
 ]
 
+const _LEGACY_TYPE_MAP = {
+  comment: 'addComment',
+  revision: 'addRevision'
+}
+
 function _pushAction(actions, action) {
   if (!action || !action.type) return
 
-  if (action.type === 'risk' && Array.isArray(action.items)) {
+  const type = _LEGACY_TYPE_MAP[action.type] || action.type
+
+  if (type === 'risk' && Array.isArray(action.items)) {
     actions.push({ type: 'risk', items: action.items })
-  } else if (action.type === 'triage' && action.level) {
+  } else if (type === 'triage' && action.level) {
     actions.push({
       type: 'triage',
       level: action.level,
@@ -55,12 +84,10 @@ function _pushAction(actions, action) {
       issues: action.issues || [],
       recommendation: action.recommendation
     })
-  } else if (action.type === 'compare' && Array.isArray(action.items)) {
+  } else if (type === 'compare' && Array.isArray(action.items)) {
     actions.push({ type: 'compare', items: action.items })
-  } else if (action.type === 'comment' && action.keyword) {
-    actions.push(action)
-  } else if (action.type === 'revision' && action.keyword) {
-    actions.push(action)
+  } else if (actionRegistry.has(type)) {
+    actions.push({ ...action, type })
   }
 }
 
@@ -96,20 +123,25 @@ function parseActionsFromResponse(text) {
 }
 
 async function executeAction(action) {
-  if (action.type === 'comment') {
-    return addCommentAction.execute({ keyword: action.keyword, comment: action.comment })
-  }
-  if (action.type === 'revision') {
-    return addRevisionAction.execute({
-      keyword: action.keyword,
-      newText: action.newText,
-      reason: action.reason
-    })
-  }
-  if (action.type === 'risk' || action.type === 'triage' || action.type === 'compare') {
+  const { type, keyword, comment, newText, reason, ...restParams } = action
+
+  if (type === 'risk' || type === 'triage' || type === 'compare') {
     return { success: true, message: '分析结果已展示' }
   }
-  return { success: false, message: `未知操作类型: ${action.type}` }
+
+  const registryAction = actionRegistry.get(type)
+  if (registryAction) {
+    const params =
+      type === 'addComment'
+        ? { keyword, comment }
+        : type === 'addRevision'
+          ? { keyword, newText, reason }
+          : { keyword, comment, newText, reason, ...restParams }
+    const context = { documentText: null, documentInfo: null, previousResult: null, data: {} }
+    return registryAction.execute(params, context)
+  }
+
+  return { success: false, message: `未知操作类型: ${type}` }
 }
 
 class ChatService {
@@ -167,11 +199,13 @@ class ChatService {
         } catch {
           /* ignore */
         }
-      } catch {
+        console.log('[ChatService] 文档读取成功, 长度:', docContext.length, '文档名:', docName)
+      } catch (e) {
+        console.warn('[ChatService] 文档读取失败:', e.message)
         docContext = ''
       }
 
-      if (docContext && ragService._isRagEnabled()) {
+      if (docContext && RagService.isRagEnabled()) {
         try {
           await ragService.indexDocument(docContext, { docName, docType: 'contract' })
 
@@ -237,7 +271,7 @@ class ChatService {
 
       this.conversationHistory.push({ role: 'assistant', content: fullResponse })
 
-      if (ragService._isRagEnabled()) {
+      if (RagService.isRagEnabled()) {
         if (actions.length > 0) {
           ragService.indexReviewHistory({ actions }, { docName }).catch((e) => {
             console.warn('[RAG] 索引审查历史失败:', e)

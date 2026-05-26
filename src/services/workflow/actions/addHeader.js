@@ -21,14 +21,14 @@ export class AddHeaderAction extends BaseAction {
     try {
       const result = await wpsFileService.addHeader({
         text: params.text,
-        fontSize: params.fontSize || 12,
+        fontSize: params.fontSize || 14,
         alignment: params.alignment || '右对齐',
         imagePath: params.imagePath,
-        imageOptions: {
+        imageOptions: params.imagePath ? {
           width: params.imageWidth || 50,
           left: params.imageLeft || 490,
           top: params.imageTop || 20
-        }
+        } : undefined
       })
 
       if (result.success) {
@@ -54,7 +54,7 @@ export class AddHeaderAction extends BaseAction {
           type: 'number',
           title: '字体大小',
           description: '页眉字体大小',
-          default: 12
+          default: 14
         },
         alignment: {
           type: 'string',
@@ -66,25 +66,29 @@ export class AddHeaderAction extends BaseAction {
         imagePath: {
           type: 'string',
           title: '图片路径',
-          description: '要添加到页眉的图片文件路径（可选）'
+          description: '要添加到页眉的图片文件路径（可选，填写后显示图片参数）',
+          placeholder: '留空表示不添加图片'
         },
         imageWidth: {
           type: 'number',
           title: '图片宽度',
           description: '图片宽度（磅值）',
-          default: 50
+          default: 50,
+          showIf: 'imagePath'
         },
         imageLeft: {
           type: 'number',
           title: '图片左边距',
           description: '图片距页面左边的距离（磅值）',
-          default: 490
+          default: 490,
+          showIf: 'imagePath'
         },
         imageTop: {
           type: 'number',
           title: '图片上边距',
           description: '图片距页面顶部的距离（磅值）',
-          default: 20
+          default: 20,
+          showIf: 'imagePath'
         }
       },
       required: []
