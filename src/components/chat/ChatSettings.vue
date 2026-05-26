@@ -33,15 +33,17 @@
               设定 AI 审查合同时的关注要点和回复风格，让审查结果更贴合您的需求。
             </p>
 
-            <div class="pb-section">
+            <div class="pb-section sec-danger">
               <div class="pb-label" @click="sections.positions = !sections.positions">
-                <span>🔍 审查要点（{{ playbook.positions.length }}）</span>
-                <span class="toggle-icon">{{ sections.positions ? '▾' : '▸' }}</span>
+                <span class="pb-label-left">🔍 审查要点（{{ playbook.positions.length }}）</span>
+                <span class="pb-label-right">
+                  <button class="add-inline" @click.stop="addPosition">+ 添加</button>
+                  <span class="toggle-icon">{{ sections.positions ? '▾' : '▸' }}</span>
+                </span>
               </div>
-              <button class="sm-btn add-btn" @click="addPosition">+ 添加要点</button>
 
               <Transition name="collapse">
-                <div v-if="sections.positions">
+                <div v-if="sections.positions" class="section-body">
                   <div v-for="(pos, idx) in playbook.positions" :key="pos.id" class="acc-card">
                     <div class="acc-head" @click="toggleExpand('pos', pos.id)">
                       <span class="acc-title">
@@ -111,14 +113,16 @@
               </Transition>
             </div>
 
-            <div class="pb-section">
+            <div class="pb-section sec-primary">
               <div class="pb-label" @click="sections.nda = !sections.nda">
-                <span>🔒 保密协议偏好</span>
-                <span class="toggle-icon">{{ sections.nda ? '▾' : '▸' }}</span>
+                <span class="pb-label-left">🔒 保密协议偏好</span>
+                <span class="pb-label-right">
+                  <span class="toggle-icon">{{ sections.nda ? '▾' : '▸' }}</span>
+                </span>
               </div>
 
               <Transition name="collapse">
-                <div v-if="sections.nda">
+                <div v-if="sections.nda" class="section-body">
                   <div class="pb-field">
                     <label>是否要求互负保密义务</label>
                     <select
@@ -164,15 +168,17 @@
               </Transition>
             </div>
 
-            <div class="pb-section">
+            <div class="pb-section sec-accent">
               <div class="pb-label" @click="sections.templates = !sections.templates">
-                <span>💬 常用回复（{{ playbook.responseTemplates.length }}）</span>
-                <span class="toggle-icon">{{ sections.templates ? '▾' : '▸' }}</span>
+                <span class="pb-label-left">💬 常用回复（{{ playbook.responseTemplates.length }}）</span>
+                <span class="pb-label-right">
+                  <button class="add-inline" @click.stop="addTemplate">+ 添加</button>
+                  <span class="toggle-icon">{{ sections.templates ? '▾' : '▸' }}</span>
+                </span>
               </div>
-              <button class="sm-btn add-btn" @click="addTemplate">+ 添加回复</button>
 
               <Transition name="collapse">
-                <div v-if="sections.templates">
+                <div v-if="sections.templates" class="section-body">
                   <div v-for="(tpl, idx) in playbook.responseTemplates" :key="tpl.id" class="acc-card">
                     <div class="acc-head" @click="toggleExpand('tpl', tpl.id)">
                       <span class="acc-title">{{ tpl.name || '未命名回复' }}</span>
@@ -636,15 +642,60 @@ async function loadStats() {
   cursor: not-allowed;
 }
 .pb-section {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.pb-section.sec-danger .pb-label {
+  background: #fef2f2;
+}
+.pb-section.sec-primary .pb-label {
+  background: #eff6ff;
+}
+.pb-section.sec-accent .pb-label {
+  background: #f5f3ff;
+}
+.section-body {
+  padding: 10px 12px;
 }
 .pb-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  color: #111;
+  padding: 10px 12px;
+  margin-bottom: 0;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.pb-label-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pb-label-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.add-inline {
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.add-inline:hover {
+  background: #eff6ff;
 }
 .pb-field {
   margin-bottom: 8px;
@@ -797,19 +848,9 @@ async function loadStats() {
   line-height: 1.5;
 }
 
-.pb-label {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  user-select: none;
-}
 .toggle-icon {
   font-size: 11px;
   color: #9ca3af;
-}
-.add-btn {
-  margin: 6px 0 8px;
 }
 
 .acc-card {
