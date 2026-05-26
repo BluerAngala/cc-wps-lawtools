@@ -123,7 +123,7 @@ function parseActionsFromResponse(text) {
 }
 
 async function executeAction(action) {
-  const { type, keyword, comment, newText, reason, ...restParams } = action
+  const { type } = action
 
   if (type === 'risk' || type === 'triage' || type === 'compare') {
     return { success: true, message: '分析结果已展示' }
@@ -131,12 +131,14 @@ async function executeAction(action) {
 
   const registryAction = actionRegistry.get(type)
   if (registryAction) {
-    const params =
-      type === 'addComment'
-        ? { keyword, comment }
-        : type === 'addRevision'
-          ? { keyword, newText, reason }
-          : { keyword, comment, newText, reason, ...restParams }
+    const schema = registryAction.getSchema()
+    const propsDef = schema.properties || {}
+    const params = {}
+    for (const key of Object.keys(propsDef)) {
+      if (action[key] !== undefined) {
+        params[key] = action[key]
+      }
+    }
     const context = { documentText: null, documentInfo: null, previousResult: null, data: {} }
     return registryAction.execute(params, context)
   }

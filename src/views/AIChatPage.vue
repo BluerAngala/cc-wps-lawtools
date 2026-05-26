@@ -65,6 +65,7 @@
                   @apply="(params) => handleApplyAction(mIdx, aIdx, params)"
                   @locate="handleLocateAction(act)"
                   @reject="handleRejectAction(mIdx, aIdx)"
+                  @retry="(params) => handleRetryAction(mIdx, aIdx, params)"
                 />
               </div>
             </div>
@@ -143,6 +144,7 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 import { chatService } from '@/services/ai/chatService.js'
+import { actionRegistry } from '@/services/workflow/actionRegistry.js'
 import { playbookService } from '@/services/ai/playbookService.js'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
@@ -378,22 +380,7 @@ async function handleSend() {
 
         msgRef.actions = allActions
 
-        const _execTypes = new Set([
-          'addComment',
-          'addRevision',
-          'addHeader',
-          'addFooter',
-          'addPageNumber',
-          'addWatermark',
-          'renameDocument',
-          'exportPDF',
-          'scanSensitive',
-          'desensitize',
-          'batchKeyword',
-          'comment',
-          'revision'
-        ])
-        msgRef.executableActions = allActions.filter((a) => _execTypes.has(a.type))
+        msgRef.executableActions = allActions.filter((a) => actionRegistry.has(a.type))
       }
       streamingText.value = ''
       streamingStatus.value = ''
@@ -444,6 +431,29 @@ async function handleApplyAction(msgIdx, actionIdx, mergedParams) {
   persistHistory()
 }
 
+async function handleRetryAction(msgIdx, actionIdx, mergedParams) {
+  const msg = messages.value[msgIdx]
+  if (!msg?.executableActions[actionIdx]) return
+
+  const action = msg.executableActions[actionIdx]
+  if (mergedParams) {
+    Object.assign(action, mergedParams)
+  }
+  delete action._failed
+  delete action._errorMsg
+
+  const result = await chatService.applyAction(action)
+
+  if (result.success) {
+    action._applied = true
+    window.$message?.info('已应用，可在文档中 Ctrl+Z 撤销')
+  } else {
+    action._failed = true
+    action._errorMsg = result.message
+  }
+  persistHistory()
+}
+
 async function handleApplyAll(msgIdx) {
   const msg = messages.value[msgIdx]
   if (!msg) return
@@ -479,21 +489,9 @@ function copyMessage(msg) {
 
   const actions = msg.executableActions || msg.actions || []
   if (actions.length > 0) {
-    const actionLabels = {
-      addComment: '添加批注',
-      addRevision: '添加修订',
-      addHeader: '添加页眉',
-      addFooter: '添加页脚',
-      addPageNumber: '添加页码',
-      addWatermark: '添加水印',
-      renameDocument: '重命名文档',
-      exportPDF: '导出PDF',
-      scanSensitive: '扫描敏感信息',
-      desensitize: '信息脱敏',
-      batchKeyword: '批量关键词标注'
-    }
     const actionLines = actions.map((a) => {
-      const label = actionLabels[a.type] || a.type
+      const regAction = actionRegistry.get(a.type)
+      const label = regAction ? `${regAction.icon} ${regAction.name}` : a.type
       const status = a._applied ? ' ✅已应用' : a._rejected ? ' 已跳过' : a._failed ? ' ❌失败' : ''
       const json = JSON.stringify(a, null, 2).split('\n').map((l) => '  ' + l).join('\n')
       return `- ${label}${status}\n${json}`
@@ -538,20 +536,6 @@ function exportSelected() {
     return
   }
 
-  const actionLabels = {
-    addComment: '添加批注',
-    addRevision: '添加修订',
-    addHeader: '添加页眉',
-    addFooter: '添加页脚',
-    addPageNumber: '添加页码',
-    addWatermark: '添加水印',
-    renameDocument: '重命名文档',
-    exportPDF: '导出PDF',
-    scanSensitive: '扫描敏感信息',
-    desensitize: '信息脱敏',
-    batchKeyword: '批量关键词标注'
-  }
-
   const lines = selected.map((msg) => {
     const role = msg.role === 'user' ? '👤 用户' : '⚖️ AI'
     let text = msg.text || ''
@@ -559,7 +543,8 @@ function exportSelected() {
     const actions = msg.executableActions || msg.actions || []
     if (actions.length > 0) {
       const actionLines = actions.map((a) => {
-        const label = actionLabels[a.type] || a.type
+        const regAction = actionRegistry.get(a.type)
+        const label = regAction ? `${regAction.icon} ${regAction.name}` : a.type
         const status = a._applied ? ' ✅已应用' : a._rejected ? ' 已跳过' : a._failed ? ' ❌失败' : ''
         const json = JSON.stringify(a, null, 2).split('\n').map((l) => '    ' + l).join('\n')
         return `  - ${label}${status}\n${json}`

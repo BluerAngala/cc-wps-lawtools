@@ -95,6 +95,16 @@
       </button>
     </div>
 
+    <div v-if="action._failed" class="act-btns">
+      <button class="abtn retry" @click="handleRetry">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10" />
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+        </svg>重试
+      </button>
+      <button class="abtn skip" @click="$emit('reject')">跳过</button>
+    </div>
+
     <div v-if="action._applied" class="act-ctrl-z">💡 可在文档中 Ctrl+Z 撤销此操作</div>
     <div v-if="action._failed" class="act-err">⚠️ {{ action._errorMsg || '执行失败' }}</div>
   </div>
@@ -111,48 +121,25 @@ const props = defineProps({
   action: { type: Object, required: true }
 })
 
-const emit = defineEmits(['apply', 'locate', 'reject'])
+const emit = defineEmits(['apply', 'locate', 'reject', 'retry'])
 
 const isEditing = ref(true)
 
-const _executableTypes = new Set([
-  'addComment',
-  'addRevision',
-  'addHeader',
-  'addFooter',
-  'addPageNumber',
-  'addWatermark',
-  'renameDocument',
-  'exportPDF',
-  'scanSensitive',
-  'desensitize',
-  'batchKeyword',
-  'comment',
-  'revision'
-])
+const isExecutable = computed(() => {
+  const regAction = actionRegistry.get(props.action.type)
+  return !!regAction
+})
 
-const isExecutable = computed(() => _executableTypes.has(props.action.type))
-
-const _badgeMap = {
-  addComment: '💬 批注',
-  addRevision: '✏️ 修订',
-  addHeader: '📰 页眉',
-  addFooter: '📰 页脚',
-  addPageNumber: '🔢 页码',
-  addWatermark: '💧 水印',
-  renameDocument: '📝 重命名',
-  exportPDF: '📄 导出PDF',
-  scanSensitive: '🔍 扫描',
-  desensitize: '🔒 脱敏',
-  batchKeyword: '🎯 批量',
-  risk: '⚡ 风险',
-  triage: '🚦 分流',
-  compare: '⚖️ 对比',
-  comment: '💬 批注',
-  revision: '✏️ 修订'
-}
-
-const badgeLabel = computed(() => _badgeMap[props.action.type] || props.action.type)
+const badgeLabel = computed(() => {
+  const regAction = actionRegistry.get(props.action.type)
+  if (regAction) return `${regAction.icon} ${regAction.name}`
+  const fallbackMap = {
+    risk: '⚡ 风险评估',
+    triage: '🚦 快速分流',
+    compare: '⚖️ 合同对比'
+  }
+  return fallbackMap[props.action.type] || props.action.type
+})
 
 const schemaFields = computed(() => {
   const action = actionRegistry.get(props.action.type)
@@ -204,6 +191,13 @@ _initFormParams()
 function handleConfirm() {
   const merged = { ...props.action, ...formParams }
   emit('apply', merged)
+}
+
+function handleRetry() {
+  const merged = { ...props.action, ...formParams }
+  delete merged._failed
+  delete merged._errorMsg
+  emit('retry', merged)
 }
 </script>
 
@@ -430,6 +424,13 @@ function handleConfirm() {
 }
 .abtn.edit:hover {
   background: #d97706;
+}
+.abtn.retry {
+  background: #2563eb;
+  flex: 2;
+}
+.abtn.retry:hover {
+  background: #1d4ed8;
 }
 
 .act-err {

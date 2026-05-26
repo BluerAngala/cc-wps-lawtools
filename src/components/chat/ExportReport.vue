@@ -41,8 +41,8 @@ const reportText = computed(() => {
     }
   }
 
-  const comments = allActions.filter((a) => a.type === 'comment')
-  const revisions = allActions.filter((a) => a.type === 'revision')
+  const comments = allActions.filter((a) => a.type === 'addComment' || a.type === 'comment')
+  const revisions = allActions.filter((a) => a.type === 'addRevision' || a.type === 'revision')
   const risks = allActions.filter((a) => a.type === 'risk')
   const triages = allActions.filter((a) => a.type === 'triage')
   const compares = allActions.filter((a) => a.type === 'compare')

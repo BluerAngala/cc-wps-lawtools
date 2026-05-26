@@ -22,7 +22,7 @@ export class AddRevisionAction extends BaseAction {
       const range = wpsDocument.findRangeByKeyword(keyword)
 
       if (!range) {
-        return createErrorResult(`未找到要修订的文本: ${keyword}`)
+        return createErrorResult(`未找到"${keyword}"，文本可能已被修改或包含隐藏格式字符`)
       }
 
       const success = wpsDocument.addRevision(range, newText, reason)
