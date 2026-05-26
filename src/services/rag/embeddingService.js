@@ -1,6 +1,6 @@
 import { appConfig } from '@/utils/appConfig.js'
 
-const DEFAULT_EMBEDDING_MODEL = 'BAAI/bge-large-zh-v1.5'
+const DEFAULT_EMBEDDING_MODEL = 'Qwen/Qwen3-Embedding-8B'
 const EMBEDDING_DIMENSION = 1024
 
 class EmbeddingService {

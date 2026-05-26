@@ -218,35 +218,57 @@
 
             <div class="rag-section">
               <div class="pb-label">Embedding 配置</div>
+              <div class="rag-hint" style="margin-bottom: 8px">
+                地址和密钥留空则自动跟随 AI 服务配置，仅需选择模型
+              </div>
               <div class="pb-field">
-                <label>API 地址</label>
+                <label>Embedding 模型</label>
+                <select
+                  :value="ragConfig.embeddingModel"
+                  class="pb-select"
+                  @change="updateRag('embeddingModel', $event.target.value)"
+                >
+                  <option value="Qwen/Qwen3-Embedding-8B">Qwen3-Embedding-8B（推荐）</option>
+                  <option value="BAAI/bge-large-zh-v1.5">BGE-large-zh-v1.5</option>
+                  <option value="custom">自定义模型...</option>
+                </select>
+              </div>
+              <div v-if="ragConfig.embeddingModel === 'custom'" class="pb-field">
+                <label>自定义模型 ID</label>
+                <input
+                  :value="ragConfig.embeddingModel"
+                  class="pb-input"
+                  placeholder="模型 ID"
+                  @input="updateRag('embeddingModel', $event.target.value)"
+                />
+              </div>
+              <div class="pb-field">
+                <label
+                  >API 地址<span v-if="!ragConfig.embeddingBaseUrl" class="inherit-tag"
+                    >跟随 AI 服务</span
+                  ></label
+                >
                 <input
                   :value="ragConfig.embeddingBaseUrl"
                   class="pb-input"
-                  placeholder="默认使用 AI 服务地址"
+                  placeholder="留空则使用 AI 服务地址"
                   @input="updateRag('embeddingBaseUrl', $event.target.value)"
                 />
               </div>
               <div class="pb-field">
-                <label>API Key</label>
+                <label
+                  >API Key<span v-if="!ragConfig.embeddingApiKey" class="inherit-tag"
+                    >跟随 AI 服务</span
+                  ></label
+                >
                 <input
                   :value="ragConfig.embeddingApiKey"
                   class="pb-input"
                   type="password"
-                  placeholder="默认使用 AI 服务 Key"
+                  placeholder="留空则使用 AI 服务 Key"
                   @input="updateRag('embeddingApiKey', $event.target.value)"
                 />
               </div>
-              <div class="pb-field">
-                <label>Embedding 模型</label>
-                <input
-                  :value="ragConfig.embeddingModel"
-                  class="pb-input"
-                  placeholder="BAAI/bge-large-zh-v1.5"
-                  @input="updateRag('embeddingModel', $event.target.value)"
-                />
-              </div>
-              <div class="rag-hint">推荐使用 SiliconFlow 的 BAAI/bge-large-zh-v1.5（1024维）</div>
             </div>
 
             <div class="rag-section">
@@ -716,6 +738,15 @@ async function loadStats() {
 .stat-row span:last-child {
   font-weight: 700;
   color: #111;
+}
+.inherit-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
 }
 .drawer-enter-active,
 .drawer-leave-active {

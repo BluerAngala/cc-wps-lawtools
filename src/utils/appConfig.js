@@ -40,7 +40,7 @@ class AppConfigManager {
         qdrantApiKey: import.meta.env.VITE_QDRANT_API_KEY || '',
         embeddingBaseUrl: import.meta.env.VITE_EMBEDDING_BASE_URL || '',
         embeddingApiKey: import.meta.env.VITE_EMBEDDING_API_KEY || '',
-        embeddingModel: import.meta.env.VITE_EMBEDDING_MODEL || 'BAAI/bge-large-zh-v1.5'
+        embeddingModel: import.meta.env.VITE_EMBEDDING_MODEL || 'Qwen/Qwen3-Embedding-8B'
       },
 
       // 金山文档配置

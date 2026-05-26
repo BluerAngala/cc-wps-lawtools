@@ -56,8 +56,19 @@ class QdrantClient {
     try {
       const cfg = this._getConfig()
       if (!cfg.url) return { ok: false, error: '地址未配置' }
-      const res = await this._request('GET', '/healthz')
-      return { ok: true, ...res }
+      const res = await fetch(`${cfg.url}/healthz`, {
+        method: 'GET',
+        headers: this._headers(),
+        signal: AbortSignal.timeout(15000)
+      })
+      if (!res.ok) {
+        return { ok: false, error: `HTTP ${res.status}` }
+      }
+      const text = await res.text()
+      if (text.includes('pass') || res.ok) {
+        return { ok: true }
+      }
+      return { ok: false, error: text.substring(0, 100) }
     } catch (e) {
       return { ok: false, error: e.message }
     }
