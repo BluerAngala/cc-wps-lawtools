@@ -475,8 +475,33 @@ function handleRejectAction(msgIdx, actionIdx) {
 }
 
 function copyMessage(msg) {
-  const text = msg.text || ''
-  if (!text) return
+  let text = msg.text || ''
+
+  const actions = msg.executableActions || msg.actions || []
+  if (actions.length > 0) {
+    const actionLabels = {
+      addComment: '添加批注',
+      addRevision: '添加修订',
+      addHeader: '添加页眉',
+      addFooter: '添加页脚',
+      addPageNumber: '添加页码',
+      addWatermark: '添加水印',
+      renameDocument: '重命名文档',
+      exportPDF: '导出PDF',
+      scanSensitive: '扫描敏感信息',
+      desensitize: '信息脱敏',
+      batchKeyword: '批量关键词标注'
+    }
+    const actionLines = actions.map((a) => {
+      const label = actionLabels[a.type] || a.type
+      const status = a._applied ? ' ✅已应用' : a._rejected ? ' 已跳过' : a._failed ? ' ❌失败' : ''
+      const json = JSON.stringify(a, null, 2).split('\n').map((l) => '  ' + l).join('\n')
+      return `- ${label}${status}\n${json}`
+    })
+    text += '\n\n操作建议:\n' + actionLines.join('\n\n')
+  }
+
+  if (!text.trim()) return
   navigator.clipboard.writeText(text).then(
     () => window.$message?.success('已复制'),
     () => {
