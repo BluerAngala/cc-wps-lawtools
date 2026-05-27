@@ -581,129 +581,141 @@ const saveTemplate = async () => {
     const templateName = newTemplate.value.name.trim()
     const fileName = `${templateName}.docx`
 
+    // Mac PluginStorage 模式: 保存模板元数据但不保存文件
+    const usePluginStorage = pathManager.usePluginStorage()
+
     // 使用统一路径管理器获取模板目录
     const templatesDir = pathManager.getTemplatesDir()
 
-    unifiedLogger.logPath('info', '获取模板目录', {
-      templatesDir,
-      fileName,
-      method: 'saveTemplate'
-    })
+    let templatePath = null
 
-    if (!templatesDir) {
-      unifiedLogger.error('无法获取模板目录', {
+    if (!usePluginStorage) {
+      unifiedLogger.logPath('info', '获取模板目录', {
+        templatesDir,
+        fileName,
         method: 'saveTemplate'
       })
-      window.$message?.error('无法获取模板目录')
-      return
+
+      if (!templatesDir) {
+        unifiedLogger.error('无法获取模板目录', {
+          method: 'saveTemplate'
+        })
+        window.$message?.error('无法获取模板目录')
+        return
+      }
+
+      // 确保目录存在
+      if (!pathManager.ensureDir(templatesDir)) {
+        unifiedLogger.error('创建模板目录失败', { templatesDir })
+        window.$message?.error('创建模板目录失败')
+        return
+      }
+
+      unifiedLogger.logPath('info', '模板目录已就绪', { templatesDir })
+
+      // 保存文档到配置目录
+      templatePath = templatesDir + '/' + fileName
     }
-
-    // 确保目录存在
-    if (!pathManager.ensureDir(templatesDir)) {
-      unifiedLogger.error('创建模板目录失败', { templatesDir })
-      window.$message?.error('创建模板目录失败')
-      return
-    }
-
-    unifiedLogger.logPath('info', '模板目录已就绪', { templatesDir })
-
-    // 保存文档到配置目录
-    const templatePath = templatesDir + '/' + fileName
 
     unifiedLogger.logPath('info', '准备保存模板文件', {
       templatePath,
       fileName,
-      templateName
+      templateName,
+      usePluginStorage
     })
 
-    try {
-      // 使用 SaveAs2 保存文档
-      doc.SaveAs2(templatePath, 16) // 16 = wdFormatDocumentDefault (.docx)
-      unifiedLogger.logFileOperation('save', templatePath, 'success', null)
-      unifiedLogger.info('模板文件已保存', {
-        templatePath,
-        fileName,
-        templateName
-      })
-
-      // 创建模板配置
-      const template = {
-        id: selectedTemplateId.value || templateName.replace(/\s+/g, '_') + '_' + Date.now(),
-        name: templateName,
-        category: newTemplate.value.category,
-        description: newTemplate.value.description,
-        fileName: fileName,
-        filePath: templatePath, // 保存完整路径
-        scene: newTemplate.value.scene || '',
-        isBuiltIn: false, // 用户保存的模板标记为自定义
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-
-      unifiedLogger.logTemplate('create', {
-        templateId: template.id,
-        templateName: template.name,
-        filePath: template.filePath,
-        isUpdate: !!selectedTemplateId.value
-      })
-
-      if (selectedTemplateId.value) {
-        // 更新现有模板
-        unifiedLogger.info('更新现有模板', {
-          templateId: selectedTemplateId.value,
-          templateName: templateName
+    if (!usePluginStorage && templatePath) {
+      try {
+        doc.SaveAs2(templatePath, 16)
+        unifiedLogger.logFileOperation('save', templatePath, 'success', null)
+        unifiedLogger.info('模板文件已保存', {
+          templatePath,
+          fileName,
+          templateName
         })
-        const index = templates.value.findIndex((t) => t.id === selectedTemplateId.value)
-        if (index !== -1) {
-          templates.value[index] = {
-            ...templates.value[index],
-            ...template,
-            updatedAt: new Date().toISOString()
-          }
-          unifiedLogger.info('模板已更新', {
-            templateId: template.id,
-            templateName: template.name
-          })
-        } else {
-          unifiedLogger.warn('未找到要更新的模板', {
-            templateId: selectedTemplateId.value
-          })
+      } catch (saveError) {
+        unifiedLogger.logFileOperation('save', templatePath, 'failed', saveError)
+        unifiedLogger.error('保存模板文件失败', {
+          error: saveError.message,
+          templatePath
+        })
+        window.$message?.error('保存模板文件失败: ' + saveError.message)
+        return
+      }
+    }
+
+    if (usePluginStorage) {
+      unifiedLogger.info('Mac PluginStorage 模式，仅保存模板元数据')
+    }
+
+    // 创建模板配置
+    const template = {
+      id: selectedTemplateId.value || templateName.replace(/\s+/g, '_') + '_' + Date.now(),
+      name: templateName,
+      category: newTemplate.value.category,
+      description: newTemplate.value.description,
+      fileName: fileName,
+      filePath: templatePath || '',
+      scene: newTemplate.value.scene || '',
+      isBuiltIn: false,
+      isMacStorage: usePluginStorage,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    unifiedLogger.logTemplate('create', {
+      templateId: template.id,
+      templateName: template.name,
+      filePath: template.filePath,
+      isUpdate: !!selectedTemplateId.value
+      })
+
+    if (selectedTemplateId.value) {
+      unifiedLogger.info('更新现有模板', {
+        templateId: selectedTemplateId.value,
+        templateName: templateName
+      })
+      const index = templates.value.findIndex((t) => t.id === selectedTemplateId.value)
+      if (index !== -1) {
+        templates.value[index] = {
+          ...templates.value[index],
+          ...template,
+          updatedAt: new Date().toISOString()
         }
+        unifiedLogger.info('模板已更新', {
+          templateId: template.id,
+          templateName: template.name
+        })
       } else {
-        // 添加新模板
-        unifiedLogger.info('添加新模板', {
-          templateId: template.id,
-          templateName: template.name
+        unifiedLogger.warn('未找到要更新的模板', {
+          templateId: selectedTemplateId.value
         })
-        templates.value.push(template)
       }
-
-      // 保存配置到文件系统
-      unifiedLogger.debug('保存模板配置到文件系统')
-      const saveResult = templateManager.saveTemplates(templates.value)
-
-      if (saveResult) {
-        unifiedLogger.info(`模板"${templateName}"已保存成功`, {
-          templateId: template.id,
-          templateName: template.name
-        })
-        window.$message?.success(`模板"${templateName}"已保存`)
-        saveDialogVisible.value = false
-      } else {
-        unifiedLogger.error('保存模板配置失败', {
-          templateId: template.id,
-          templateName: template.name
-        })
-        window.$message?.error('保存模板配置失败')
-      }
-    } catch (saveError) {
-      unifiedLogger.error('保存文件失败', {
-        templateName,
-        templatePath,
-        error: saveError.message,
-        stack: saveError.stack
+    } else {
+      unifiedLogger.info('添加新模板', {
+        templateId: template.id,
+        templateName: template.name
       })
-      window.$message?.error('保存文件失败: ' + saveError.message)
+      templates.value.push(template)
+    }
+
+    // 保存配置
+    unifiedLogger.debug('保存模板配置')
+    const saveResult = templateManager.saveTemplates(templates.value)
+
+    if (saveResult) {
+      unifiedLogger.info(`模板"${templateName}"已保存成功`, {
+        templateId: template.id,
+        templateName: template.name
+      })
+      window.$message?.success(`模板"${templateName}"已保存`)
+      saveDialogVisible.value = false
+    } else {
+      unifiedLogger.error('保存模板配置失败', {
+        templateId: template.id,
+        templateName: template.name
+      })
+      window.$message?.error('保存模板配置失败')
     }
   } catch (error) {
     unifiedLogger.error('保存模板失败', {

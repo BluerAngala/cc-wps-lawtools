@@ -1,9 +1,15 @@
 /**
  * 模板管理器 - 使用 WPS FileSystem API 管理模板文件
+ *
+ * 跨平台支持:
+ * - Windows/可用FileSystem: 使用文件系统持久化模板配置
+ * - Mac(PluginStorage模式): 使用 PluginStorage 持久化模板配置
  */
 
 import unifiedLogger from './unifiedLogger.js'
 import { pathManager } from './pathManager.js'
+
+const TEMPLATES_STORAGE_KEY = 'wps_lawtools_templates'
 
 let builtInTemplatesConfig = null
 
@@ -162,6 +168,53 @@ class TemplateManager {
       return []
     }
 
+    // Mac PluginStorage 模式
+    if (pathManager.usePluginStorage()) {
+      return this.loadUserTemplatesMac()
+    }
+
+    // Windows / FileSystem 可用模式
+    return this.loadUserTemplatesFS()
+  }
+
+  /**
+   * Mac 平台加载用户模板（使用 PluginStorage）
+   */
+  loadUserTemplatesMac() {
+    try {
+      const storage = window.Application.PluginStorage
+      if (!storage) {
+        unifiedLogger.warn('PluginStorage 不可用')
+        return []
+      }
+
+      const content = storage.getItem(TEMPLATES_STORAGE_KEY)
+      if (!content) {
+        unifiedLogger.debug('Mac 平台无用户模板配置')
+        return []
+      }
+
+      const data = JSON.parse(content)
+      const userTemplates = data.templates || []
+
+      unifiedLogger.info(`Mac 平台用户模板已加载: ${userTemplates.length} 个`, {
+        count: userTemplates.length
+      })
+
+      return userTemplates
+    } catch (error) {
+      unifiedLogger.error('Mac 平台加载用户模板失败', {
+        error: error.message,
+        stack: error.stack
+      })
+      return []
+    }
+  }
+
+  /**
+   * Windows 平台加载用户模板（使用 FileSystem）
+   */
+  loadUserTemplatesFS() {
     try {
       const fs = window.Application.FileSystem
       const configPath = pathManager.getTemplatesConfigPath()
@@ -208,6 +261,56 @@ class TemplateManager {
       return false
     }
 
+    // Mac PluginStorage 模式
+    if (pathManager.usePluginStorage()) {
+      return this.saveTemplatesMac(templates)
+    }
+
+    // Windows / FileSystem 可用模式
+    return this.saveTemplatesFS(templates)
+  }
+
+  /**
+   * Mac 平台保存模板配置（使用 PluginStorage）
+   */
+  saveTemplatesMac(templates) {
+    try {
+      const storage = window.Application.PluginStorage
+      if (!storage) {
+        unifiedLogger.error('PluginStorage 不可用')
+        return false
+      }
+
+      const userTemplates = templates.filter((t) => !t.isBuiltIn)
+
+      const configData = {
+        templates: userTemplates,
+        lastUpdated: new Date().toISOString()
+      }
+
+      const configJson = JSON.stringify(configData, null, 2)
+      storage.setItem(TEMPLATES_STORAGE_KEY, configJson)
+
+      unifiedLogger.info(`Mac 平台模板配置已保存: ${userTemplates.length} 个模板`, {
+        total: templates.length,
+        userTemplates: userTemplates.length,
+        builtInTemplates: templates.length - userTemplates.length
+      })
+
+      return true
+    } catch (error) {
+      unifiedLogger.error('Mac 平台保存模板配置失败', {
+        error: error.message,
+        stack: error.stack
+      })
+      return false
+    }
+  }
+
+  /**
+   * Windows 平台保存模板配置（使用 FileSystem）
+   */
+  saveTemplatesFS(templates) {
     try {
       const fs = window.Application.FileSystem
       const configPath = pathManager.getTemplatesConfigPath()
@@ -278,6 +381,12 @@ class TemplateManager {
     try {
       const storage = window.Application.PluginStorage
       storage.removeItem('templates_initialized')
+
+      // Mac PluginStorage 模式也清除模板数据
+      if (pathManager.usePluginStorage()) {
+        storage.removeItem(TEMPLATES_STORAGE_KEY)
+      }
+
       unifiedLogger.info('模板初始化状态已重置')
       return true
     } catch (error) {
