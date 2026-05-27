@@ -36,8 +36,9 @@ function findMakensis() {
   for (const c of candidates) {
     if (fs.existsSync(c)) return c
   }
+  const whichCmd = process.platform === 'win32' ? 'where makensis' : 'which makensis'
   try {
-    const result = execSync('where makensis', { encoding: 'utf8' }).trim()
+    const result = execSync(whichCmd, { encoding: 'utf8' }).trim()
     if (result) return result.split('\n')[0].trim()
   } catch { /* makensis not on PATH */ }
   return null
