@@ -73,15 +73,14 @@ function buildMacDmg() {
   }
   fs.mkdirSync(stagingDir, { recursive: true })
 
-  const commandSrc = fs.readFileSync(path.join(macDir, 'install.command'), 'utf8')
-  const commandScript = commandSrc
-    .replace(/__PLUGIN_NAME__/g, name)
-    .replace(/__PLUGIN_VERSION__/g, version)
-    .replace(/__PLUGIN_TYPE__/g, addonType)
+  const publishXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<jsplugins>
+  <jsplugin name="${name}" type="${addonType}" url="${name}_${version}" version="${version}" enable="enable_dev" install="null" customDomain=""/>
+</jsplugins>`
+  fs.writeFileSync(path.join(stagingDir, 'publish.xml'), publishXml, 'utf8')
 
-  const commandPath = path.join(stagingDir, '安装LawTools.command')
-  fs.writeFileSync(commandPath, commandScript, 'utf8')
-  fs.chmodSync(commandPath, 0o755)
+  const distDest = path.join(stagingDir, 'dist')
+  fs.cpSync(distDir, distDest, { recursive: true })
 
   const readmeSrc = fs.readFileSync(path.join(macDir, 'README.txt'), 'utf8')
   const readme = readmeSrc
@@ -90,9 +89,46 @@ function buildMacDmg() {
     .replace(/__PLUGIN_TYPE__/g, addonType)
   fs.writeFileSync(path.join(stagingDir, '安装说明.txt'), readme, 'utf8')
 
-  const distDest = path.join(stagingDir, 'dist')
-  fs.cpSync(distDir, distDest, { recursive: true })
+  const applescriptSrc = fs.readFileSync(path.join(macDir, 'install.applescript'), 'utf8')
+  const applescript = applescriptSrc
+    .replace(/__PLUGIN_NAME__/g, name)
+    .replace(/__PLUGIN_VERSION__/g, version)
+    .replace(/__PLUGIN_TYPE__/g, addonType)
 
+  const tempScript = path.join(buildDir, '_install.applescript')
+  fs.writeFileSync(tempScript, applescript, 'utf8')
+
+  const appName = '安装LawTools.app'
+  const appPath = path.join(stagingDir, appName)
+
+  try {
+    execSync(`osacompile -o "${appPath}" "${tempScript}"`, { stdio: 'pipe' })
+
+    execSync(`SetFile -a B "${appPath}"`, { stdio: 'pipe' })
+  } catch (err) {
+    console.warn(`\n⚠️  AppleScript 编译失败: ${err.message}`)
+    console.warn('   回退为 .command 脚本\n')
+
+    fs.unlinkSync(tempScript)
+
+    const commandPath = path.join(stagingDir, '安装LawTools.command')
+    const commandSrc = fs.readFileSync(path.join(macDir, 'install.command'), 'utf8')
+    const commandScript = commandSrc
+      .replace(/__PLUGIN_NAME__/g, name)
+      .replace(/__PLUGIN_VERSION__/g, version)
+      .replace(/__PLUGIN_TYPE__/g, addonType)
+    fs.writeFileSync(commandPath, commandScript, 'utf8')
+    fs.chmodSync(commandPath, 0o755)
+
+    return buildMacDmgFromStaging(stagingDir, dmgPath, false)
+  }
+
+  fs.unlinkSync(tempScript)
+
+  return buildMacDmgFromStaging(stagingDir, dmgPath, true)
+}
+
+function buildMacDmgFromStaging(stagingDir, dmgPath, isApp) {
   try {
     if (fs.existsSync(dmgPath)) fs.unlinkSync(dmgPath)
 
@@ -104,7 +140,8 @@ function buildMacDmg() {
     fs.rmSync(stagingDir, { recursive: true })
 
     const sizeMB = (fs.statSync(dmgPath).size / 1024 / 1024).toFixed(1)
-    console.log(`  ✅ macOS: ${name}_mac.dmg (${sizeMB} MB)`)
+    const suffix = isApp ? ' (.app)' : ' (.command)'
+    console.log(`  ✅ macOS: ${name}_mac.dmg (${sizeMB} MB)${suffix}`)
     return true
   } catch (err) {
     console.warn(`\n⚠️  DMG 创建失败: ${err.message}`)
@@ -129,6 +166,11 @@ async function buildMacZip() {
     .replace(/__PLUGIN_VERSION__/g, version)
     .replace(/__PLUGIN_TYPE__/g, addonType)
 
+  const publishXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<jsplugins>
+  <jsplugin name="${name}" type="${addonType}" url="${name}_${version}" version="${version}" enable="enable_dev" install="null" customDomain=""/>
+</jsplugins>`
+
   return new Promise((resolve, reject) => {
     const output = fs.createWriteStream(zipPath)
     const archive = archiver('zip', { zlib: { level: 9 } })
@@ -151,13 +193,18 @@ async function buildMacZip() {
       mode: 0o644,
     })
 
+    archive.append(publishXml, {
+      name: 'publish.xml',
+      mode: 0o644,
+    })
+
     archive.directory(distDir, 'dist')
 
     archive.finalize()
   })
 }
 
-function generateReadme(hasNsis, isDmg) {
+function generateReadme(hasNsis, isDmg, isApp) {
   const lines = []
   lines.push(`${pkg.name} v${version} 安装指南`)
   lines.push('='.repeat(40))
@@ -179,20 +226,25 @@ function generateReadme(hasNsis, isDmg) {
 
   lines.push('【macOS 安装】')
   lines.push('')
-  if (isDmg) {
+  if (isDmg && isApp) {
     lines.push('1. 双击 wps_lawtools_mac.dmg 打开')
-    lines.push('2. 在弹出的窗口中双击 "安装LawTools.command"')
+    lines.push('2. 双击 "安装LawTools" 图标')
+    lines.push('3. 点击"安装"，输入电脑密码确认')
+    lines.push('4. 完全退出 WPS (⌘Q) 后重新打开')
+  } else if (isDmg) {
+    lines.push('1. 双击 wps_lawtools_mac.dmg 打开')
+    lines.push('2. 双击 "安装LawTools.command"')
     lines.push('3. 按照终端提示完成安装')
-    lines.push('4. 完全退出 WPS (Cmd+Q) 后重新打开')
+    lines.push('4. 完全退出 WPS (⌘Q) 后重新打开')
   } else {
     lines.push('1. 双击 wps_lawtools_mac.zip 解压')
     lines.push('2. 双击 "安装LawTools.command" 运行安装')
-    lines.push('3. 安装成功后，完全退出 WPS (Cmd+Q) 并重新打开')
+    lines.push('3. 安装成功后，完全退出 WPS (⌘Q) 并重新打开')
   }
   lines.push('')
   lines.push('常见问题：')
-  lines.push('  - 提示"无法打开"：右键 → 打开；或在终端 chmod +x 后再双击')
-  lines.push('  - 安装后看不到插件：请完全退出 WPS (Cmd+Q) 后重新打开')
+  lines.push('  - 提示"无法打开"：右键 → 打开')
+  lines.push('  - 安装后看不到插件：请完全退出 WPS (⌘Q) 后重新打开')
   lines.push('')
   lines.push('【AI 服务配置（必填）】')
   lines.push('')
@@ -255,15 +307,20 @@ async function main() {
   const hasNsis = buildNsis()
 
   let isDmg = false
+  let isApp = false
   if (isMacOS()) {
-    isDmg = buildMacDmg()
+    const result = buildMacDmg()
+    if (result === true) {
+      isDmg = true
+      isApp = fs.existsSync(path.join(buildDir, `${name}_mac.dmg`))
+    }
   }
   if (!isDmg) {
     await buildMacZip()
   }
 
   console.log('\n5️⃣  生成使用说明...')
-  const readme = generateReadme(hasNsis, isDmg)
+  const readme = generateReadme(hasNsis, isDmg, isApp)
   fs.writeFileSync(path.join(buildDir, '使用说明.txt'), readme, 'utf8')
 
   const qrSrc = path.join(root, 'public', 'images', 'logo_card.png')
@@ -296,8 +353,10 @@ async function main() {
 
   const lines = ['\n🎉 打包完成！']
   if (hasNsis) lines.push(`  Windows:  双击 ${name}_setup.exe 安装`)
-  if (isDmg) {
-    lines.push(`  macOS:    双击 ${name}_mac.dmg → 双击 安装LawTools.command`)
+  if (isDmg && isApp) {
+    lines.push(`  macOS:    双击 ${name}_mac.dmg → 双击 安装LawTools → 输密码`)
+  } else if (isDmg) {
+    lines.push(`  macOS:    双击 ${name}_mac.dmg → 双击 .command 安装`)
   } else {
     lines.push(`  macOS:    双击 ${name}_mac.zip 解压 → 双击 .command 安装`)
   }
