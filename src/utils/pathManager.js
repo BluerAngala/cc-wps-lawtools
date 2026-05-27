@@ -2,6 +2,10 @@
  * 统一路径管理器
  * 管理所有文件保存路径，统一使用项目目录
  * 项目目录: Application.Env.GetAppDataPath() + /kingsoft/wps/jsaddons/{projectName}_{version}/config
+ * 
+ * 跨平台支持:
+ * - Windows: 使用 GetAppDataPath() 获取 WPS 插件目录
+ * - Mac: 使用 PluginStorage 进行数据持久化，不依赖文件系统路径
  */
 
 import unifiedLogger from './unifiedLogger.js'
@@ -18,6 +22,9 @@ class PathManager {
     // 基础路径: /kingsoft/wps/jsaddons
     this.basePathSegment = '/kingsoft/wps/jsaddons'
     
+    // 缓存平台类型
+    this._platform = null
+    
     unifiedLogger.info('PathManager 已初始化', {
       projectName: this.projectName,
       projectVersion: this.projectVersion,
@@ -30,18 +37,84 @@ class PathManager {
    */
   isWPSAvailable() {
     return typeof window !== 'undefined' && 
-           typeof window.Application !== 'undefined' &&
-           typeof window.Application.FileSystem !== 'undefined' &&
-           typeof window.Application.Env !== 'undefined'
+           typeof window.Application !== 'undefined'
+  }
+
+  /**
+   * 获取当前平台类型
+   * @returns {string} 'win' | 'mac' | 'unknown'
+   */
+  getPlatform() {
+    if (this._platform) return this._platform
+    
+    if (!this.isWPSAvailable()) {
+      return 'unknown'
+    }
+    
+    try {
+      const app = window.Application
+      
+      // Mac 平台有 PluginStorage，优先检测
+      if (app.PluginStorage) {
+        this._platform = 'mac'
+        unifiedLogger.info('检测到 Mac 平台（PluginStorage 可用）')
+        return 'mac'
+      }
+      
+      // Windows 平台有 Env.GetAppDataPath 且能正常调用
+      if (app.Env && typeof app.Env.GetAppDataPath === 'function') {
+        try {
+          // 实际调用测试，如果成功则是 Windows
+          const testPath = app.Env.GetAppDataPath()
+          if (testPath) {
+            this._platform = 'win'
+            unifiedLogger.info('检测到 Windows 平台（GetAppDataPath 可用）')
+            return 'win'
+          }
+        } catch (e) {
+          // 调用失败，不是 Windows
+          unifiedLogger.debug('GetAppDataPath 调用失败，不是 Windows 平台')
+        }
+      }
+      
+      this._platform = 'unknown'
+      unifiedLogger.warn('无法检测平台类型')
+      return 'unknown'
+    } catch (error) {
+      unifiedLogger.warn('检测平台类型失败', { error: error.message })
+      return 'unknown'
+    }
+  }
+
+  /**
+   * 是否为 Mac 平台
+   */
+  isMac() {
+    return this.getPlatform() === 'mac'
+  }
+
+  /**
+   * 是否为 Windows 平台
+   */
+  isWindows() {
+    return this.getPlatform() === 'win'
   }
 
   /**
    * 获取 WPS 应用数据路径
    * 使用 GetAppDataPath() 获取 WPS 插件专用目录
+   * 
+   * 注意: Mac 平台上此方法返回 null，应使用 PluginStorage 替代
    */
   getAppDataPath() {
     if (!this.isWPSAvailable()) {
       unifiedLogger.warn('WPS 环境不可用，无法获取应用数据路径')
+      return null
+    }
+
+    // Mac 平台不支持 GetAppDataPath
+    if (this.isMac()) {
+      unifiedLogger.debug('Mac 平台不支持 GetAppDataPath，使用 PluginStorage 替代')
       return null
     }
 

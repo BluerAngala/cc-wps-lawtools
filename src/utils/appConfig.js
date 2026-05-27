@@ -1,5 +1,9 @@
 /**
  * 应用配置管理器 - 使用 WPS FileSystem API 持久化存储
+ * 
+ * 跨平台支持:
+ * - Windows: 使用 FileSystem API 读写配置文件
+ * - Mac: 使用 PluginStorage API 存储配置（FileSystem 在 Mac 上受限）
  */
 
 import { pathManager } from './pathManager.js'
@@ -7,6 +11,7 @@ import { pathManager } from './pathManager.js'
 class AppConfigManager {
   constructor() {
     this.configFileName = 'config.json'
+    this.storageKey = 'wps_lawtools_config' // Mac 平台使用的 PluginStorage key
     this.defaultConfig = {
       // AI 服务配置
       ai: {
@@ -206,8 +211,38 @@ class AppConfigManager {
    */
   isWPSAvailable() {
     return typeof window !== 'undefined' && 
-           typeof window.Application !== 'undefined' &&
-           typeof window.Application.FileSystem !== 'undefined'
+           typeof window.Application !== 'undefined'
+  }
+
+  /**
+   * 是否为 Mac 平台
+   */
+  isMac() {
+    return pathManager.isMac()
+  }
+
+  /**
+   * 是否为 Windows 平台
+   */
+  isWindows() {
+    return pathManager.isWindows()
+  }
+
+  /**
+   * 获取存储实例（Mac 使用 PluginStorage，Windows 使用 FileSystem）
+   */
+  getStorage() {
+    if (!this.isWPSAvailable()) return null
+    
+    const app = window.Application
+    
+    // Mac 平台使用 PluginStorage
+    if (this.isMac()) {
+      return app.PluginStorage || null
+    }
+    
+    // Windows 平台使用 FileSystem
+    return app.FileSystem || null
   }
 
   /**
@@ -258,6 +293,50 @@ class AppConfigManager {
     }
 
     try {
+      // Mac 平台使用 PluginStorage
+      if (this.isMac()) {
+        return this.getConfigMac()
+      }
+      
+      // Windows 平台使用 FileSystem
+      return this.getConfigWindows()
+    } catch (error) {
+      console.error('读取配置失败:', error)
+      return { ...this.defaultConfig }
+    }
+  }
+
+  /**
+   * Mac 平台读取配置（使用 PluginStorage）
+   */
+  getConfigMac() {
+    try {
+      const storage = window.Application.PluginStorage
+      if (!storage) {
+        console.warn('PluginStorage 不可用')
+        return { ...this.defaultConfig }
+      }
+
+      const content = storage.getItem(this.storageKey)
+      if (!content) {
+        // 首次使用，初始化配置
+        this.initializeConfig()
+        return { ...this.defaultConfig }
+      }
+
+      const config = JSON.parse(content)
+      return this.deepMerge(this.defaultConfig, config)
+    } catch (error) {
+      console.error('Mac 平台读取配置失败:', error)
+      return { ...this.defaultConfig }
+    }
+  }
+
+  /**
+   * Windows 平台读取配置（使用 FileSystem）
+   */
+  getConfigWindows() {
+    try {
       const fs = window.Application.FileSystem
       const configFile = this.getConfigFullPath()
       
@@ -283,7 +362,7 @@ class AppConfigManager {
       const config = JSON.parse(content)
       return this.deepMerge(this.defaultConfig, config)
     } catch (error) {
-      console.error('读取配置失败:', error)
+      console.error('Windows 平台读取配置失败:', error)
       return { ...this.defaultConfig }
     }
   }
@@ -292,6 +371,54 @@ class AppConfigManager {
    * 初始化配置文件（首次运行）
    */
   initializeConfig() {
+    try {
+      // Mac 平台使用 PluginStorage
+      if (this.isMac()) {
+        return this.initializeConfigMac()
+      }
+      
+      // Windows 平台使用 FileSystem
+      return this.initializeConfigWindows()
+    } catch (error) {
+      console.error('初始化配置失败:', error.message)
+      return false
+    }
+  }
+
+  /**
+   * Mac 平台初始化配置（使用 PluginStorage）
+   */
+  initializeConfigMac() {
+    try {
+      const storage = window.Application.PluginStorage
+      if (!storage) {
+        console.error('PluginStorage 不可用')
+        return false
+      }
+
+      // 写入默认配置
+      const jsonString = JSON.stringify(this.defaultConfig, null, 2)
+      storage.setItem(this.storageKey, jsonString)
+
+      // 验证
+      const saved = storage.getItem(this.storageKey)
+      if (saved) {
+        console.log('Mac 平台配置初始化成功')
+        return true
+      } else {
+        console.error('Mac 平台配置初始化失败')
+        return false
+      }
+    } catch (error) {
+      console.error('Mac 平台初始化配置失败:', error.message)
+      return false
+    }
+  }
+
+  /**
+   * Windows 平台初始化配置（使用 FileSystem）
+   */
+  initializeConfigWindows() {
     try {
       const fs = window.Application.FileSystem
       
@@ -321,7 +448,7 @@ class AppConfigManager {
         return false
       }
     } catch (error) {
-      console.error('初始化配置失败:', error.message)
+      console.error('Windows 平台初始化配置失败:', error.message)
       return false
     }
   }
@@ -335,6 +462,55 @@ class AppConfigManager {
       return false
     }
 
+    try {
+      // Mac 平台使用 PluginStorage
+      if (this.isMac()) {
+        return this.saveConfigMac(config)
+      }
+      
+      // Windows 平台使用 FileSystem
+      return this.saveConfigWindows(config)
+    } catch (error) {
+      console.error('保存配置失败:', error.message)
+      window.$message?.error('保存配置失败: ' + error.message)
+      return false
+    }
+  }
+
+  /**
+   * Mac 平台保存配置（使用 PluginStorage）
+   */
+  saveConfigMac(config) {
+    try {
+      const storage = window.Application.PluginStorage
+      if (!storage) {
+        window.$message?.error('PluginStorage 不可用')
+        return false
+      }
+
+      // 保存配置
+      const jsonString = JSON.stringify(config, null, 2)
+      storage.setItem(this.storageKey, jsonString)
+
+      // 验证保存
+      const saved = storage.getItem(this.storageKey)
+      if (saved) {
+        return true
+      } else {
+        window.$message?.error('配置保存失败')
+        return false
+      }
+    } catch (error) {
+      console.error('Mac 平台保存配置失败:', error.message)
+      window.$message?.error('保存配置失败: ' + error.message)
+      return false
+    }
+  }
+
+  /**
+   * Windows 平台保存配置（使用 FileSystem）
+   */
+  saveConfigWindows(config) {
     try {
       const fs = window.Application.FileSystem
       
@@ -362,7 +538,7 @@ class AppConfigManager {
         return false
       }
     } catch (error) {
-      console.error('保存配置失败:', error.message)
+      console.error('Windows 平台保存配置失败:', error.message)
       window.$message?.error('保存配置失败: ' + error.message)
       return false
     }
@@ -394,6 +570,16 @@ class AppConfigManager {
     }
 
     try {
+      // Mac 平台使用 PluginStorage
+      if (this.isMac()) {
+        const storage = window.Application.PluginStorage
+        if (storage) {
+          storage.removeItem(this.storageKey)
+        }
+        return { ...this.defaultConfig }
+      }
+      
+      // Windows 平台使用 FileSystem
       const fs = window.Application.FileSystem
       const configFile = this.getConfigFullPath()
       
