@@ -67,26 +67,26 @@ class TaskHandler {
       hideTaskPane: () => wpsCore.hideTaskPane(),
       addString: () => wpsCore.addTextToDocument(),
       getDocName: () => wpsCore.getDocumentName(),
-      
+
       // 文件操作
       addHeader: () => this.addHeader(param),
       renameDoc: () => wpsFile.renameDocument(),
-      
+
       // 文档操作
       addComment: () => this.addComment(param),
       extractText: () => this.extractText(param),
       contractReview: () => this.contractReview(param),
       extractFormatted: () => this.extractFormatted(),
       updateDocumentText: () => this.updateDocumentText(param),
-      
+
       // AI 操作
       processWithAI: () => this.processWithAI(),
       analyzeDocStructure: () => this.analyzeDocStructure(),
-      
+
       // 脱敏操作
       desensitizeText: () => this.desensitizeText(),
       applyDesensitization: () => this.applyDesensitization(param),
-      
+
       // 其他
       openWeb: () => this.openWeb(param)
     }
@@ -205,7 +205,11 @@ class TaskHandler {
 
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
-          unifiedLogger.error('AI预审失败', { method: 'contractReview', taskId, error: error.message })
+          unifiedLogger.error('AI预审失败', {
+            method: 'contractReview',
+            taskId,
+            error: error.message
+          })
         }
       })
     } catch (error) {
@@ -358,14 +362,21 @@ class TaskHandler {
 
             return res?.data?.[0]
           } catch (error) {
-            unifiedLogger.error('处理AI提取结果时出错', { method: 'processWithAI', error: error.message })
+            unifiedLogger.error('处理AI提取结果时出错', {
+              method: 'processWithAI',
+              error: error.message
+            })
           }
         }
       })
 
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
-          unifiedLogger.error('AI处理失败', { method: 'processWithAI', taskId, error: error.message })
+          unifiedLogger.error('AI处理失败', {
+            method: 'processWithAI',
+            taskId,
+            error: error.message
+          })
         }
       })
     } catch (error) {
@@ -390,11 +401,14 @@ class TaskHandler {
 
     const originalText = selection.Text
     const desensitizedText = originalText
-      .replace(/\d{15,18}/g, (match) =>
-        match.substring(0, 6) + '*'.repeat(match.length - 10) + match.substring(match.length - 4)
+      .replace(
+        /\d{15,18}/g,
+        (match) =>
+          match.substring(0, 6) + '*'.repeat(match.length - 10) + match.substring(match.length - 4)
       )
-      .replace(/1[3-9]\d{9}/g, (match) =>
-        match.substring(0, 3) + '*'.repeat(4) + match.substring(7)
+      .replace(
+        /1[3-9]\d{9}/g,
+        (match) => match.substring(0, 3) + '*'.repeat(4) + match.substring(7)
       )
       .replace(/[\u4e00-\u9fa5]{2,4}/g, (match) =>
         match.length > 2 ? match[0] + '*'.repeat(match.length - 2) + match[match.length - 1] : match
@@ -454,11 +468,18 @@ class TaskHandler {
 
       this.taskScheduler.on('taskError', (errorTaskId, error) => {
         if (errorTaskId === taskId) {
-          unifiedLogger.error('AI文档结构分析失败', { method: 'analyzeDocStructure', taskId, error: error.message })
+          unifiedLogger.error('AI文档结构分析失败', {
+            method: 'analyzeDocStructure',
+            taskId,
+            error: error.message
+          })
         }
       })
     } catch (error) {
-      unifiedLogger.error('创建AI文档结构分析任务失败', { method: 'analyzeDocStructure', error: error.message })
+      unifiedLogger.error('创建AI文档结构分析任务失败', {
+        method: 'analyzeDocStructure',
+        error: error.message
+      })
     }
   }
 

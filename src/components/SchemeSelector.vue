@@ -19,15 +19,30 @@
           <template #icon><AddIcon /></template>
           新建
         </n-button>
-        <n-button size="small" @click="handleEditScheme" :disabled="!currentSchemeId" class="btn-action">
+        <n-button
+          size="small"
+          @click="handleEditScheme"
+          :disabled="!currentSchemeId"
+          class="btn-action"
+        >
           <template #icon><EditIcon /></template>
           编辑
         </n-button>
-        <n-button size="small" @click="handleCopyScheme" :disabled="!currentSchemeId" class="btn-action">
+        <n-button
+          size="small"
+          @click="handleCopyScheme"
+          :disabled="!currentSchemeId"
+          class="btn-action"
+        >
           <template #icon><CopyIcon /></template>
           复制
         </n-button>
-        <n-button size="small" @click="handleDeleteScheme" :disabled="!currentSchemeId || schemes.length <= 1" class="btn-action">
+        <n-button
+          size="small"
+          @click="handleDeleteScheme"
+          :disabled="!currentSchemeId || schemes.length <= 1"
+          class="btn-action"
+        >
           <template #icon><DeleteIcon /></template>
           删除
         </n-button>
@@ -101,14 +116,20 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:activeSchemeId', 'scheme-change', 'scheme-create', 'scheme-update', 'scheme-delete'])
+const emit = defineEmits([
+  'update:activeSchemeId',
+  'scheme-change',
+  'scheme-create',
+  'scheme-update',
+  'scheme-delete'
+])
 
 // 当前选中的方案ID
 const currentSchemeId = ref(props.activeSchemeId)
 
 // 方案选项
 const schemeOptions = computed(() => {
-  return props.schemes.map(scheme => ({
+  return props.schemes.map((scheme) => ({
     label: `${scheme.name} (${scheme.rules?.length || 0}条)`,
     value: scheme.id
   }))
@@ -148,7 +169,7 @@ const handleNewScheme = () => {
 
 // 编辑方案
 const handleEditScheme = () => {
-  const currentScheme = props.schemes.find(s => s.id === currentSchemeId.value)
+  const currentScheme = props.schemes.find((s) => s.id === currentSchemeId.value)
   if (!currentScheme) return
 
   dialogMode.value = 'edit'
@@ -160,7 +181,7 @@ const handleEditScheme = () => {
 
 // 复制方案
 const handleCopyScheme = () => {
-  const currentScheme = props.schemes.find(s => s.id === currentSchemeId.value)
+  const currentScheme = props.schemes.find((s) => s.id === currentSchemeId.value)
   if (!currentScheme) return
 
   dialogMode.value = 'copy'
@@ -178,15 +199,11 @@ const handleDeleteScheme = async () => {
   }
 
   try {
-    await window.$messageBox.confirm(
-      '确定要删除当前方案吗？此操作不可恢复。',
-      '删除方案',
-      {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+    await window.$messageBox.confirm('确定要删除当前方案吗？此操作不可恢复。', '删除方案', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
 
     emit('scheme-delete', currentSchemeId.value)
   } catch {
@@ -205,9 +222,14 @@ const handleDialogConfirm = async () => {
         id: `scheme_${Date.now()}`,
         name: schemeForm.value.name,
         type: props.type,
-        rules: schemeForm.value.initType === 'copy' && currentSchemeId.value
-          ? JSON.parse(JSON.stringify(props.schemes.find(s => s.id === currentSchemeId.value)?.rules || []))
-          : [],
+        rules:
+          schemeForm.value.initType === 'copy' && currentSchemeId.value
+            ? JSON.parse(
+                JSON.stringify(
+                  props.schemes.find((s) => s.id === currentSchemeId.value)?.rules || []
+                )
+              )
+            : [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
@@ -217,7 +239,7 @@ const handleDialogConfirm = async () => {
       emit('scheme-update', currentSchemeId.value, { name: schemeForm.value.name })
     } else if (dialogMode.value === 'copy') {
       // 复制方案
-      const currentScheme = props.schemes.find(s => s.id === currentSchemeId.value)
+      const currentScheme = props.schemes.find((s) => s.id === currentSchemeId.value)
       const newScheme = {
         id: `scheme_${Date.now()}`,
         name: schemeForm.value.name,
@@ -238,9 +260,12 @@ const handleDialogConfirm = async () => {
 }
 
 // 监听 props 变化
-watch(() => props.activeSchemeId, (newId) => {
-  currentSchemeId.value = newId
-})
+watch(
+  () => props.activeSchemeId,
+  (newId) => {
+    currentSchemeId.value = newId
+  }
+)
 </script>
 
 <style scoped>
@@ -278,7 +303,7 @@ watch(() => props.activeSchemeId, (newId) => {
   .scheme-buttons {
     flex-direction: column;
   }
-  
+
   .btn-action {
     width: 100%;
   }

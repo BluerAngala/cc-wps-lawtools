@@ -7,8 +7,12 @@
       <div class="flex items-center justify-between mb-1">
         <div class="text-sm font-medium text-gray-800">{{ selectedWorkflow.name }}</div>
         <div v-if="selectedWorkflow.isUser" class="flex gap-1">
-          <n-button size="tiny" type="info" secondary @click="editWorkflow(selectedWorkflow)">编辑</n-button>
-          <n-button size="tiny" type="error" secondary @click="deleteWorkflow(selectedWorkflow.id)">删除</n-button>
+          <n-button size="tiny" type="info" secondary @click="editWorkflow(selectedWorkflow)"
+            >编辑</n-button
+          >
+          <n-button size="tiny" type="error" secondary @click="deleteWorkflow(selectedWorkflow.id)"
+            >删除</n-button
+          >
         </div>
       </div>
       <div class="flex flex-wrap gap-1">
@@ -17,12 +21,15 @@
         </n-tag>
       </div>
     </div>
-    <div v-else class="mb-3 p-3 bg-gray-50 border border-gray-200 rounded text-center text-xs text-gray-400">
+    <div
+      v-else
+      class="mb-3 p-3 bg-gray-50 border border-gray-200 rounded text-center text-xs text-gray-400"
+    >
       请从下方选择一个工作流
     </div>
 
     <!-- 工作流列表（可滚动） -->
-    <div class="workflow-list overflow-y-auto" style="max-height: 240px;">
+    <div class="workflow-list overflow-y-auto" style="max-height: 240px">
       <!-- 用户自定义工作流 -->
       <template v-if="userWorkflows.length > 0">
         <div class="text-xs text-gray-400 mb-1">💾 我的工作流</div>
@@ -86,13 +93,19 @@
       v-model:show="showResultModal"
       preset="card"
       :title="result?.success ? '工作流执行完成' : '工作流执行结果'"
-      style="width: 80%; max-width: 500px; max-height: 80vh;"
+      style="width: 80%; max-width: 500px; max-height: 80vh"
       :bordered="false"
     >
       <div class="space-y-3">
         <div class="text-sm text-gray-600 mb-3">{{ result?.summary }}</div>
-        <div v-for="(step, index) in result?.steps" :key="index" class="flex items-start gap-2 py-2 border-b border-gray-100 last:border-0">
-          <span :class="step.success ? 'text-green-500' : 'text-red-500'">{{ step.success ? '✓' : '✗' }}</span>
+        <div
+          v-for="(step, index) in result?.steps"
+          :key="index"
+          class="flex items-start gap-2 py-2 border-b border-gray-100 last:border-0"
+        >
+          <span :class="step.success ? 'text-green-500' : 'text-red-500'">{{
+            step.success ? '✓' : '✗'
+          }}</span>
           <div class="flex-1">
             <div class="font-medium text-sm">{{ step.name }}</div>
             <div class="text-xs text-gray-500">{{ step.message }}</div>
@@ -146,10 +159,10 @@ const editingWorkflow = ref(null)
 const allPresets = computed(() => getPresetList())
 
 // AI 工作流
-const aiPresets = computed(() => allPresets.value.filter(p => p.category === 'ai'))
+const aiPresets = computed(() => allPresets.value.filter((p) => p.category === 'ai'))
 
 // 文档工作流
-const docPresets = computed(() => allPresets.value.filter(p => p.category !== 'ai'))
+const docPresets = computed(() => allPresets.value.filter((p) => p.category !== 'ai'))
 
 // 选中的工作流对象
 const selectedWorkflow = computed(() => {
@@ -157,13 +170,13 @@ const selectedWorkflow = computed(() => {
 
   if (selectedWorkflowId.value.startsWith('user_')) {
     const id = selectedWorkflowId.value.replace('user_', '')
-    const wf = userWorkflows.value.find(w => w.id === id)
+    const wf = userWorkflows.value.find((w) => w.id === id)
     return wf ? { ...wf, isUser: true } : null
   }
 
   if (selectedWorkflowId.value.startsWith('preset_')) {
     const id = selectedWorkflowId.value.replace('preset_', '')
-    return allPresets.value.find(p => p.id === id) || null
+    return allPresets.value.find((p) => p.id === id) || null
   }
 
   return null
@@ -248,15 +261,15 @@ const executeWorkflow = async (workflow) => {
     const execResult = await execute(workflow)
 
     // 转换结果格式
-    const steps = (execResult.steps || []).map(s => ({
+    const steps = (execResult.steps || []).map((s) => ({
       name: s.step?.name || s.step?.actionType || '未知步骤',
       success: s.result?.success ?? false,
       message: s.result?.message || '',
       path: s.result?.data?.pdfFullPath || s.result?.data?.newFilePath || null
     }))
 
-    const successCount = steps.filter(s => s.success).length
-    const failCount = steps.filter(s => !s.success).length
+    const successCount = steps.filter((s) => s.success).length
+    const failCount = steps.filter((s) => !s.success).length
 
     result.value = {
       success: execResult.success,

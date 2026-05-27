@@ -38,8 +38,11 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-
-      // 开发环境 代理金山文档API请求，解决CORS问题
+      hmr: {
+        protocol: 'ws',
+        host: '127.0.0.1',
+        port: 3889
+      },
       proxy: {
         // 开发环境 代理金山文档API请求，解决CORS问题
         '/api/kdocs': {

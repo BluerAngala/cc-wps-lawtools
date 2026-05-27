@@ -114,8 +114,8 @@ class WPSCoreService {
       let taskPaneUrl = getUrlPath() + getRouterHash() + path
 
       if (options.url) {
-        taskPaneUrl = options.url.startsWith('http') 
-          ? options.url 
+        taskPaneUrl = options.url.startsWith('http')
+          ? options.url
           : getUrlPath() + getRouterHash() + options.url
       }
 
@@ -150,7 +150,11 @@ class WPSCoreService {
       this.currentTaskPane = taskPane
       return taskPane
     } catch (error) {
-      unifiedLogger.error('创建任务窗格异常', { method: 'createTaskPane', key, error: error.message })
+      unifiedLogger.error('创建任务窗格异常', {
+        method: 'createTaskPane',
+        key,
+        error: error.message
+      })
       return null
     }
   }
@@ -178,9 +182,10 @@ class WPSCoreService {
   dockTaskPane(position, key = 'default') {
     const taskPane = this.getTaskPane(key)
     if (taskPane) {
-      const dockPosition = position === 'left'
-        ? window.Application?.Enum?.msoCTPDockPositionLeft
-        : window.Application?.Enum?.msoCTPDockPositionRight
+      const dockPosition =
+        position === 'left'
+          ? window.Application?.Enum?.msoCTPDockPositionLeft
+          : window.Application?.Enum?.msoCTPDockPositionRight
       taskPane.DockPosition = dockPosition
     }
   }

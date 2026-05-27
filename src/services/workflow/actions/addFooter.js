@@ -20,7 +20,7 @@ export class AddFooterAction extends BaseAction {
     try {
       const result = await wpsFileService.addFooter({
         text: params.text,
-        fontSize: params.fontSize || 12,
+        fontSize: params.fontSize || 14,
         alignment: params.alignment || '居中'
       })
 
@@ -47,7 +47,7 @@ export class AddFooterAction extends BaseAction {
           type: 'number',
           title: '字体大小',
           description: '页脚字体大小',
-          default: 12
+          default: 14
         },
         alignment: {
           type: 'string',

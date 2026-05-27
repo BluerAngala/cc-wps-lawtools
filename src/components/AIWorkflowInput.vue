@@ -18,12 +18,12 @@
         {{ isGenerating ? '生成中...' : '生成' }}
       </n-button>
     </div>
-    
+
     <!-- 进度提示 -->
     <div v-if="progressText" class="text-xs text-gray-500 mt-2">
       {{ progressText }}
     </div>
-    
+
     <!-- 快捷示例 -->
     <div class="mt-2">
       <span class="text-xs text-gray-400">试试：</span>
@@ -50,10 +50,13 @@
     style="width: 90%; max-width: 500px"
   >
     <!-- AI 解释 -->
-    <div v-if="generatedResult?.explanation" class="text-sm text-gray-600 mb-3 p-2 bg-blue-50 rounded">
+    <div
+      v-if="generatedResult?.explanation"
+      class="text-sm text-gray-600 mb-3 p-2 bg-blue-50 rounded"
+    >
       💡 {{ generatedResult.explanation }}
     </div>
-    
+
     <!-- 警告信息 -->
     <n-alert
       v-if="generatedResult?.validation?.warnings?.length"
@@ -67,12 +70,12 @@
         </div>
       </div>
     </n-alert>
-    
+
     <!-- 步骤预览 -->
     <div class="text-sm font-semibold mb-2">
       生成的步骤 ({{ generatedResult?.steps?.length || 0 }})
     </div>
-    
+
     <n-space vertical>
       <div
         v-for="(step, index) in generatedResult?.steps"
@@ -89,14 +92,12 @@
         </div>
       </div>
     </n-space>
-    
+
     <template #footer>
       <n-space justify="end">
         <n-button size="small" @click="showPreview = false">取消</n-button>
         <n-button size="small" @click="handleRegenerate">重新生成</n-button>
-        <n-button type="primary" size="small" @click="handleConfirm">
-          确认添加
-        </n-button>
+        <n-button type="primary" size="small" @click="handleConfirm"> 确认添加 </n-button>
       </n-space>
     </template>
   </n-modal>
@@ -118,11 +119,7 @@ const showPreview = ref(false)
 const generatedResult = ref(null)
 
 // 快捷示例
-const examples = [
-  '添加机密水印后导出PDF',
-  '审查合同并生成检查清单',
-  '提取合同要素'
-]
+const examples = ['添加机密水印后导出PDF', '审查合同并生成检查清单', '提取合同要素']
 
 // 获取操作图标
 const getActionIcon = (type) => {
@@ -136,40 +133,42 @@ const formatParams = (step) => {
   const entries = Object.entries(step.params)
     .filter(([, v]) => v !== undefined && v !== null && v !== '')
     .slice(0, 3) // 最多显示3个参数
-  
+
   if (entries.length === 0) return '使用默认参数'
-  
-  return entries.map(([k, v]) => {
-    // 截断过长的值
-    const displayValue = String(v).length > 15 ? String(v).substring(0, 15) + '...' : v
-    return `${k}: ${displayValue}`
-  }).join(', ')
+
+  return entries
+    .map(([k, v]) => {
+      // 截断过长的值
+      const displayValue = String(v).length > 15 ? String(v).substring(0, 15) + '...' : v
+      return `${k}: ${displayValue}`
+    })
+    .join(', ')
 }
 
 // 生成工作流
 const handleGenerate = async () => {
   if (!userInput.value.trim() || isGenerating.value) return
-  
+
   isGenerating.value = true
   progressText.value = ''
-  
+
   try {
     const result = await aiWorkflowGenerator.generate(userInput.value, {
       onProgress: (info) => {
         progressText.value = info.stage
       }
     })
-    
+
     if (result.steps.length === 0) {
       window.$message?.warning('未能生成有效的工作流步骤，请尝试更清晰地描述需求')
       return
     }
-    
+
     // 显示错误信息
     if (result.validation.errors.length > 0) {
       window.$message?.warning(result.validation.errors.join('\n'))
     }
-    
+
     generatedResult.value = result
     showPreview.value = true
   } catch (error) {

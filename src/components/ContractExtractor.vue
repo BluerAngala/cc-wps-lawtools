@@ -5,7 +5,12 @@
     <ConfigForm :config="configForm" @update-config="updateConfig" />
 
     <!-- 提取结果弹窗 -->
-    <n-modal v-model:show="showResultModal" preset="card" title="提取结果" style="width: 600px; max-width: 90vw;">
+    <n-modal
+      v-model:show="showResultModal"
+      preset="card"
+      title="提取结果"
+      style="width: 600px; max-width: 90vw"
+    >
       <template #header>
         <div class="flex items-center gap-2">
           <n-icon class="text-blue-600"><DocumentIcon /></n-icon>
@@ -49,13 +54,8 @@
 
 <script setup>
 import { reactive, ref, watch, computed } from 'vue'
-import { 
-  NButton, NTag, NIcon, NForm, NFormItem, NInput, NGrid, NGridItem, NModal 
-} from 'naive-ui'
-import {
-  DocumentOutline as DocumentIcon,
-  CloudUpload as UploadIcon
-} from '@vicons/ionicons5'
+import { NButton, NTag, NIcon, NForm, NFormItem, NInput, NGrid, NGridItem, NModal } from 'naive-ui'
+import { DocumentOutline as DocumentIcon, CloudUpload as UploadIcon } from '@vicons/ionicons5'
 import ConfigForm from './ConfigForm.vue'
 
 // 弹窗显示状态
@@ -82,15 +82,24 @@ const props = defineProps({
 })
 
 // 固定字段列表（按顺序排列：合同名称、对接人、甲方、甲方主体信息、乙方、乙方主体信息、其他方、合同金额）
-const fixedFields = ['合同名称', '对接人', '甲方', '甲方主体信息', '乙方', '乙方主体信息', '其他方', '合同金额']
+const fixedFields = [
+  '合同名称',
+  '对接人',
+  '甲方',
+  '甲方主体信息',
+  '乙方',
+  '乙方主体信息',
+  '其他方',
+  '合同金额'
+]
 
 // 计算所有提取的字段（按固定顺序排列，其他字段放后面）
 const extractedFields = computed(() => {
   if (!props.extractedData) return []
   const keys = Object.keys(props.extractedData)
   // 先按固定顺序排列已有字段，再添加其他字段
-  const orderedKeys = fixedFields.filter(key => keys.includes(key))
-  const otherKeys = keys.filter(key => !fixedFields.includes(key))
+  const orderedKeys = fixedFields.filter((key) => keys.includes(key))
+  const otherKeys = keys.filter((key) => !fixedFields.includes(key))
   return [...orderedKeys, ...otherKeys]
 })
 

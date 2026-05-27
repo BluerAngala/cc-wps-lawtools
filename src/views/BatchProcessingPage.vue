@@ -2,9 +2,7 @@
   <PageLayout>
     <div class="p-4 space-y-4">
       <!-- 返回按钮 -->
-      <n-button size="small" @click="goBack">
-        ← 返回合同审查
-      </n-button>
+      <n-button size="small" @click="goBack"> ← 返回合同审查 </n-button>
 
       <!-- 页面标题 -->
       <n-card title="📦 合同批量处理" size="small">
@@ -26,9 +24,7 @@
                 v-model:value="config.folderPath"
                 placeholder="例如: C:\Users\用户名\Documents\合同"
               />
-              <n-button type="primary" @click="scanFolder">
-                🔍 扫描文件
-              </n-button>
+              <n-button type="primary" @click="scanFolder"> 🔍 扫描文件 </n-button>
             </n-input-group>
           </n-form-item>
 
@@ -61,11 +57,21 @@
             <n-collapse-item title="高级选项" name="advanced">
               <n-space vertical>
                 <n-form-item label="任务间延迟 (毫秒)">
-                  <n-slider v-model:value="config.delayBetweenTasks" :min="1000" :max="10000" :step="500" />
+                  <n-slider
+                    v-model:value="config.delayBetweenTasks"
+                    :min="1000"
+                    :max="10000"
+                    :step="500"
+                  />
                   <n-text depth="3" class="text-xs">{{ config.delayBetweenTasks }}ms</n-text>
                 </n-form-item>
                 <n-form-item label="金山文档提交后延迟 (毫秒)">
-                  <n-slider v-model:value="config.delayAfterKdocs" :min="2000" :max="15000" :step="500" />
+                  <n-slider
+                    v-model:value="config.delayAfterKdocs"
+                    :min="2000"
+                    :max="15000"
+                    :step="500"
+                  />
                   <n-text depth="3" class="text-xs">{{ config.delayAfterKdocs }}ms</n-text>
                 </n-form-item>
                 <n-form-item label="文件扩展名过滤">
@@ -96,10 +102,7 @@
                 </n-space>
               </template>
               <template #header-extra>
-                <n-tag
-                  :type="getStatusType(file.status)"
-                  size="tiny"
-                >
+                <n-tag :type="getStatusType(file.status)" size="tiny">
                   {{ getStatusText(file.status) }}
                 </n-tag>
               </template>
@@ -134,7 +137,12 @@
               成功: {{ successCount }} / 失败: {{ failedCount }} / 总计: {{ fileList.length }}
             </n-text>
           </n-space>
-          <n-alert v-if="currentTaskMessage" :type="currentTaskStatus" :show-icon="false" class="text-sm">
+          <n-alert
+            v-if="currentTaskMessage"
+            :type="currentTaskStatus"
+            :show-icon="false"
+            class="text-sm"
+          >
             {{ currentTaskMessage }}
           </n-alert>
         </n-space>
@@ -194,21 +202,8 @@
         >
           🚀 开始批量处理
         </n-button>
-        <n-button
-          v-else
-          type="error"
-          size="large"
-          @click="stopProcessing"
-        >
-          ⏹️ 停止处理
-        </n-button>
-        <n-button
-          v-if="showResult"
-          size="large"
-          @click="reset"
-        >
-          🔄 重新开始
-        </n-button>
+        <n-button v-else type="error" size="large" @click="stopProcessing"> ⏹️ 停止处理 </n-button>
+        <n-button v-if="showResult" size="large" @click="reset"> 🔄 重新开始 </n-button>
       </n-space>
     </div>
   </PageLayout>
@@ -218,10 +213,28 @@
 import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  NCard, NTag, NText, NFormItem, NInput, NInputGroup, NButton,
-  NSelect, NDynamicInput, NCollapse, NCollapseItem, NSlider,
-  NCheckbox, NCheckboxGroup, NList, NListItem, NThing, NSpace,
-  NProgress, NAlert, NStatistic, useMessage
+  NCard,
+  NTag,
+  NText,
+  NFormItem,
+  NInput,
+  NInputGroup,
+  NButton,
+  NSelect,
+  NDynamicInput,
+  NCollapse,
+  NCollapseItem,
+  NSlider,
+  NCheckbox,
+  NCheckboxGroup,
+  NList,
+  NListItem,
+  NThing,
+  NSpace,
+  NProgress,
+  NAlert,
+  NStatistic,
+  useMessage
 } from 'naive-ui'
 import { PageLayout } from '../components/common'
 import {
@@ -269,7 +282,7 @@ const summary = reactive({
 
 // 工作流选项
 const workflowOptions = computed(() =>
-  presetBatchWorkflows.map(w => ({
+  presetBatchWorkflows.map((w) => ({
     label: w.name,
     value: w.id,
     description: w.description
@@ -296,16 +309,16 @@ const progressText = computed(() => {
   return `正在处理第 ${currentTaskIndex.value} 个文件: ${fileList.value[currentTaskIndex.value - 1]?.name || ''}`
 })
 
-const successCount = computed(() =>
-  fileList.value.filter(f => f.status === BatchTaskStatus.SUCCESS).length
+const successCount = computed(
+  () => fileList.value.filter((f) => f.status === BatchTaskStatus.SUCCESS).length
 )
 
-const failedCount = computed(() =>
-  fileList.value.filter(f => f.status === BatchTaskStatus.FAILED).length
+const failedCount = computed(
+  () => fileList.value.filter((f) => f.status === BatchTaskStatus.FAILED).length
 )
 
 const failedFiles = computed(() =>
-  fileList.value.filter(f => f.status === BatchTaskStatus.FAILED)
+  fileList.value.filter((f) => f.status === BatchTaskStatus.FAILED)
 )
 
 // 扫描文件夹 - 使用 WPS FileSystemObject
@@ -346,7 +359,7 @@ const scanFolder = async () => {
       const file = files.Item(i)
       const fileName = file.Name.toLowerCase()
 
-      if (config.extensions.some(ext => fileName.endsWith(ext))) {
+      if (config.extensions.some((ext) => fileName.endsWith(ext))) {
         contractFiles.push({
           path: file.Path,
           name: file.Name
@@ -356,7 +369,7 @@ const scanFolder = async () => {
 
     if (contractFiles.length > 0) {
       // 设置文件列表
-      fileList.value = contractFiles.map(f => ({
+      fileList.value = contractFiles.map((f) => ({
         path: f.path,
         name: f.name,
         status: BatchTaskStatus.PENDING,
@@ -396,16 +409,14 @@ const startBatchProcessing = async () => {
     const customWorkflow = JSON.parse(JSON.stringify(workflow))
 
     // 更新关键词配置
-    const keywordStep = customWorkflow.steps.find(
-      s => s.actionType === 'batchKeyword'
-    )
+    const keywordStep = customWorkflow.steps.find((s) => s.actionType === 'batchKeyword')
     if (keywordStep && config.keywords.length > 0) {
       keywordStep.params.keywordList = buildKeywordList(config.keywords)
     }
 
     // 创建任务列表
     const tasks = batchProcessor.createTasks(
-      fileList.value.map(f => f.path),
+      fileList.value.map((f) => f.path),
       customWorkflow
     )
 
@@ -442,7 +453,7 @@ const handleProgress = (progress) => {
 
   // 更新文件状态
   if (progress.task) {
-    const file = fileList.value.find(f => f.path === progress.task.filePath)
+    const file = fileList.value.find((f) => f.path === progress.task.filePath)
     if (file) {
       file.status = progress.task.status
     }
@@ -451,7 +462,7 @@ const handleProgress = (progress) => {
 
 // 处理任务完成
 const handleTaskComplete = (result) => {
-  const file = fileList.value.find(f => f.path === result.filePath)
+  const file = fileList.value.find((f) => f.path === result.filePath)
   if (file) {
     file.status = result.status
     file.error = result.error

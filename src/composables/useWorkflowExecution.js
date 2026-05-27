@@ -4,7 +4,12 @@
  */
 
 import { ref, computed } from 'vue'
-import { workflowEngine, createWorkflowFromPreset, registerAllActions, actionRegistry } from '../services/workflow'
+import {
+  workflowEngine,
+  createWorkflowFromPreset,
+  registerAllActions,
+  actionRegistry
+} from '../services/workflow'
 
 // 确保 Action 已注册（只注册一次）
 let actionsRegistered = false
@@ -69,7 +74,12 @@ export function useWorkflowExecution() {
     isExecuting.value = true
     error.value = null
     result.value = null
-    progress.value = { current: 0, total: workflow.steps?.length || 0, stage: '准备执行...', stepName: '' }
+    progress.value = {
+      current: 0,
+      total: workflow.steps?.length || 0,
+      stage: '准备执行...',
+      stepName: ''
+    }
 
     // 用于存储执行过程中的步骤结果
     const stepResults = []

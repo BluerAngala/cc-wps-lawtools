@@ -29,31 +29,31 @@
           <n-card title="目录状态" size="small" :bordered="false">
             <div v-if="pathInfo && pathInfo.dirExists" class="space-y-2 text-sm">
               <div>
-                项目根目录: 
+                项目根目录:
                 <n-tag :type="pathInfo.dirExists.projectRoot ? 'success' : 'error'" size="small">
                   {{ pathInfo.dirExists.projectRoot ? '存在' : '不存在' }}
                 </n-tag>
               </div>
               <div>
-                配置目录: 
+                配置目录:
                 <n-tag :type="pathInfo.dirExists.configDir ? 'success' : 'error'" size="small">
                   {{ pathInfo.dirExists.configDir ? '存在' : '不存在' }}
                 </n-tag>
               </div>
               <div>
-                模板目录: 
+                模板目录:
                 <n-tag :type="pathInfo.dirExists.templatesDir ? 'success' : 'error'" size="small">
                   {{ pathInfo.dirExists.templatesDir ? '存在' : '不存在' }}
                 </n-tag>
               </div>
               <div>
-                缓存目录: 
+                缓存目录:
                 <n-tag :type="pathInfo.dirExists.cacheDir ? 'success' : 'error'" size="small">
                   {{ pathInfo.dirExists.cacheDir ? '存在' : '不存在' }}
                 </n-tag>
               </div>
               <div>
-                日志目录: 
+                日志目录:
                 <n-tag :type="pathInfo.dirExists.logsDir ? 'success' : 'error'" size="small">
                   {{ pathInfo.dirExists.logsDir ? '存在' : '不存在' }}
                 </n-tag>
@@ -99,19 +99,19 @@ const refreshInfo = () => {
 // 测试创建目录
 const testCreateDirs = () => {
   console.log('开始测试创建目录...')
-  
+
   const result = {
     timestamp: new Date().toISOString(),
     operations: []
   }
-  
+
   if (!pathManager.isWPSAvailable()) {
     result.error = 'WPS 环境不可用'
     testResult.value = JSON.stringify(result, null, 2)
     window.$message?.error('WPS 环境不可用')
     return
   }
-  
+
   const fs = window.Application.FileSystem
   const dirs = [
     { name: '配置目录', path: pathManager.getConfigDir() },
@@ -119,14 +119,14 @@ const testCreateDirs = () => {
     { name: '缓存目录', path: pathManager.getCacheDir() },
     { name: '日志目录', path: pathManager.getLogsDir() }
   ]
-  
+
   for (const dir of dirs) {
     const op = {
       name: dir.name,
       path: dir.path,
       existsBefore: fs.Exists(dir.path)
     }
-    
+
     if (!op.existsBefore) {
       try {
         console.log(`尝试创建: ${dir.path}`)
@@ -142,19 +142,19 @@ const testCreateDirs = () => {
       op.success = true
       op.message = '目录已存在'
     }
-    
+
     result.operations.push(op)
   }
-  
+
   testResult.value = JSON.stringify(result, null, 2)
-  
-  const allSuccess = result.operations.every(op => op.success)
+
+  const allSuccess = result.operations.every((op) => op.success)
   if (allSuccess) {
     window.$message?.success('所有目录创建成功')
   } else {
     window.$message?.error('部分目录创建失败，请查看详情')
   }
-  
+
   refreshInfo()
 }
 
@@ -164,54 +164,58 @@ const testSaveFile = () => {
     window.$message?.error('WPS 环境不可用')
     return
   }
-  
+
   try {
     const fs = window.Application.FileSystem
     const configDir = pathManager.getConfigDir()
-    
+
     if (!configDir) {
       window.$message?.error('无法获取配置目录')
       return
     }
-    
+
     // 确保目录存在
     pathManager.ensureDir(configDir)
-    
+
     // 测试文件
     const testFilePath = configDir + '/test.txt'
     const testContent = `测试文件\n创建时间: ${new Date().toISOString()}`
-    
+
     console.log('测试保存文件:', testFilePath)
     const writeResult = fs.WriteFile(testFilePath, testContent)
-    
+
     const result = {
       timestamp: new Date().toISOString(),
       filePath: testFilePath,
       writeResult: writeResult,
       fileExists: fs.Exists(testFilePath)
     }
-    
+
     if (result.fileExists) {
       const readContent = fs.ReadFile(testFilePath)
       result.readContent = readContent
       result.success = true
       window.$message?.success('文件保存成功')
-      
+
       // 清理测试文件
       fs.Remove(testFilePath)
     } else {
       result.success = false
       window.$message?.error('文件保存失败')
     }
-    
+
     testResult.value = JSON.stringify(result, null, 2)
   } catch (error) {
     console.error('测试保存文件失败:', error)
     window.$message?.error('测试失败: ' + error.message)
-    testResult.value = JSON.stringify({
-      error: error.message,
-      stack: error.stack
-    }, null, 2)
+    testResult.value = JSON.stringify(
+      {
+        error: error.message,
+        stack: error.stack
+      },
+      null,
+      2
+    )
   }
 }
 
@@ -225,4 +229,3 @@ onMounted(() => {
   margin-top: 0.5rem;
 }
 </style>
-

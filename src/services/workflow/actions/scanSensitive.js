@@ -23,8 +23,8 @@ export class ScanSensitiveAction extends BaseAction {
     if (!text || typeof text !== 'string') return []
     return text
       .split(/[,，\n]/)
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
   }
 
   async execute(params, context) {
@@ -39,13 +39,13 @@ export class ScanSensitiveAction extends BaseAction {
 
       const desensitizer = new Desensitizer({
         whitelist,
-        customSensitiveWords: blacklist.map(word => ({ word, replacement: null }))
+        customSensitiveWords: blacklist.map((word) => ({ word, replacement: null }))
       })
 
       let { sensitiveInfoList } = desensitizer.desensitizeText(fullText)
 
       if (params.scanTypes && params.scanTypes.length > 0) {
-        sensitiveInfoList = sensitiveInfoList.filter(info => params.scanTypes.includes(info.type))
+        sensitiveInfoList = sensitiveInfoList.filter((info) => params.scanTypes.includes(info.type))
       }
 
       context.data.sensitiveInfoList = sensitiveInfoList
@@ -64,7 +64,7 @@ export class ScanSensitiveAction extends BaseAction {
       }
 
       const typeStats = {}
-      sensitiveInfoList.forEach(info => {
+      sensitiveInfoList.forEach((info) => {
         typeStats[info.type] = (typeStats[info.type] || 0) + 1
       })
 
@@ -90,7 +90,7 @@ export class ScanSensitiveAction extends BaseAction {
           type: 'array',
           title: '扫描类型',
           description: '选择要扫描的敏感信息类型，不选则扫描全部',
-          options: SENSITIVE_TYPES.map(type => ({ label: type, value: type })),
+          options: SENSITIVE_TYPES.map((type) => ({ label: type, value: type })),
           default: []
         },
         whitelist: {

@@ -2,11 +2,7 @@
  * 批量处理服务统一导出入口
  */
 
-export {
-  BatchProcessor,
-  batchProcessor,
-  BatchTaskStatus
-} from './BatchProcessor.js'
+export { BatchProcessor, batchProcessor, BatchTaskStatus } from './BatchProcessor.js'
 
 export {
   contractStandardizationWorkflow,

@@ -23,7 +23,7 @@ class UnifiedLogger {
    */
   loadLogs() {
     if (!this.enableStorage) return
-    
+
     try {
       const saved = localStorage.getItem(this.storageKey)
       if (saved) {
@@ -43,7 +43,7 @@ class UnifiedLogger {
    */
   saveLogs() {
     if (!this.enableStorage) return
-    
+
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(this.logs))
     } catch (e) {
@@ -84,7 +84,7 @@ class UnifiedLogger {
     // 格式化控制台输出
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`
     const extraInfo = Object.keys(extra).length > 0 ? '\n' + JSON.stringify(extra, null, 2) : ''
-    
+
     return { logEntry, consoleMessage: `${prefix} ${message}${extraInfo}` }
   }
 
@@ -138,7 +138,10 @@ class UnifiedLogger {
    */
   isDuplicateLog(signature) {
     const now = Date.now()
-    if (this.lastLogSignature === signature && now - this.lastLogTimestamp < this.duplicateInterval) {
+    if (
+      this.lastLogSignature === signature &&
+      now - this.lastLogTimestamp < this.duplicateInterval
+    ) {
       return true
     }
     this.lastLogSignature = signature
@@ -239,7 +242,7 @@ class UnifiedLogger {
    */
   getLogs(level = null) {
     if (level) {
-      return this.logs.filter(log => log.level === level)
+      return this.logs.filter((log) => log.level === level)
     }
     return this.logs
   }
@@ -266,11 +269,9 @@ class UnifiedLogger {
   exportLogsAsText(level = null) {
     const logsToExport = level ? this.getLogs(level) : this.logs
     return logsToExport
-      .map(log => {
+      .map((log) => {
         const { timestamp, level, message, ...extra } = log
-        const extraStr = Object.keys(extra).length > 0 
-          ? '\n' + JSON.stringify(extra, null, 2)
-          : ''
+        const extraStr = Object.keys(extra).length > 0 ? '\n' + JSON.stringify(extra, null, 2) : ''
         return `[${timestamp}] [${level.toUpperCase()}] ${message}${extraStr}`
       })
       .join('\n\n---\n\n')

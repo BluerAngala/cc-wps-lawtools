@@ -65,8 +65,14 @@ const setupInterceptors = (client) => {
             throw new Error('API 密钥无效或已过期，请在设置页面检查配置')
           case 403:
             // 检查是否是余额不足
-            if (data?.code === 30011 || data?.message?.includes('insufficient') || data?.message?.includes('balance')) {
-              throw new Error(`余额不足或模型需要付费。当前模型: ${data?.message?.match(/model[:\s]+([^\s,]+)/)?.[1] || '未知'}\n建议：1) 充值后继续使用 2) 在设置中更换免费模型`)
+            if (
+              data?.code === 30011 ||
+              data?.message?.includes('insufficient') ||
+              data?.message?.includes('balance')
+            ) {
+              throw new Error(
+                `余额不足或模型需要付费。当前模型: ${data?.message?.match(/model[:\s]+([^\s,]+)/)?.[1] || '未知'}\n建议：1) 充值后继续使用 2) 在设置中更换免费模型`
+              )
             }
             throw new Error('没有权限访问此 API，请检查 API 密钥权限')
           case 429:
@@ -79,7 +85,9 @@ const setupInterceptors = (client) => {
       } else if (error.request) {
         // 请求已发送但没有收到响应
         if (error.code === 'ECONNABORTED') {
-          throw new Error('请求超时，文档内容可能过长或网络较慢。建议：1) 检查网络连接 2) 减少提取标签数量 3) 在设置中增加超时时间')
+          throw new Error(
+            '请求超时，文档内容可能过长或网络较慢。建议：1) 检查网络连接 2) 减少提取标签数量 3) 在设置中增加超时时间'
+          )
         }
         throw new Error('网络连接失败，请检查：1) 网络是否连接 2) API地址是否正确 3) 是否需要代理')
       } else {
@@ -88,7 +96,7 @@ const setupInterceptors = (client) => {
       }
     }
   )
-  
+
   return client
 }
 
@@ -105,7 +113,7 @@ const setupInterceptors = (client) => {
 async function streamChatCompletions({ messages, model, onChunk, onProgress, options = {} }) {
   const config = appConfig.getAIConfig()
   const currentModel = model || options.model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
-  
+
   const requestBody = {
     model: currentModel,
     messages,
@@ -123,16 +131,19 @@ async function streamChatCompletions({ messages, model, onChunk, onProgress, opt
   console.log('=== 流式请求详情 ===')
   console.log('模型:', currentModel)
   console.log('API地址:', config.baseUrl)
-  console.log('API Key:', config.apiKey ? `${config.apiKey.substring(0, 10)}...` : '未配置')
+  console.log('API Key:', config.apiKey ? '***已配置' : '未配置')
   console.log('Temperature:', requestBody.temperature)
   console.log('Max Tokens:', requestBody.max_tokens)
   console.log('Messages 数量:', messages.length)
   messages.forEach((msg, idx) => {
     console.log(`  Message ${idx + 1} [${msg.role}]:`, msg.content.substring(0, 100) + '...')
   })
-  console.log('Messages 总长度:', messages.reduce((sum, m) => sum + (m.content?.length || 0), 0))
+  console.log(
+    'Messages 总长度:',
+    messages.reduce((sum, m) => sum + (m.content?.length || 0), 0)
+  )
   console.log('==================')
-  
+
   // 检查 API Key
   if (!config.apiKey || config.apiKey.trim() === '') {
     throw new Error('API Key 未配置，请在设置页面配置 AI API Key')
@@ -149,7 +160,7 @@ async function streamChatCompletions({ messages, model, onChunk, onProgress, opt
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`
+        Authorization: `Bearer ${config.apiKey}`
       },
       body: JSON.stringify(requestBody)
     })
@@ -161,7 +172,7 @@ async function streamChatCompletions({ messages, model, onChunk, onProgress, opt
       const errorData = await response.json().catch(() => ({}))
       const errorMsg = errorData.message || errorData.error || '请求失败'
       console.error('[流式] 错误详情:', errorData)
-      
+
       // 统一错误处理
       if (response.status === 401) {
         throw new Error('API 密钥无效或已过期，请在设置页面检查配置')
@@ -172,7 +183,7 @@ async function streamChatCompletions({ messages, model, onChunk, onProgress, opt
     }
 
     console.log('[流式] 开始读取响应流...')
-    
+
     if (onProgress) {
       onProgress({ stage: '正在接收AI响应...', content: '' })
     }
@@ -274,7 +285,7 @@ async function streamChatCompletions({ messages, model, onChunk, onProgress, opt
 async function nonStreamChatCompletions({ messages, model, options = {} }) {
   const config = appConfig.getAIConfig()
   const currentModel = model || options.model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
-  
+
   const requestBody = {
     model: currentModel,
     messages,
@@ -289,7 +300,7 @@ async function nonStreamChatCompletions({ messages, model, options = {} }) {
 
   console.log('========== 非流式请求详情 ==========')
   console.log('🌐 API地址:', config.baseUrl)
-  console.log('🔑 API Key:', config.apiKey ? `${config.apiKey.substring(0, 10)}...` : '未配置')
+  console.log('🔑 API Key:', config.apiKey ? '***已配置' : '未配置')
   console.log('🤖 模型:', currentModel)
   console.log('🌡️ Temperature:', requestBody.temperature)
   console.log('📏 Max Tokens:', requestBody.max_tokens)
@@ -300,43 +311,60 @@ async function nonStreamChatCompletions({ messages, model, options = {} }) {
     console.log(`     长度: ${msg.content?.length || 0} 字符`)
     console.log(`     前200字符: ${(msg.content || '').substring(0, 200)}...`)
   })
-  console.log('📊 Messages 总长度:', messages.reduce((sum, m) => sum + (m.content?.length || 0), 0), '字符')
-  console.log('🎯 Response Format:', options.response_format ? JSON.stringify(options.response_format) : '无')
+  console.log(
+    '📊 Messages 总长度:',
+    messages.reduce((sum, m) => sum + (m.content?.length || 0), 0),
+    '字符'
+  )
+  console.log(
+    '🎯 Response Format:',
+    options.response_format ? JSON.stringify(options.response_format) : '无'
+  )
   console.log('📦 完整请求体:', JSON.stringify(requestBody, null, 2).substring(0, 1000) + '...')
   console.log('=====================================')
 
   const startTime = Date.now()
   try {
     console.log('⏳ 开始发送请求...', new Date().toLocaleTimeString())
-    
+
     // 每次请求时创建新的客户端实例（使用最新配置）
     const apiClient = setupInterceptors(createApiClient())
     const response = await apiClient.post('/chat/completions', requestBody)
-    
+
     const endTime = Date.now()
     const duration = endTime - startTime
-    
+
     console.log('========== 非流式响应详情 ==========')
     console.log('✅ 请求成功!')
     console.log('⏱️ 耗时:', duration, 'ms (', (duration / 1000).toFixed(2), '秒)')
     console.log('📊 响应状态:', response.status, response.statusText)
-    console.log('📦 完整响应数据:', JSON.stringify(response.data, null, 2).substring(0, 2000) + '...')
-    console.log('📝 响应内容长度:', response.data.choices?.[0]?.message?.content?.length || 0, '字符')
-    console.log('📝 响应内容 (前500字符):', (response.data.choices?.[0]?.message?.content || '').substring(0, 500))
+    console.log(
+      '📦 完整响应数据:',
+      JSON.stringify(response.data, null, 2).substring(0, 2000) + '...'
+    )
+    console.log(
+      '📝 响应内容长度:',
+      response.data.choices?.[0]?.message?.content?.length || 0,
+      '字符'
+    )
+    console.log(
+      '📝 响应内容 (前500字符):',
+      (response.data.choices?.[0]?.message?.content || '').substring(0, 500)
+    )
     console.log('💰 Token使用情况:', response.data.usage || '无')
     console.log('=====================================')
-    
+
     return response.data.choices[0].message.content
   } catch (error) {
     const endTime = Date.now()
     const duration = endTime - startTime
-    
+
     console.error('========== 非流式请求失败 ==========')
     console.error('❌ 错误类型:', error.name)
     console.error('❌ 错误代码:', error.code)
     console.error('❌ 错误消息:', error.message)
     console.error('⏱️ 失败前耗时:', duration, 'ms (', (duration / 1000).toFixed(2), '秒)')
-    
+
     if (error.response) {
       console.error('📊 响应状态:', error.response.status, error.response.statusText)
       console.error('📦 响应数据:', JSON.stringify(error.response.data, null, 2))
@@ -347,10 +375,10 @@ async function nonStreamChatCompletions({ messages, model, options = {} }) {
     } else {
       console.error('⚙️ 请求配置错误:', error.config)
     }
-    
+
     console.error('📚 完整错误堆栈:', error.stack)
     console.error('=====================================')
-    
+
     throw error
   }
 }
@@ -365,7 +393,7 @@ async function nonStreamChatCompletions({ messages, model, options = {} }) {
 async function processDocumentContent({ content, model }) {
   const config = appConfig.getAIConfig()
   const currentModel = model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
-  
+
   try {
     const apiClient = setupInterceptors(createApiClient())
     const response = await apiClient.post('/chat/completions', {
@@ -393,14 +421,10 @@ async function processDocumentContent({ content, model }) {
  * @param {string} params.model - 使用的模型名称，默认从配置读取
  * @returns {Promise<string>} AI 处理后的结果
  */
-async function processContractElements({
-  content,
-  extractTags,
-  model
-}) {
+async function processContractElements({ content, extractTags, model }) {
   const config = appConfig.getAIConfig()
   const currentModel = model || config.model || 'moonshotai/Kimi-K2-Instruct-0905'
-  
+
   try {
     let promptContent
 
@@ -516,17 +540,11 @@ async function processContractReview({
     if (Array.isArray(reviewRules)) {
       // 合并所有规则为一个综合提示词
       const allRules = reviewRules
-        .map(
-          (rule, index) =>
-            `规则${index + 1}: ${rule.reviewRules}`
-        )
+        .map((rule, index) => `规则${index + 1}: ${rule.reviewRules}`)
         .join('\n')
 
       const allRequirements = reviewRules
-        .map(
-          (rule, index) =>
-            `规则${index + 1}的审查要求: ${rule.reviewRequirements}`
-        )
+        .map((rule, index) => `规则${index + 1}的审查要求: ${rule.reviewRequirements}`)
         .join('\n')
 
       const actionType = reviewRules[0]?.actionType || '批注'
@@ -579,7 +597,7 @@ async function getAvailableModels() {
   try {
     const response = await axios.get(`${config.baseUrl}/models`, {
       headers: {
-        'Authorization': `Bearer ${config.apiKey}`
+        Authorization: `Bearer ${config.apiKey}`
       },
       timeout: 10000
     })
@@ -646,15 +664,6 @@ async function getAvailableModels() {
   }
 }
 
-// 测试
-async function test() {
-  const res = await fetch('https://env-00jxgx7alqyz.dev-hz.cloudbasefunction.cn/test_kdocs', {
-    method: 'get'
-  })
-  console.log(res)
-  return res
-}
-
 export {
   streamChatCompletions,
   nonStreamChatCompletions,
@@ -662,6 +671,5 @@ export {
   processContractElements,
   processContractReview,
   processDocumentStructure,
-  getAvailableModels,
-  test
+  getAvailableModels
 }

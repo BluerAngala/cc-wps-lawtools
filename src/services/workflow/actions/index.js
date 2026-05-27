@@ -71,7 +71,7 @@ export const allActions = [...documentActions, ...aiActions]
  * @param {Object} [registry] - 操作注册表，默认使用全局注册表
  */
 export function registerAllActions(registry = actionRegistry) {
-  allActions.forEach(action => {
+  allActions.forEach((action) => {
     registry.register(action)
   })
 }

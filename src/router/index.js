@@ -1,16 +1,27 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-// 引入页面组件
 import ContractServices from '../views/ContractServices.vue'
 import SettingsPage from '../views/SettingsPage.vue'
-import TestPage from '../views/TestPage.vue'
 import TemplateManager from '../views/TemplateManager.vue'
 import ContractRiskScan from '../views/ContractRiskScan.vue'
 import DesensitizePage from '../views/DesensitizePage.vue'
-import PathDiagnostics from '../views/PathDiagnostics.vue'
 import WorkflowPage from '../views/WorkflowPage.vue'
 import BatchProcessingPage from '../views/BatchProcessingPage.vue'
 import AIChatPage from '../views/AIChatPage.vue'
+
+const devOnly = import.meta.env.DEV
+  ? {
+      TestPage: () => import('../views/TestPage.vue'),
+      PathDiagnostics: () => import('../views/PathDiagnostics.vue')
+    }
+  : {}
+
+const devRoutes = import.meta.env.DEV
+  ? [
+      { path: '/taskpane', name: '任务窗格', component: devOnly.TestPage },
+      { path: '/pathdiag', name: '路径诊断', component: devOnly.PathDiagnostics }
+    ]
+  : []
 
 const router = createRouter({
   history: createWebHashHistory(''),
@@ -45,16 +56,6 @@ const router = createRouter({
       component: SettingsPage
     },
     {
-      path: '/taskpane',
-      name: '任务窗格',
-      component: TestPage
-    },
-    {
-      path: '/pathdiag',
-      name: '路径诊断',
-      component: PathDiagnostics
-    },
-    {
       path: '/workflow',
       name: '工作流',
       component: WorkflowPage
@@ -68,7 +69,8 @@ const router = createRouter({
       path: '/aichat',
       name: 'AI对话',
       component: AIChatPage
-    }
+    },
+    ...devRoutes
   ]
 })
 

@@ -3,11 +3,11 @@
     :show="show"
     preset="card"
     :title="modalTitle"
-    style="width: 90%; max-width: 600px; max-height: 85vh;"
+    style="width: 90%; max-width: 600px; max-height: 85vh"
     :bordered="false"
     @update:show="$emit('update:show', $event)"
   >
-    <div class="flex flex-col gap-3" style="max-height: 60vh; overflow-y: auto;">
+    <div class="flex flex-col gap-3" style="max-height: 60vh; overflow-y: auto">
       <!-- 工作流名称 -->
       <n-form-item label="工作流名称" :show-feedback="false">
         <n-input v-model:value="form.name" placeholder="请输入工作流名称" size="small" />
@@ -15,9 +15,7 @@
 
       <!-- 当前步骤列表 -->
       <div class="border rounded p-2 bg-gray-50">
-        <div class="text-xs font-medium text-gray-600 mb-2">
-          当前步骤 ({{ form.steps.length }})
-        </div>
+        <div class="text-xs font-medium text-gray-600 mb-2">当前步骤 ({{ form.steps.length }})</div>
         <div v-if="form.steps.length === 0" class="text-gray-400 text-xs py-2 text-center">
           请从下方添加操作步骤
         </div>
@@ -87,9 +85,17 @@
     </template>
 
     <!-- 步骤参数编辑弹窗 -->
-    <n-modal v-model:show="showStepEdit" preset="card" title="编辑步骤参数" style="width: 80%; max-width: 450px;">
+    <n-modal
+      v-model:show="showStepEdit"
+      preset="card"
+      title="编辑步骤参数"
+      style="width: 80%; max-width: 450px"
+    >
       <n-form v-if="editingStep" label-placement="top" size="small">
-        <div v-if="Object.keys(getStepSchema(editingStep)).length === 0" class="text-gray-400 text-xs py-3 text-center">
+        <div
+          v-if="Object.keys(getStepSchema(editingStep)).length === 0"
+          class="text-gray-400 text-xs py-3 text-center"
+        >
           此操作没有可配置的参数
         </div>
         <template v-for="(prop, key) in getStepSchema(editingStep)" :key="key">
@@ -209,24 +215,31 @@ const canSave = computed(() => form.value.name.trim() && form.value.steps.length
 const canExecute = computed(() => form.value.steps.length > 0)
 
 // 监听 workflow 变化，加载数据
-watch(() => props.workflow, (wf) => {
-  if (wf) {
-    form.value = {
-      name: wf.name || '',
-      description: wf.description || '',
-      steps: JSON.parse(JSON.stringify(wf.steps || []))
+watch(
+  () => props.workflow,
+  (wf) => {
+    if (wf) {
+      form.value = {
+        name: wf.name || '',
+        description: wf.description || '',
+        steps: JSON.parse(JSON.stringify(wf.steps || []))
+      }
+    } else {
+      form.value = { name: '', description: '', steps: [] }
     }
-  } else {
-    form.value = { name: '', description: '', steps: [] }
-  }
-}, { immediate: true })
+  },
+  { immediate: true }
+)
 
 // 监听 show 变化，重置表单
-watch(() => props.show, (visible) => {
-  if (visible && !props.workflow) {
-    form.value = { name: '', description: '', steps: [] }
+watch(
+  () => props.show,
+  (visible) => {
+    if (visible && !props.workflow) {
+      form.value = { name: '', description: '', steps: [] }
+    }
   }
-})
+)
 
 // 获取操作图标
 const getActionIcon = (type) => {
@@ -251,16 +264,21 @@ const getStepSchema = (step) => {
 // 检查是否有数字字段
 const hasNumberFields = (step) => {
   const schema = getStepSchema(step)
-  return Object.values(schema).some(prop => prop.type === 'number')
+  return Object.values(schema).some((prop) => prop.type === 'number')
 }
 
 // 获取枚举选项
 const getEnumOptions = (prop) => {
   if (!prop.enum) return []
   const labels = {
-    full: '全文审查', segment: '分段审查',
-    partyA: '甲方视角', partyB: '乙方视角', neutral: '中立视角',
-    quick: '快速', standard: '标准', deep: '深度',
+    full: '全文审查',
+    segment: '分段审查',
+    partyA: '甲方视角',
+    partyB: '乙方视角',
+    neutral: '中立视角',
+    quick: '快速',
+    standard: '标准',
+    deep: '深度',
     basic: '基础要素'
   }
   return prop.enum.map((value, index) => ({
@@ -343,7 +361,7 @@ const handleExecute = () => {
 onMounted(() => {
   registerAllActions()
   const actions = actionRegistry.list()
-  aiActions.value = actions.filter(a => a.category === 'ai')
-  documentActions.value = actions.filter(a => a.category !== 'ai')
+  aiActions.value = actions.filter((a) => a.category === 'ai')
+  documentActions.value = actions.filter((a) => a.category !== 'ai')
 })
 </script>

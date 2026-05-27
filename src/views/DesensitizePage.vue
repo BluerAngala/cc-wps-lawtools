@@ -9,10 +9,10 @@
       description="自动检测文档中的敏感信息（身份证号、手机号、邮箱、银行卡号等）。支持设置白名单脱敏，脱敏后可一键恢复原始内容。"
     >
       <template #actions>
-        <n-button 
-          :type="actionButtonType" 
-          @click="handleMainAction" 
-          :loading="isExecuting" 
+        <n-button
+          :type="actionButtonType"
+          @click="handleMainAction"
+          :loading="isExecuting"
           :disabled="isExecuting || (actionState === 'desensitize' && !hasSelectedItems)"
         >
           {{ actionButtonText }}
@@ -29,7 +29,6 @@
       :total="progress.total"
     />
 
-    
     <!-- 高级配置 -->
     <n-collapse :default-expanded-names="['config']" class="mt-4">
       <n-collapse-item title="⚙️ 高级配置" name="config">
@@ -57,7 +56,9 @@
     <!-- 检测结果列表 -->
     <div v-if="sensitiveInfoList.length > 0" class="wps-card wps-section mt-4">
       <div class="flex items-center justify-between mb-4">
-        <span class="text-base font-semibold">检测到 {{ sensitiveInfoList.length }} 个敏感信息</span>
+        <span class="text-base font-semibold"
+          >检测到 {{ sensitiveInfoList.length }} 个敏感信息</span
+        >
         <n-space>
           <n-button size="small" @click="selectAll">全选</n-button>
           <n-button size="small" @click="unselectAll">取消全选</n-button>
@@ -102,7 +103,6 @@
       icon="✅"
     />
 
-
     <!-- 处理结果提示 -->
     <div v-if="resultMessage" class="wps-card wps-section mt-4">
       <n-alert :type="resultType" :closable="false" show-icon>
@@ -115,14 +115,33 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { NButton, NSpace, NTag, NAlert, NList, NListItem, NThing, NCheckbox, NCollapse, NCollapseItem, NFormItem, NInput } from '../components/naive-components.js'
+import {
+  NButton,
+  NSpace,
+  NTag,
+  NAlert,
+  NList,
+  NListItem,
+  NThing,
+  NCheckbox,
+  NCollapse,
+  NCollapseItem,
+  NFormItem,
+  NInput
+} from '../components/naive-components.js'
 import { PageLayout, PageHeader, EmptyState, ProcessingStatus } from '../components/common'
 import { useWorkflowExecution } from '../composables/useWorkflowExecution.js'
 import { useWpsEnvironment } from '../composables/useWpsEnvironment.js'
 import { ActionTypes } from '../services/workflow'
 
 // 使用工作流执行 composable
-const { isExecuting, progress, executePreset, getResultData, reset: resetWorkflow } = useWorkflowExecution()
+const {
+  isExecuting,
+  progress,
+  executePreset,
+  getResultData,
+  reset: resetWorkflow
+} = useWorkflowExecution()
 
 // 使用 WPS 环境 composable
 const { getDocument } = useWpsEnvironment()
@@ -137,8 +156,8 @@ const resultType = ref('success')
 const desensitizedMap = ref([]) // 保存脱敏映射，用于恢复
 
 // 计算属性
-const hasSelectedItems = computed(() => sensitiveInfoList.value.some(item => item.selected))
-const selectedCount = computed(() => sensitiveInfoList.value.filter(item => item.selected).length)
+const hasSelectedItems = computed(() => sensitiveInfoList.value.some((item) => item.selected))
+const selectedCount = computed(() => sensitiveInfoList.value.filter((item) => item.selected).length)
 const canRestore = computed(() => desensitizedMap.value.length > 0)
 
 // 按钮状态：scan -> desensitize -> restore
@@ -153,19 +172,23 @@ const actionButtonType = computed(() => {
 })
 const actionButtonText = computed(() => {
   if (isExecuting.value) return '扫描中...'
-  const texts = { scan: '扫描文档', desensitize: `一键脱敏 (${selectedCount.value})`, restore: '一键恢复' }
+  const texts = {
+    scan: '扫描文档',
+    desensitize: `一键脱敏 (${selectedCount.value})`,
+    restore: '一键恢复'
+  }
   return texts[actionState.value]
 })
 
 // 获取类型颜色
 const getTypeColor = (type) => {
   const colorMap = {
-    '身份证号': 'error',
-    '手机号': 'warning',
-    '邮箱': 'info',
-    '银行卡号': 'error',
-    '姓名': 'warning',
-    '自定义敏感词': 'success'
+    身份证号: 'error',
+    手机号: 'warning',
+    邮箱: 'info',
+    银行卡号: 'error',
+    姓名: 'warning',
+    自定义敏感词: 'success'
   }
   return colorMap[type] || 'default'
 }
@@ -174,21 +197,25 @@ const getTypeColor = (type) => {
 const parseCustomSensitiveWords = () => {
   return customSensitiveWords.value
     .split('\n')
-    .map(line => {
+    .map((line) => {
       const parts = line.split('|')
       if (parts.length === 2) {
         return { word: parts[0].trim(), replacement: parts[1].trim() }
       }
       return null
     })
-    .filter(item => item !== null)
-    .map(item => item.word)
+    .filter((item) => item !== null)
+    .map((item) => item.word)
     .join(',')
 }
 
 // 主按钮点击处理
 const handleMainAction = () => {
-  const actions = { scan: scanDocument, desensitize: applyDesensitization, restore: restoreSensitiveInfo }
+  const actions = {
+    scan: scanDocument,
+    desensitize: applyDesensitization,
+    restore: restoreSensitiveInfo
+  }
   actions[actionState.value]()
 }
 
@@ -213,7 +240,7 @@ const scanDocument = async () => {
   if (result.success) {
     // 从工作流结果中获取敏感信息列表
     const detectedList = getResultData('sensitiveInfoList') || []
-    sensitiveInfoList.value = detectedList.map(item => ({ ...item, selected: true }))
+    sensitiveInfoList.value = detectedList.map((item) => ({ ...item, selected: true }))
 
     if (sensitiveInfoList.value.length === 0) {
       window.$message?.success('未检测到敏感信息')
@@ -224,8 +251,14 @@ const scanDocument = async () => {
 }
 
 // 全选/取消全选
-const selectAll = () => sensitiveInfoList.value.forEach(item => { item.selected = true })
-const unselectAll = () => sensitiveInfoList.value.forEach(item => { item.selected = false })
+const selectAll = () =>
+  sensitiveInfoList.value.forEach((item) => {
+    item.selected = true
+  })
+const unselectAll = () =>
+  sensitiveInfoList.value.forEach((item) => {
+    item.selected = false
+  })
 
 // 清除结果
 const clearResults = () => {
@@ -247,12 +280,12 @@ const applyDesensitization = async () => {
   if (!doc) return
 
   try {
-    const selectedItems = sensitiveInfoList.value.filter(item => item.selected)
+    const selectedItems = sensitiveInfoList.value.filter((item) => item.selected)
     let replacedCount = 0
     const selection = doc.Application.Selection
-    
+
     // 逐个替换敏感信息
-    selectedItems.forEach(item => {
+    selectedItems.forEach((item) => {
       selection.HomeKey(6)
       const findObj = selection.Find
       findObj.ClearFormatting()
@@ -265,8 +298,20 @@ const applyDesensitization = async () => {
       findObj.MatchCase = false
       findObj.MatchWholeWord = false
       findObj.MatchWildcards = false
-      
-      const result = findObj.Execute(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 2)
+
+      const result = findObj.Execute(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2
+      )
       if (result) replacedCount++
     })
 
@@ -275,7 +320,7 @@ const applyDesensitization = async () => {
     window.$message?.success(resultMessage.value)
 
     // 保存脱敏映射，用于后续恢复
-    desensitizedMap.value = selectedItems.map(item => ({
+    desensitizedMap.value = selectedItems.map((item) => ({
       original: item.original,
       desensitized: item.desensitized
     }))
@@ -303,7 +348,7 @@ const restoreSensitiveInfo = () => {
     const selection = doc.Application.Selection
 
     // 逆向替换：脱敏值 -> 原始值
-    desensitizedMap.value.forEach(item => {
+    desensitizedMap.value.forEach((item) => {
       selection.HomeKey(6)
       const findObj = selection.Find
       findObj.ClearFormatting()
@@ -317,7 +362,19 @@ const restoreSensitiveInfo = () => {
       findObj.MatchWholeWord = false
       findObj.MatchWildcards = false
 
-      const result = findObj.Execute(undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, 2)
+      const result = findObj.Execute(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        2
+      )
       if (result) restoredCount++
     })
 

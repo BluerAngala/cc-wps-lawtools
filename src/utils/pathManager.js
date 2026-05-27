@@ -2,7 +2,7 @@
  * 统一路径管理器
  * 管理所有文件保存路径，统一使用项目目录
  * 项目目录: Application.Env.GetAppDataPath() + /kingsoft/wps/jsaddons/{projectName}_{version}/config
- * 
+ *
  * 跨平台支持:
  * - Windows: 使用 GetAppDataPath() 获取 WPS 插件目录
  * - Mac: 使用 PluginStorage 进行数据持久化，不依赖文件系统路径
@@ -15,16 +15,16 @@ class PathManager {
     // 从 package.json 读取项目名称和版本
     this.projectName = 'wps_lawtools'
     this.projectVersion = '1.0.0'
-    
+
     // 项目目录名称: 项目名称_版本号
     this.projectDirName = `${this.projectName}_${this.projectVersion}`
-    
+
     // 基础路径: /kingsoft/wps/jsaddons
     this.basePathSegment = '/kingsoft/wps/jsaddons'
-    
+
     // 缓存平台类型
     this._platform = null
-    
+
     unifiedLogger.info('PathManager 已初始化', {
       projectName: this.projectName,
       projectVersion: this.projectVersion,
@@ -36,8 +36,7 @@ class PathManager {
    * 检查 WPS 环境
    */
   isWPSAvailable() {
-    return typeof window !== 'undefined' && 
-           typeof window.Application !== 'undefined'
+    return typeof window !== 'undefined' && typeof window.Application !== 'undefined'
   }
 
   /**
@@ -46,21 +45,21 @@ class PathManager {
    */
   getPlatform() {
     if (this._platform) return this._platform
-    
+
     if (!this.isWPSAvailable()) {
       return 'unknown'
     }
-    
+
     try {
       const app = window.Application
-      
+
       // Mac 平台有 PluginStorage，优先检测
       if (app.PluginStorage) {
         this._platform = 'mac'
         unifiedLogger.info('检测到 Mac 平台（PluginStorage 可用）')
         return 'mac'
       }
-      
+
       // Windows 平台有 Env.GetAppDataPath 且能正常调用
       if (app.Env && typeof app.Env.GetAppDataPath === 'function') {
         try {
@@ -76,7 +75,7 @@ class PathManager {
           unifiedLogger.debug('GetAppDataPath 调用失败，不是 Windows 平台')
         }
       }
-      
+
       this._platform = 'unknown'
       unifiedLogger.warn('无法检测平台类型')
       return 'unknown'
@@ -103,7 +102,7 @@ class PathManager {
   /**
    * 获取 WPS 应用数据路径
    * 使用 GetAppDataPath() 获取 WPS 插件专用目录
-   * 
+   *
    * 注意: Mac 平台上此方法返回 null，应使用 PluginStorage 替代
    */
   getAppDataPath() {
@@ -120,7 +119,7 @@ class PathManager {
 
     try {
       const appDataPath = window.Application.Env.GetAppDataPath()
-      
+
       if (!appDataPath) {
         unifiedLogger.error('无法获取应用数据路径', {
           method: 'GetAppDataPath()'
@@ -228,7 +227,7 @@ class PathManager {
   /**
    * 获取项目内置模板的相对路径（用于 HTTP 请求）
    * 这是相对于 Web 服务器根目录的路径
-   * 
+   *
    * 注意：实际使用时，建议直接使用字符串 '/templates'，无需调用此方法
    * 此方法主要用于调试和路径信息查询
    */
@@ -261,7 +260,7 @@ class PathManager {
 
     try {
       const fs = window.Application.FileSystem
-      
+
       // 检查目录是否存在
       if (fs.Exists(dirPath)) {
         return true
@@ -285,7 +284,7 @@ class PathManager {
         })
         return false
       }
-      
+
       // 验证创建成功
       if (fs.Exists(dirPath)) {
         unifiedLogger.logPath('info', '目录已创建', { dirPath })
@@ -373,12 +372,7 @@ class PathManager {
         configDir: info.configDir ? fs.Exists(info.configDir) : false,
         templatesDir: info.templatesDir ? fs.Exists(info.templatesDir) : false,
         cacheDir: info.cacheDir ? fs.Exists(info.cacheDir) : false,
-        logsDir: info.logsDir ? fs.Exists(info.logsDir) : false,
-        builtInTemplates: info.builtInTemplatesRealPath ? fs.Exists(info.builtInTemplatesRealPath) : false
-      }
-      info.fileExists = {
-        configFile: info.configFilePath ? fs.Exists(info.configFilePath) : false,
-        templatesConfig: info.templatesConfigPath ? fs.Exists(info.templatesConfigPath) : false
+        logsDir: info.logsDir ? fs.Exists(info.logsDir) : false
       }
     }
 
@@ -386,6 +380,6 @@ class PathManager {
   }
 }
 
-// 创建单例
+// 导出单例
 export const pathManager = new PathManager()
-
+export default pathManager

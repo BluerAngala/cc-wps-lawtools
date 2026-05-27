@@ -107,9 +107,11 @@ export class DocumentWatcher {
     console.log(`文档切换事件: ${docName}`)
 
     if (typeof window !== 'undefined' && window.dispatchEvent) {
-      window.dispatchEvent(new CustomEvent('documentChanged', {
-        detail: { docName, docId }
-      }))
+      window.dispatchEvent(
+        new CustomEvent('documentChanged', {
+          detail: { docName, docId }
+        })
+      )
     }
   }
 

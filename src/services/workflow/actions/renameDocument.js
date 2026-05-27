@@ -40,11 +40,19 @@ export class RenameDocumentAction extends BaseAction {
     return {
       type: 'object',
       properties: {
+        newName: {
+          type: 'string',
+          title: '新文件名',
+          description: '重命名后的完整文件名（不含扩展名会自动补齐）',
+          placeholder: '如：合同终稿'
+        },
         prefix: {
           type: 'string',
           title: '文件名前缀',
-          description: '添加到文件名前的前缀',
-          default: '「已修订」'
+          description: '仅在未指定新文件名时生效，添加到原文件名前',
+          default: '',
+          placeholder: '留空则不添加前缀',
+          showIf: null
         },
         deleteOriginal: {
           type: 'boolean',

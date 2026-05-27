@@ -38,7 +38,7 @@ class WorkflowStorage {
       }
 
       const workflows = this.getAll()
-      const existingIndex = workflows.findIndex(w => w.id === workflow.id)
+      const existingIndex = workflows.findIndex((w) => w.id === workflow.id)
 
       if (existingIndex >= 0) {
         // 更新已有工作流
@@ -68,7 +68,7 @@ class WorkflowStorage {
   delete(id) {
     try {
       const workflows = this.getAll()
-      const filtered = workflows.filter(w => w.id !== id)
+      const filtered = workflows.filter((w) => w.id !== id)
       this._persist(filtered)
       return true
     } catch (error) {
@@ -84,7 +84,7 @@ class WorkflowStorage {
    */
   get(id) {
     const workflows = this.getAll()
-    return workflows.find(w => w.id === id) || null
+    return workflows.find((w) => w.id === id) || null
   }
 
   /**

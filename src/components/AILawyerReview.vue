@@ -3,11 +3,20 @@
     <div v-if="isProcessing" class="ai-lawyer-review-loading-overlay">
       <n-spin size="large" />
       <div class="mt-3 text-sm font-medium text-gray-600">{{ progressText }}</div>
-      <n-progress class="w-48 mt-2" type="line" status="info" :percentage="100" :show-indicator="false" :processing="true" />
+      <n-progress
+        class="w-48 mt-2"
+        type="line"
+        status="info"
+        :percentage="100"
+        :show-indicator="false"
+        :processing="true"
+      />
     </div>
 
     <n-space vertical :size="8">
-      <div class="text-xs text-blue-500">AI 生成审查清单 + 律师配置清单，AI 生成建议 + 律师预设意见</div>
+      <div class="text-xs text-blue-500">
+        AI 生成审查清单 + 律师配置清单，AI 生成建议 + 律师预设意见
+      </div>
 
       <div v-if="pageState === 'idle'">
         <div class="text-sm font-semibold mb-2">审查视角</div>
@@ -45,11 +54,7 @@
           @scheme-delete="handleSchemeDelete"
         />
 
-        <ConfigForm
-          :config="configForm"
-          mode="review"
-          @update-config="handleConfigUpdate"
-        />
+        <ConfigForm :config="configForm" mode="review" @update-config="handleConfigUpdate" />
       </div>
 
       <div v-if="documentType && pageState !== 'idle'" class="flex items-center gap-2">
@@ -61,7 +66,9 @@
         <div class="flex items-center justify-between mb-2">
           <n-space align="center" :size="8">
             <span class="text-sm font-semibold">📋 审查清单</span>
-            <n-tag size="small" type="info">{{ selectedChecklistCount }}/{{ checklist.length }} 项</n-tag>
+            <n-tag size="small" type="info"
+              >{{ selectedChecklistCount }}/{{ checklist.length }} 项</n-tag
+            >
           </n-space>
           <n-space v-if="pageState === 'ready'" :size="4">
             <n-button size="tiny" @click="selectAllChecklist">全选</n-button>
@@ -117,14 +124,16 @@
             <div class="text-xs text-gray-500">待处理</div>
           </div>
           <div class="bg-red-50 rounded p-2">
-            <div class="text-base font-bold text-red-600">{{ reviewResult.summary?.totalIssues || 0 }}</div>
+            <div class="text-base font-bold text-red-600">
+              {{ reviewResult.summary?.totalIssues || 0 }}
+            </div>
             <div class="text-xs text-gray-500">问题总数</div>
           </div>
         </div>
 
         <div class="space-y-1">
           <div
-            v-for="item in checklist.filter(i => i.selected)"
+            v-for="item in checklist.filter((i) => i.selected)"
             :key="item.id"
             class="border border-gray-200 rounded px-2 py-1"
           >
@@ -141,8 +150,12 @@
               </n-tag>
             </div>
             <div v-if="expandedId === item.id" class="mt-2 pl-5 pb-2 space-y-2">
-              <div v-if="item.reviewRequirements" class="text-xs text-gray-500 bg-blue-50 p-2 rounded">
-                <span class="font-medium text-blue-600">审查要点：</span>{{ item.reviewRequirements }}
+              <div
+                v-if="item.reviewRequirements"
+                class="text-xs text-gray-500 bg-blue-50 p-2 rounded"
+              >
+                <span class="font-medium text-blue-600">审查要点：</span
+                >{{ item.reviewRequirements }}
               </div>
               <div v-if="item.reviewBasis" class="text-xs text-gray-500">
                 <span class="font-medium">法律依据：</span>{{ item.reviewBasis }}
@@ -161,16 +174,34 @@
                     <n-tag :type="getSeverityColor(issue.severity)" size="tiny">
                       {{ getSeverityText(issue.severity) }}
                     </n-tag>
-                    <n-tag v-if="getSuggestionByIssue(issue)?.source === 'merged'" type="success" size="tiny">整合</n-tag>
-                    <n-tag v-else-if="getSuggestionByIssue(issue)?.source === 'ai'" type="info" size="tiny">AI</n-tag>
+                    <n-tag
+                      v-if="getSuggestionByIssue(issue)?.source === 'merged'"
+                      type="success"
+                      size="tiny"
+                      >整合</n-tag
+                    >
+                    <n-tag
+                      v-else-if="getSuggestionByIssue(issue)?.source === 'ai'"
+                      type="info"
+                      size="tiny"
+                      >AI</n-tag
+                    >
                     <span class="text-xs text-gray-400">{{ issue.position || '' }}</span>
                   </div>
-                  <div v-if="getSuggestionByIssue(issue)?.source === 'merged'" class="pl-6 space-y-1">
+                  <div
+                    v-if="getSuggestionByIssue(issue)?.source === 'merged'"
+                    class="pl-6 space-y-1"
+                  >
                     <div class="text-sm text-orange-700 bg-orange-50 p-1 rounded">
-                      <span class="font-medium">律师意见：</span>{{ getSuggestionByIssue(issue)?.content }}
+                      <span class="font-medium">律师意见：</span
+                      >{{ getSuggestionByIssue(issue)?.content }}
                     </div>
-                    <div v-if="getSuggestionByIssue(issue)?.aiContent" class="text-sm text-blue-700 bg-blue-50 p-1 rounded">
-                      <span class="font-medium">AI分析：</span>{{ getSuggestionByIssue(issue)?.aiContent }}
+                    <div
+                      v-if="getSuggestionByIssue(issue)?.aiContent"
+                      class="text-sm text-blue-700 bg-blue-50 p-1 rounded"
+                    >
+                      <span class="font-medium">AI分析：</span
+                      >{{ getSuggestionByIssue(issue)?.aiContent }}
                     </div>
                   </div>
                   <div v-else class="text-sm text-gray-700 pl-6">{{ issue.comment }}</div>
@@ -203,14 +234,28 @@
         </div>
       </div>
 
-      <n-empty v-if="pageState === 'idle' && lawyerRules.length === 0" description="请先配置律师审查规则，然后点击「开始任务」" />
+      <n-empty
+        v-if="pageState === 'idle' && lawyerRules.length === 0"
+        description="请先配置律师审查规则，然后点击「开始任务」"
+      />
     </n-space>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { NSpace, NRadioGroup, NRadio, NTag, NInput, NButton, NCheckbox, NSpin, NProgress, NEmpty } from 'naive-ui'
+import {
+  NSpace,
+  NRadioGroup,
+  NRadio,
+  NTag,
+  NInput,
+  NButton,
+  NCheckbox,
+  NSpin,
+  NProgress,
+  NEmpty
+} from 'naive-ui'
 import SchemeSelector from './SchemeSelector.vue'
 import ConfigForm from './ConfigForm.vue'
 import { useContractReview } from '../composables/useContractReview.js'
@@ -224,14 +269,32 @@ defineProps({
 const emit = defineEmits(['stateChange', 'update-config'])
 
 const {
-  pageState, progressText, perspective, customPerspective, documentType,
-  checklist, reviewResult, suggestions, expandedId,
+  pageState,
+  progressText,
+  perspective,
+  customPerspective,
+  documentType,
+  checklist,
+  reviewResult,
+  suggestions,
+  expandedId,
   selectedChecklistCount,
-  passedCount, failedCount, selectedSuggestionCount, isProcessing,
-  toggleExpand, getItemIssues, getSuggestionByIssue, toggleSuggestionByIssue,
-  getSeverityColor, getSeverityText, toggleChecklistItem,
-  selectAllChecklist, handleApplyModifications,
-  handleGenerateChecklist, handleStartReview, handleReset
+  passedCount,
+  failedCount,
+  selectedSuggestionCount,
+  isProcessing,
+  toggleExpand,
+  getItemIssues,
+  getSuggestionByIssue,
+  toggleSuggestionByIssue,
+  getSeverityColor,
+  getSeverityText,
+  toggleChecklistItem,
+  selectAllChecklist,
+  handleApplyModifications,
+  handleGenerateChecklist,
+  handleStartReview,
+  handleReset
 } = useContractReview()
 
 const schemes = ref([])
@@ -241,27 +304,64 @@ const configForm = reactive({
   keywordList: { type: 'keywordList', value: [] }
 })
 
-const unmatchedLawyerSuggestions = computed(() => suggestions.value.filter(s => s.source === 'lawyer'))
+const unmatchedLawyerSuggestions = computed(() =>
+  suggestions.value.filter((s) => s.source === 'lawyer')
+)
 
 const toggleSuggestion = (id, selected) => {
-  const item = suggestions.value.find(s => s.id === id)
+  const item = suggestions.value.find((s) => s.id === id)
   if (item) item.selected = selected
 }
 
 const defaultLawyerRules = [
-  { keyword: '合同主体', comment: '审查合同双方主体资格是否合法有效，检查是否有营业执照、统一社会信用代码、法定代表人信息、授权委托书等资质文件', actionType: '批注' },
-  { keyword: '付款条款', comment: '审查付款方式、付款期限、付款条件是否明确具体，检查是否存在付款风险或对一方明显不利的条款', actionType: '批注' },
-  { keyword: '违约责任', comment: '审查违约金标准是否合理（一般不超过实际损失的30%），检查免责条款是否过于宽泛，双方违约责任是否对等', actionType: '批注' },
-  { keyword: '争议解决', comment: '审查是否约定了明确的管辖法院或仲裁机构，检查管辖约定是否有效，是否存在约定不明的情况', actionType: '批注' },
-  { keyword: '合同期限', comment: '审查合同起止时间是否明确，检查续约机制、提前终止条件、合同解除情形是否清晰约定', actionType: '批注' },
-  { keyword: '保密条款', comment: '审查保密信息范围、保密期限、保密义务、违约责任是否明确，检查是否有合理的例外情形', actionType: '批注' },
-  { keyword: '知识产权', comment: '审查知识产权归属、使用范围、许可方式、侵权责任分担是否清晰，检查是否有权利瑕疵担保', actionType: '批注' },
-  { keyword: '不可抗力', comment: '审查不可抗力条款的定义范围是否合理，检查通知义务、证明责任、后果处理是否明确约定', actionType: '批注' }
+  {
+    keyword: '合同主体',
+    comment:
+      '审查合同双方主体资格是否合法有效，检查是否有营业执照、统一社会信用代码、法定代表人信息、授权委托书等资质文件',
+    actionType: '批注'
+  },
+  {
+    keyword: '付款条款',
+    comment:
+      '审查付款方式、付款期限、付款条件是否明确具体，检查是否存在付款风险或对一方明显不利的条款',
+    actionType: '批注'
+  },
+  {
+    keyword: '违约责任',
+    comment:
+      '审查违约金标准是否合理（一般不超过实际损失的30%），检查免责条款是否过于宽泛，双方违约责任是否对等',
+    actionType: '批注'
+  },
+  {
+    keyword: '争议解决',
+    comment: '审查是否约定了明确的管辖法院或仲裁机构，检查管辖约定是否有效，是否存在约定不明的情况',
+    actionType: '批注'
+  },
+  {
+    keyword: '合同期限',
+    comment: '审查合同起止时间是否明确，检查续约机制、提前终止条件、合同解除情形是否清晰约定',
+    actionType: '批注'
+  },
+  {
+    keyword: '保密条款',
+    comment: '审查保密信息范围、保密期限、保密义务、违约责任是否明确，检查是否有合理的例外情形',
+    actionType: '批注'
+  },
+  {
+    keyword: '知识产权',
+    comment: '审查知识产权归属、使用范围、许可方式、侵权责任分担是否清晰，检查是否有权利瑕疵担保',
+    actionType: '批注'
+  },
+  {
+    keyword: '不可抗力',
+    comment: '审查不可抗力条款的定义范围是否合理，检查通知义务、证明责任、后果处理是否明确约定',
+    actionType: '批注'
+  }
 ]
 
 const migrateRules = (rules) => {
   let needSave = false
-  const migrated = rules.map(rule => {
+  const migrated = rules.map((rule) => {
     const newRule = { ...rule }
     if (newRule.actionType === 'comment') {
       newRule.actionType = '批注'
@@ -279,7 +379,7 @@ const loadSchemes = () => {
   const data = appConfig.getSchemes('review')
   schemes.value = data.schemes
   activeSchemeId.value = data.activeSchemeId
-  const activeScheme = data.schemes.find(s => s.id === data.activeSchemeId)
+  const activeScheme = data.schemes.find((s) => s.id === data.activeSchemeId)
   if (activeScheme) {
     if (!activeScheme.rules || activeScheme.rules.length === 0) {
       activeScheme.rules = [...defaultLawyerRules]
@@ -299,7 +399,7 @@ const loadSchemes = () => {
 const handleSchemeChange = (schemeId) => {
   activeSchemeId.value = schemeId
   appConfig.setActiveScheme('review', schemeId)
-  const scheme = schemes.value.find(s => s.id === schemeId)
+  const scheme = schemes.value.find((s) => s.id === schemeId)
   if (scheme) {
     lawyerRules.value = scheme.rules || []
     configForm.keywordList.value = lawyerRules.value
@@ -336,7 +436,7 @@ const handleGenerateChecklistWithLawyer = async () => {
   const result = await handleGenerateChecklist(emit)
   if (result.success) {
     const aiChecklist = checklist.value
-    const aiItems = aiChecklist.map(item => ({ ...item, source: 'ai' }))
+    const aiItems = aiChecklist.map((item) => ({ ...item, source: 'ai' }))
     const lawyerItems = lawyerRules.value.map((rule, index) => ({
       id: `lawyer_${index}`,
       name: rule.keyword || `律师规则 ${index + 1}`,
@@ -369,8 +469,8 @@ const generateMergedSuggestions = () => {
 
   reviewResult.value.issues.forEach((issue, index) => {
     const keyword = issue.searchKeyword || issue.keyword || ''
-    const matchedRule = lawyerRules.value.find(rule =>
-      keyword.includes(rule.keyword) || rule.keyword.includes(keyword.slice(0, 10))
+    const matchedRule = lawyerRules.value.find(
+      (rule) => keyword.includes(rule.keyword) || rule.keyword.includes(keyword.slice(0, 10))
     )
 
     if (matchedRule) {

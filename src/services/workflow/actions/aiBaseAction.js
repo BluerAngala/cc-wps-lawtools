@@ -80,7 +80,7 @@ export class AIBaseAction extends BaseAction {
         forceMajeure: '不可抗力'
       }
       const areas = params.focusAreas
-        .map(a => areaLabels[a] || a)
+        .map((a) => areaLabels[a] || a)
         .filter(Boolean)
         .join('、')
       if (areas) {

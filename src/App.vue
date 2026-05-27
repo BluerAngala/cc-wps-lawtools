@@ -24,13 +24,16 @@ onMounted(() => {
     if (window.Application) {
       documentWatcher.startWatching()
       console.log('文档监听器已启动')
-      
+
       // 初始化模板
-      templateManager.initializeTemplates().then(() => {
-        console.log('模板初始化完成')
-      }).catch(error => {
-        console.error('模板初始化失败:', error)
-      })
+      templateManager
+        .initializeTemplates()
+        .then(() => {
+          console.log('模板初始化完成')
+        })
+        .catch((error) => {
+          console.error('模板初始化失败:', error)
+        })
     }
   }, 2000)
 

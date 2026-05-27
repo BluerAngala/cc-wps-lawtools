@@ -92,7 +92,7 @@ class WPSDocumentService {
         /^第[一二三四五六七八九十百千万\d]+[条款章]/,
         /^第[一二三四五六七八九十百千万\d]+条/
       ]
-      return headingPatterns.some(pattern => pattern.test(text))
+      return headingPatterns.some((pattern) => pattern.test(text))
     } catch {
       return false
     }
@@ -141,6 +141,12 @@ class WPSDocumentService {
         return textMatch
       }
 
+      const paraMatch = this._findByParagraphScan(doc, cleanKeyword)
+      if (paraMatch) {
+        console.log(`[定位] 段落扫描找到关键词: Start=${paraMatch.Start}, End=${paraMatch.End}`)
+        return paraMatch
+      }
+
       console.warn(`[定位] 未找到关键词: "${cleanKeyword.substring(0, 30)}..."`)
       return null
     } catch (error) {
@@ -175,7 +181,7 @@ class WPSDocumentService {
   }
 
   _normalizeForSearch(text) {
-    return text
+    return this._stripControlChars(text)
       .replace(/[\u3000]/g, ' ')
       .replace(/[（]/g, '(')
       .replace(/[）]/g, ')')
@@ -186,6 +192,17 @@ class WPSDocumentService {
       .replace(/[""'']/g, '"')
       .replace(/\s+/g, ' ')
       .trim()
+  }
+
+  _stripControlChars(text) {
+    const ctrl = '\u0001\u0005\u0007\u000B\u000C\u000E\u000F\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F\u007F\u200B\u200C\u200D\u200E\u200F\u2028\u2029\uFEFF'
+    const re = new RegExp(`[${ctrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\r\n]`, 'g')
+    return text.replace(re, '')
+  }
+
+  _isControlChar(ch) {
+    const code = ch.charCodeAt(0)
+    return code < 0x20 || code === 0x7F || (code >= 0x200B && code <= 0x200F) || code === 0xFEFF
   }
 
   _findPartialInDoc(doc, keyword) {
@@ -207,7 +224,11 @@ class WPSDocumentService {
   _splitKeyword(keyword) {
     const chunks = []
     for (let len = Math.floor(keyword.length * 0.6); len >= Math.min(6, keyword.length); len--) {
-      for (let offset = 0; offset + len <= keyword.length; offset += Math.max(1, Math.floor(len / 2))) {
+      for (
+        let offset = 0;
+        offset + len <= keyword.length;
+        offset += Math.max(1, Math.floor(len / 2))
+      ) {
         chunks.push(keyword.substring(offset, offset + len))
       }
     }
@@ -220,30 +241,101 @@ class WPSDocumentService {
       const normalizedFull = this._normalizeForSearch(fullText)
       const normalizedKeyword = this._normalizeForSearch(keyword)
 
-      let idx = normalizedFull.indexOf(normalizedKeyword)
-      if (idx === -1 && normalizedKeyword.length >= 6) {
+      let matchOffset = normalizedFull.indexOf(normalizedKeyword)
+      if (matchOffset === -1 && normalizedKeyword.length >= 4) {
         const partial = normalizedKeyword.substring(0, Math.ceil(normalizedKeyword.length * 0.7))
-        idx = normalizedFull.indexOf(partial)
+        matchOffset = normalizedFull.indexOf(partial)
       }
-      if (idx === -1) return null
+      if (matchOffset === -1) return null
 
-      const paraStarts = this._getParagraphStartPositions(doc)
-      let paraIdx = -1
-      for (let i = paraStarts.length - 1; i >= 0; i--) {
-        if (paraStarts[i] <= idx) {
-          paraIdx = i
-          break
+      let visibleCount = 0
+      let charPosStart = -1
+      let charPosEnd = -1
+      for (let i = 0; i < fullText.length; i++) {
+        const ch = fullText[i]
+        if (!this._isControlChar(ch)) {
+          if (visibleCount === matchOffset && charPosStart === -1) {
+            charPosStart = i
+          }
+          visibleCount++
+          if (charPosStart !== -1 && visibleCount >= matchOffset + normalizedKeyword.length) {
+            charPosEnd = i + 1
+            break
+          }
         }
       }
-      if (paraIdx < 0) return null
 
-      const para = doc.Paragraphs.Item(paraIdx + 1)
-      const paraRange = para.Range
-      if (paraRange) {
-        return doc.Range(paraRange.Start, paraRange.End)
+      if (charPosStart >= 0 && charPosEnd > charPosStart) {
+        return doc.Range(charPosStart, charPosEnd)
+      }
+
+      const paraStarts = this._getParagraphStartPositions(doc)
+      let visibleIdx = 0
+      let startPara = -1
+      for (let i = 0; i < fullText.length; i++) {
+        const ch = fullText[i]
+        if (!this._isControlChar(ch)) {
+          if (visibleIdx === matchOffset) startPara = i
+          visibleIdx++
+        }
+      }
+      if (startPara >= 0) {
+        for (let p = paraStarts.length - 1; p >= 0; p--) {
+          if (paraStarts[p] <= startPara) {
+            const para = doc.Paragraphs.Item(p + 1)
+            return doc.Range(para.Range.Start, para.Range.End)
+          }
+        }
       }
     } catch (e) {
       console.warn('[定位] 文本扫描失败:', e)
+    }
+    return null
+  }
+
+  _findByParagraphScan(doc, keyword) {
+    try {
+      const normalizedKeyword = this._normalizeForSearch(keyword)
+      if (!normalizedKeyword) return null
+
+      const count = doc.Paragraphs.Count
+      for (let i = 1; i <= count; i++) {
+        try {
+          const para = doc.Paragraphs.Item(i)
+          const paraText = para.Range.Text
+          const normalizedPara = this._normalizeForSearch(paraText)
+
+          if (normalizedPara.includes(normalizedKeyword)) {
+            const charIdx = normalizedPara.indexOf(normalizedKeyword)
+            let visibleCount = 0
+            let rangeStart = -1
+            let rangeEnd = -1
+            for (let c = 0; c < paraText.length; c++) {
+              const ch = paraText[c]
+              if (!this._isControlChar(ch)) {
+                if (visibleCount === charIdx && rangeStart === -1) {
+                  rangeStart = para.Range.Start + c
+                }
+                visibleCount++
+                if (rangeStart !== -1 && visibleCount >= charIdx + normalizedKeyword.length) {
+                  rangeEnd = para.Range.Start + c + 1
+                  break
+                }
+              }
+            }
+
+            if (rangeStart >= 0 && rangeEnd > rangeStart) {
+              return doc.Range(rangeStart, rangeEnd)
+            }
+
+            return doc.Range(para.Range.Start, para.Range.End)
+          }
+        } catch {
+          continue
+        }
+      }
+    } catch (e) {
+      console.warn('[定位] 段落扫描失败:', e)
     }
     return null
   }
@@ -303,7 +395,9 @@ class WPSDocumentService {
       const keywordLen = originalEnd - originalStart
 
       if (keywordLen <= 0 || keywordLen > 500) {
-        console.warn(`[修订] Range 长度异常: ${keywordLen}，Start=${originalStart}, End=${originalEnd}，可能指向了全文`)
+        console.warn(
+          `[修订] Range 长度异常: ${keywordLen}，Start=${originalStart}, End=${originalEnd}，可能指向了全文`
+        )
         return false
       }
 
@@ -383,7 +477,7 @@ class WPSDocumentService {
     const newText = (action.newText || '').trim()
     if (!newText) return null
 
-    const commonParts = newText.split(/[。；，、\n]/).filter(p => p.trim().length >= 6)
+    const commonParts = newText.split(/[。；，、\n]/).filter((p) => p.trim().length >= 6)
     for (const part of commonParts) {
       const trimmed = part.trim()
       if (trimmed.length >= 6 && !keyword.includes(trimmed.substring(0, 4))) {
@@ -428,6 +522,267 @@ class WPSDocumentService {
 
   getDocumentId(doc) {
     return doc?.FullName || doc?.Name || ''
+  }
+
+  getUndoCount() {
+    try {
+      const doc = this.getDocument()
+      if (!doc) return 0
+      if (doc.UndoRecord && typeof doc.UndoRecord.Count === 'number') {
+        return doc.UndoRecord.Count
+      }
+      return 0
+    } catch {
+      return 0
+    }
+  }
+
+  undo(steps = 1) {
+    try {
+      const doc = this.getDocument()
+      if (!doc) return false
+      const maxSteps = Math.min(steps, 100)
+      for (let i = 0; i < maxSteps; i++) {
+        try {
+          const result = doc.Undo()
+          if (result === false) break
+        } catch {
+          break
+        }
+      }
+      return true
+    } catch (e) {
+      console.warn('撤销失败:', e)
+      return false
+    }
+  }
+
+  revertAction(action) {
+    const type = action.type
+    const app = window.Application
+    if (!app) return { success: false, message: 'WPS不可用' }
+
+    try {
+      switch (type) {
+        case 'addComment':
+        case 'comment':
+          return this._revertComment(action)
+        case 'addRevision':
+        case 'revision':
+          return this._revertRevision(action)
+        case 'addWatermark':
+          return this._revertWatermark(action)
+        case 'addHeader':
+          return this._revertHeader(action)
+        case 'addFooter':
+          return this._revertFooter(action)
+        case 'addPageNumber':
+          return this._revertPageNumber(action)
+        case 'desensitize':
+          return this._revertDesensitize(action)
+        case 'batchKeyword':
+          return this._revertBatchKeyword(action)
+        default:
+          return { success: false, message: '该操作不支持回撤' }
+      }
+    } catch (e) {
+      console.warn('[回撤] 失败:', e)
+      return { success: false, message: e.message || '回撤失败' }
+    }
+  }
+
+  _revertComment(action) {
+    const doc = this.getDocument()
+    if (!doc) return { success: false, message: '文档不可用' }
+    const keyword = action.keyword
+    if (!keyword) return { success: false, message: '缺少关键词' }
+
+    const comments = doc.Comments
+    for (let i = comments.Count; i >= 1; i--) {
+      try {
+        const c = comments.Item(i)
+        const scopeText = c.Scope?.Text || ''
+        if (scopeText.includes(keyword)) {
+          c.Delete()
+          return { success: true, message: `已删除批注: ${keyword}` }
+        }
+      } catch {
+        continue
+      }
+    }
+    return { success: false, message: '未找到对应批注' }
+  }
+
+  _revertRevision(action) {
+    const doc = this.getDocument()
+    if (!doc) return { success: false, message: '文档不可用' }
+    const keyword = action.keyword
+    const newText = action.newText
+    if (!keyword || !newText) return { success: false, message: '缺少参数' }
+
+    const range = this.findRangeByKeyword(newText)
+    if (range) {
+      range.Text = keyword
+      return { success: true, message: `已恢复: "${newText}" → "${keyword}"` }
+    }
+
+    const replacements = doc.Range().Text.split(newText).length - 1
+    if (replacements > 0) {
+      const app2 = window.Application
+      app2.Selection.HomeKey(6)
+      const findObj = app2.Selection.Find
+      findObj.Text = newText
+      findObj.Replacement.Text = keyword
+      findObj.Execute(2101, false, false, false, false, false, true, 1, false, keyword, 2)
+      return { success: true, message: '已恢复修订' }
+    }
+    return { success: false, message: '未找到修订后的文本' }
+  }
+
+  _revertWatermark(_action) {
+    const doc = this.getDocument()
+    if (!doc) return { success: false, message: '文档不可用' }
+
+    let deleted = 0
+    const sections = doc.Sections
+    for (let i = 1; i <= sections.Count; i++) {
+      try {
+        const section = sections.Item(i)
+        const header = section.Headers.Item(1)
+        const shapes = header.Shapes
+        for (let j = shapes.Count; j >= 1; j--) {
+          try {
+            const shape = shapes.Item(j)
+            if (shape.Type === 15) {
+              shape.Delete()
+              deleted++
+            }
+          } catch {
+            continue
+          }
+        }
+      } catch {
+        continue
+      }
+    }
+    if (deleted > 0) {
+      return { success: true, message: `已删除 ${deleted} 个水印` }
+    }
+    return { success: false, message: '未找到水印' }
+  }
+
+  _revertHeader(_action) {
+    const doc = this.getDocument()
+    if (!doc) return { success: false, message: '文档不可用' }
+
+    let cleared = 0
+    const sections = doc.Sections
+    for (let i = 1; i <= sections.Count; i++) {
+      try {
+        const section = sections.Item(i)
+        const header = section.Headers.Item(1)
+        const range = header.Range
+        const shapes = header.Shapes
+        for (let j = shapes.Count; j >= 1; j--) {
+          try {
+            shapes.Item(j).Delete()
+          } catch {
+            continue
+          }
+        }
+        if (range.Text.trim()) {
+          range.Text = ''
+          cleared++
+        }
+      } catch {
+        continue
+      }
+    }
+    return { success: true, message: cleared > 0 ? '已清除页眉' : '页眉已为空' }
+  }
+
+  _revertFooter(_action) {
+    const doc = this.getDocument()
+    if (!doc) return { success: false, message: '文档不可用' }
+
+    let cleared = 0
+    const sections = doc.Sections
+    for (let i = 1; i <= sections.Count; i++) {
+      try {
+        const section = sections.Item(i)
+        const footer = section.Footers.Item(1)
+        const range = footer.Range
+        const shapes = footer.Shapes
+        for (let j = shapes.Count; j >= 1; j--) {
+          try {
+            shapes.Item(j).Delete()
+          } catch {
+            continue
+          }
+        }
+        if (range.Text.trim()) {
+          range.Text = ''
+          cleared++
+        }
+      } catch {
+        continue
+      }
+    }
+    return { success: true, message: cleared > 0 ? '已清除页脚' : '页脚已为空' }
+  }
+
+  _revertPageNumber(_action) {
+    const doc = this.getDocument()
+    if (!doc) return { success: false, message: '文档不可用' }
+
+    let deleted = 0
+    const sections = doc.Sections
+    for (let i = 1; i <= sections.Count; i++) {
+      try {
+        const section = sections.Item(i)
+        const footer = section.Footers.Item(1)
+        const header = section.Headers.Item(1)
+        for (const part of [footer, header]) {
+          const shapes = part.Shapes
+          for (let j = shapes.Count; j >= 1; j--) {
+            try {
+              const shape = shapes.Item(j)
+              if (shape.Type === 9) {
+                shape.Delete()
+                deleted++
+              }
+            } catch {
+              continue
+            }
+          }
+        }
+      } catch {
+        continue
+      }
+    }
+    if (deleted > 0) {
+      return { success: true, message: `已删除 ${deleted} 个页码` }
+    }
+    return { success: false, message: '未找到页码' }
+  }
+
+  _revertDesensitize(action) {
+    if (action._originalItems && action._originalItems.length > 0) {
+      let restored = 0
+      for (const item of action._originalItems) {
+        const range = this.findRangeByKeyword(item.desensitized)
+        if (range) {
+          range.Text = item.original
+          restored++
+        }
+      }
+      return { success: true, message: `已恢复 ${restored} 处脱敏` }
+    }
+    return { success: false, message: '无脱敏记录，无法回撤' }
+  }
+
+  _revertBatchKeyword(_action) {
+    return { success: false, message: '批量关键词操作暂不支持回撤' }
   }
 }
 

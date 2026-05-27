@@ -47,28 +47,30 @@ export function useContractReview() {
     return perspectiveLabels[perspective.value]
   })
 
-  const selectedChecklistCount = computed(() => checklist.value.filter(i => i.selected).length)
+  const selectedChecklistCount = computed(() => checklist.value.filter((i) => i.selected).length)
 
   const passedCount = computed(() => {
     if (!reviewResult.value) return 0
-    return checklist.value.filter(item => {
-      const issues = (reviewResult.value.issues || []).filter(i => i.checklistId === item.id)
+    return checklist.value.filter((item) => {
+      const issues = (reviewResult.value.issues || []).filter((i) => i.checklistId === item.id)
       return item.selected && issues.length === 0
     }).length
   })
 
   const failedCount = computed(() => {
     if (!reviewResult.value) return 0
-    return checklist.value.filter(item => {
-      const issues = (reviewResult.value.issues || []).filter(i => i.checklistId === item.id)
+    return checklist.value.filter((item) => {
+      const issues = (reviewResult.value.issues || []).filter((i) => i.checklistId === item.id)
       return item.selected && issues.length > 0
     }).length
   })
 
-  const selectedSuggestionCount = computed(() => suggestions.value.filter(s => s.selected).length)
-  const selectedSuggestions = computed(() => suggestions.value.filter(s => s.selected))
+  const selectedSuggestionCount = computed(() => suggestions.value.filter((s) => s.selected).length)
+  const selectedSuggestions = computed(() => suggestions.value.filter((s) => s.selected))
 
-  const isProcessing = computed(() => pageState.value === 'generating' || pageState.value === 'reviewing')
+  const isProcessing = computed(
+    () => pageState.value === 'generating' || pageState.value === 'reviewing'
+  )
 
   const toggleExpand = (id) => {
     expandedId.value = expandedId.value === id ? null : id
@@ -76,11 +78,13 @@ export function useContractReview() {
 
   const getItemIssues = (itemId) => {
     if (!reviewResult.value) return []
-    return (reviewResult.value.issues || []).filter(i => i.checklistId === itemId)
+    return (reviewResult.value.issues || []).filter((i) => i.checklistId === itemId)
   }
 
   const getSuggestionByIssue = (issue) => {
-    return suggestions.value.find(s => s.issueId === issue.id || s.keyword === (issue.searchKeyword || issue.keyword))
+    return suggestions.value.find(
+      (s) => s.issueId === issue.id || s.keyword === (issue.searchKeyword || issue.keyword)
+    )
   }
 
   const toggleSuggestionByIssue = (issue, selected) => {
@@ -106,13 +110,19 @@ export function useContractReview() {
   }
 
   const toggleChecklistItem = (id, checked) => {
-    const item = checklist.value.find(i => i.id === id)
+    const item = checklist.value.find((i) => i.id === id)
     if (item) item.selected = checked
   }
 
-  const selectAllChecklist = () => checklist.value.forEach(i => { i.selected = true })
+  const selectAllChecklist = () =>
+    checklist.value.forEach((i) => {
+      i.selected = true
+    })
 
-  const selectRequiredChecklist = () => checklist.value.forEach(i => { i.selected = i.required })
+  const selectRequiredChecklist = () =>
+    checklist.value.forEach((i) => {
+      i.selected = i.required
+    })
 
   const generateSuggestions = () => {
     if (!reviewResult.value?.issues) {
@@ -135,7 +145,10 @@ export function useContractReview() {
 
   const cleanKeyword = (keyword) => {
     if (!keyword) return ''
-    const lines = keyword.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0)
+    const lines = keyword
+      .split(/[\r\n]+/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
     if (lines.length === 0) return ''
     let cleaned = lines[0].replace(/\s+/g, ' ').trim()
     if (cleaned.length > 50) cleaned = cleaned.slice(0, 50)
@@ -172,9 +185,8 @@ export function useContractReview() {
         }
         const range = tryFindRange(keyword)
         if (range) {
-          const commentText = item.actionType === 'revision'
-            ? `[修订建议] ${item.content}`
-            : item.content
+          const commentText =
+            item.actionType === 'revision' ? `[修订建议] ${item.content}` : item.content
           wpsDocumentService.addComment(range, commentText)
           successCount++
         } else {
@@ -224,7 +236,10 @@ export function useContractReview() {
         if (generated?.length > 0) {
           checklist.value = generated
         } else {
-          checklist.value = reviewChecklistGenerator.generateChecklist({ type: 'default' }, perspective.value)
+          checklist.value = reviewChecklistGenerator.generateChecklist(
+            { type: 'default' },
+            perspective.value
+          )
         }
         pageState.value = 'ready'
         window.$message?.success(`已生成 ${checklist.value.length} 项审查清单`)
@@ -245,7 +260,7 @@ export function useContractReview() {
   }
 
   const handleStartReview = async (emit, extraParams = {}) => {
-    const selectedItems = checklist.value.filter(i => i.selected)
+    const selectedItems = checklist.value.filter((i) => i.selected)
     if (selectedItems.length === 0) {
       window.$message?.warning('请至少选择一个审查项')
       return { success: false }

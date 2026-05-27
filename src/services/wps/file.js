@@ -130,18 +130,28 @@ class WPSFileService {
    * @param {string} options.prefix - 文件名前缀，默认「已修订」
    * @param {boolean} options.deleteOriginal - 是否删除原文件，默认false
    */
-  async renameDocument({ prefix = '「已修订」', deleteOriginal = false } = {}) {
+  async renameDocument({ newName, prefix, deleteOriginal = false } = {}) {
     const doc = this.checkEnvironment()
 
     try {
       const directory = doc.Path || ''
       const originalName = doc.Name
       const pathSeparator = directory.includes('/') ? '/' : '\\'
-      const originalFullPath = directory ? `${directory}${pathSeparator}${originalName}` : originalName
+      const originalFullPath = directory
+        ? `${directory}${pathSeparator}${originalName}`
+        : originalName
 
-      const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
       const extension = originalName.match(/\.[^/.]+$/)?.[0] || ''
-      const newFileName = `${prefix}${nameWithoutExt}${extension}`
+
+      let newFileName
+      if (newName) {
+        newFileName = newName.endsWith(extension) ? newName : `${newName}${extension}`
+      } else {
+        const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '')
+        const pfx = prefix || '「已修订」'
+        newFileName = `${pfx}${nameWithoutExt}${extension}`
+      }
+
       const newFullPath = directory ? `${directory}${pathSeparator}${newFileName}` : newFileName
 
       doc.SaveAs2(newFullPath)
@@ -170,10 +180,26 @@ class WPSFileService {
       const currentName = doc.Name
       const pathSeparator = directory.includes('/') ? '/' : '\\'
       const pdfFileName = currentName.replace(/\.[^/.]+$/, '.pdf')
-      const pdfFullPath = outputPath || (directory ? `${directory}${pathSeparator}${pdfFileName}` : pdfFileName)
+      const pdfFullPath =
+        outputPath || (directory ? `${directory}${pathSeparator}${pdfFileName}` : pdfFileName)
 
-      doc.ExportAsFixedFormat(pdfFullPath, 17, false, 0, 0, 1, 1, 7, true, true, 0, true, true, false)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      doc.ExportAsFixedFormat(
+        pdfFullPath,
+        17,
+        false,
+        0,
+        0,
+        1,
+        1,
+        7,
+        true,
+        true,
+        0,
+        true,
+        true,
+        false
+      )
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
       return { success: true, message: 'PDF导出成功', pdfFileName, pdfFullPath }
     } catch (error) {
@@ -310,7 +336,12 @@ class WPSFileService {
    * @param {string} options.alignment - 对齐方式：'左对齐' | '居中' | '右对齐'，默认 '居中'
    * @param {number} options.fontSize - 字体大小，默认 10
    */
-  async addPageNumber({ format = 'pageOfTotal', position = 'bottom', alignment = '居中', fontSize = 10 } = {}) {
+  async addPageNumber({
+    format = 'pageOfTotal',
+    position = 'bottom',
+    alignment = '居中',
+    fontSize = 10
+  } = {}) {
     const doc = this.checkEnvironment()
 
     try {
@@ -353,7 +384,19 @@ class WPSFileService {
 
           // 在"第 "后面插入当前页码域
           const pageRange = headerFooter.Range
-          pageRange.Find.Execute('第  页', false, false, false, false, false, true, 1, false, '第 ^p 页', 0)
+          pageRange.Find.Execute(
+            '第  页',
+            false,
+            false,
+            false,
+            false,
+            false,
+            true,
+            1,
+            false,
+            '第 ^p 页',
+            0
+          )
           // 使用更简单的方式：直接用域代码
           headerFooter.Range.Text = ''
           const r = headerFooter.Range
@@ -401,7 +444,13 @@ class WPSFileService {
    * @param {string} options.color - 颜色（灰色深度），默认 'light'：'light' | 'medium' | 'dark'
    * @param {boolean} options.diagonal - 是否斜向，默认 true
    */
-  async addWatermark({ text = '草稿', fontName = '宋体', fontSize = 48, color = 'light', diagonal = true } = {}) {
+  async addWatermark({
+    text = '草稿',
+    fontName = '宋体',
+    fontSize = 48,
+    color = 'light',
+    diagonal = true
+  } = {}) {
     const doc = this.checkEnvironment()
 
     try {

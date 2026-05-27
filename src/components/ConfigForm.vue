@@ -1,23 +1,45 @@
 <template>
   <n-form label-placement="top" class="w-full compact-form">
-    <n-form-item v-for="(field, key) in config" :key="key" :label="field.label" class="compact-form-item">
+    <n-form-item
+      v-for="(field, key) in config"
+      :key="key"
+      :label="field.label"
+      class="compact-form-item"
+    >
       <!-- 文本输入框 -->
-      <n-input v-if="field.type === 'text'" v-model:value="field.value" :placeholder="field.placeholder"
-        @update:value="updateConfig" />
+      <n-input
+        v-if="field.type === 'text'"
+        v-model:value="field.value"
+        :placeholder="field.placeholder"
+        @update:value="updateConfig"
+      />
 
       <!-- 选择框 -->
-      <n-select v-else-if="field.type === 'select'" v-model:value="field.value"
-        :options="field.options?.map(option => ({ label: option, value: option }))" class="w-full"
-        @update:value="updateConfig" />
+      <n-select
+        v-else-if="field.type === 'select'"
+        v-model:value="field.value"
+        :options="field.options?.map((option) => ({ label: option, value: option }))"
+        class="w-full"
+        @update:value="updateConfig"
+      />
 
       <!-- 数字输入框 -->
-      <n-input-number v-else-if="field.type === 'number'" v-model:value="field.value" :placeholder="field.placeholder"
-        @update:value="updateConfig" />
+      <n-input-number
+        v-else-if="field.type === 'number'"
+        v-model:value="field.value"
+        :placeholder="field.placeholder"
+        @update:value="updateConfig"
+      />
 
       <!-- 关键词列表配置 -->
       <div v-else-if="field.type === 'keywordList'" class="contract-review-config">
         <div class="config-header">
-          <n-button type="primary" @click="addKeyword(field)" size="small" class="add-rule-btn-sticky">
+          <n-button
+            type="primary"
+            @click="addKeyword(field)"
+            size="small"
+            class="add-rule-btn-sticky"
+          >
             <template #icon>
               <PlusIcon />
             </template>
@@ -25,36 +47,71 @@
           </n-button>
         </div>
         <div class="scroll-container border border-wps-blue rounded max-h-80 overflow-y-auto">
-
           <div v-for="(item, index) in field.value" :key="index" class="keyword-item">
             <div class="keyword-title">{{ index + 1 }}. 关键词</div>
-            <n-button type="error" @click="removeKeyword(field, index)" size="small" circle class="delete-btn">
+            <n-button
+              type="error"
+              @click="removeKeyword(field, index)"
+              size="small"
+              circle
+              class="delete-btn"
+            >
               <template #icon>
                 <DeleteIcon />
               </template>
             </n-button>
             <div class="flex items-center gap-1.5 mb-1.5">
-              <n-input v-model:value="item.keyword" placeholder="请输入关键词" size="small" class="w-full"
-                @update:value="updateConfig" />
+              <n-input
+                v-model:value="item.keyword"
+                placeholder="请输入关键词"
+                size="small"
+                class="w-full"
+                @update:value="updateConfig"
+              />
             </div>
             <div class="keyword-title mt-2">- 执行动作</div>
-            <n-select v-model:value="item.actionType"
-              :options="[{ label: '批注', value: '批注' }, { label: '修订', value: '修订' }]" size="small" class="w-full mt-0.5"
-              @update:value="updateConfig" />
+            <n-select
+              v-model:value="item.actionType"
+              :options="[
+                { label: '批注', value: '批注' },
+                { label: '修订', value: '修订' }
+              ]"
+              size="small"
+              class="w-full mt-0.5"
+              @update:value="updateConfig"
+            />
             <div v-if="item.actionType === '批注'" class="mt-2">
-              <div class="keyword-title">- {{ props.mode === 'keyword' ? '批注内容' : '任务要求' }}</div>
-              <n-input v-model:value="item.comment"
-                :placeholder="props.mode === 'keyword' ? '请输入固定的批注内容' : '请输入AI任务要求，描述需要AI做什么'" size="small"
-                type="textarea" :rows="2" class="w-full mt-0.5" @update:value="updateConfig" />
+              <div class="keyword-title">
+                - {{ props.mode === 'keyword' ? '批注内容' : '任务要求' }}
+              </div>
+              <n-input
+                v-model:value="item.comment"
+                :placeholder="
+                  props.mode === 'keyword'
+                    ? '请输入固定的批注内容'
+                    : '请输入AI任务要求，描述需要AI做什么'
+                "
+                size="small"
+                type="textarea"
+                :rows="2"
+                class="w-full mt-0.5"
+                @update:value="updateConfig"
+              />
             </div>
             <div v-if="item.actionType === '修订'" class="mt-2">
               <div class="keyword-title">- 修改内容</div>
-              <n-input v-model:value="item.suggestedText" placeholder="请输入修改后的内容" size="small" type="textarea" :rows="2"
-                class="w-full mt-0.5" @update:value="updateConfig" />
+              <n-input
+                v-model:value="item.suggestedText"
+                placeholder="请输入修改后的内容"
+                size="small"
+                type="textarea"
+                :rows="2"
+                class="w-full mt-0.5"
+                @update:value="updateConfig"
+              />
             </div>
           </div>
         </div>
-
       </div>
 
       <!-- AI合同预审规则列表配置 -->
@@ -62,7 +119,13 @@
         <div class="scroll-container border border-wps-blue rounded mb-3 max-h-96 overflow-y-auto">
           <div v-for="(rule, index) in field.value" :key="index" class="review-rule-item">
             <div class="rule-title">{{ index + 1 }}. 预审规则</div>
-            <n-button type="error" @click="removeReviewRule(field, index)" size="small" circle class="delete-btn">
+            <n-button
+              type="error"
+              @click="removeReviewRule(field, index)"
+              size="small"
+              circle
+              class="delete-btn"
+            >
               <template #icon>
                 <DeleteIcon />
               </template>
@@ -71,23 +134,38 @@
             <!-- 规则名称 -->
             <div class="config-section">
               <div class="section-title">📋 规则名称</div>
-              <n-input v-model:value="rule.reviewRules" placeholder="请输入预审规则名称" size="small"
-                @update:value="updateConfig" />
+              <n-input
+                v-model:value="rule.reviewRules"
+                placeholder="请输入预审规则名称"
+                size="small"
+                @update:value="updateConfig"
+              />
             </div>
 
             <!-- 审查要求 -->
             <div class="config-section">
               <div class="section-title">📝 审查要求</div>
-              <n-input v-model:value="rule.reviewRequirements" type="textarea" :rows="3"
-                placeholder="请输入具体的审查要求，例如：审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？" @update:value="updateConfig" />
+              <n-input
+                v-model:value="rule.reviewRequirements"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入具体的审查要求，例如：审查合同是否存在争议解决条款，约定纠纷处理是仲裁还是法院，争议解决条款是否有效？"
+                @update:value="updateConfig"
+              />
             </div>
 
             <!-- 执行动作 -->
             <div class="config-section">
               <div class="section-title">⚙️ 执行动作</div>
-              <n-select v-model:value="rule.actionType"
-                :options="[{ label: '批注', value: '批注' }, { label: '修订', value: '修订' }]" class="w-full"
-                @update:value="updateConfig" />
+              <n-select
+                v-model:value="rule.actionType"
+                :options="[
+                  { label: '批注', value: '批注' },
+                  { label: '修订', value: '修订' }
+                ]"
+                class="w-full"
+                @update:value="updateConfig"
+              />
             </div>
           </div>
         </div>
@@ -102,13 +180,23 @@
       <!-- 标签输入框配置 -->
       <div v-else-if="field.type === 'tags'" class="w-full">
         <div class="tags-display">
-          <n-tag v-for="(tag, index) in field.value" :key="index" closable @close="removeTag(field, index)"
-            class="tag-item">
+          <n-tag
+            v-for="(tag, index) in field.value"
+            :key="index"
+            closable
+            @close="removeTag(field, index)"
+            class="tag-item"
+          >
             {{ tag }}
           </n-tag>
         </div>
         <div class="tag-input-row">
-          <n-input v-model:value="field.inputValue" placeholder="输入数据要素" @keyup.enter="addTag(field)" class="flex-1" />
+          <n-input
+            v-model:value="field.inputValue"
+            placeholder="输入数据要素"
+            @keyup.enter="addTag(field)"
+            class="flex-1"
+          />
           <n-button type="primary" @click="addTag(field)" size="small" class="flex-shrink-0">
             <template #icon>
               <PlusIcon />
@@ -122,10 +210,7 @@
 </template>
 
 <script setup>
-import {
-  NForm, NFormItem, NInput, NSelect, NInputNumber,
-  NButton, NTag
-} from 'naive-ui'
+import { NForm, NFormItem, NInput, NSelect, NInputNumber, NButton, NTag } from 'naive-ui'
 import { TrashOutline as DeleteIcon, Add as PlusIcon } from '@vicons/ionicons5'
 
 // Props

@@ -10,11 +10,7 @@
     >
       <template #actions>
         <n-space>
-          <n-button
-            type="info"
-            :disabled="currentSteps.length === 0"
-            @click="showSaveModal = true"
-          >
+          <n-button type="info" :disabled="currentSteps.length === 0" @click="showSaveModal = true">
             保存工作流
           </n-button>
           <n-button
@@ -32,16 +28,16 @@
     <!-- 1. 当前工作流步骤（始终在最上方） -->
     <div class="wps-card wps-section mt-2">
       <div class="flex items-center justify-between mb-3">
-        <div class="text-sm font-semibold">
-          当前步骤 ({{ currentSteps.length }})
-        </div>
-        <n-button v-if="currentSteps.length > 0" size="tiny" type="error" @click="clearSteps">清空</n-button>
+        <div class="text-sm font-semibold">当前步骤 ({{ currentSteps.length }})</div>
+        <n-button v-if="currentSteps.length > 0" size="tiny" type="error" @click="clearSteps"
+          >清空</n-button
+        >
       </div>
-      
+
       <div v-if="currentSteps.length === 0" class="text-gray-400 text-sm py-4 text-center">
         请使用 AI 智能生成、选择预设工作流或手动添加操作
       </div>
-      
+
       <n-space v-else vertical>
         <div
           v-for="(step, index) in currentSteps"
@@ -59,11 +55,7 @@
 
     <!-- 执行进度 -->
     <div v-if="isExecuting" class="wps-card wps-section mt-2">
-      <n-progress
-        type="line"
-        :percentage="progressPercent"
-        :status="progressStatus"
-      />
+      <n-progress type="line" :percentage="progressPercent" :status="progressStatus" />
       <div class="text-sm text-gray-500 mt-2">{{ progressText }}</div>
     </div>
 
@@ -83,7 +75,7 @@
           <template #header>
             <span>📋 预设工作流</span>
           </template>
-          
+
           <!-- 我的工作流 -->
           <div v-if="userWorkflows.length > 0" class="mb-3">
             <div class="text-xs text-gray-500 mb-2">💾 我的工作流</div>
@@ -101,7 +93,7 @@
               </n-tag>
             </n-space>
           </div>
-          
+
           <!-- AI 工作流预设 -->
           <div class="mb-3">
             <div class="text-xs text-gray-500 mb-2">🤖 AI 工作流</div>
@@ -117,7 +109,7 @@
               </n-button>
             </n-space>
           </div>
-          
+
           <!-- 文档工作流预设 -->
           <div>
             <div class="text-xs text-gray-500 mb-2">📄 文档工作流</div>
@@ -144,7 +136,7 @@
           <template #header>
             <span>🔧 手动添加操作</span>
           </template>
-          
+
           <!-- AI 操作 -->
           <div class="mb-3">
             <div class="text-xs text-gray-500 mb-2">🤖 AI 操作</div>
@@ -160,7 +152,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- 文档操作 -->
           <div>
             <div class="text-xs text-gray-500 mb-2">📄 文档操作</div>
@@ -184,10 +176,18 @@
     <ResultModal v-model:show="showResultModal" :result="executionResult" />
 
     <!-- 步骤编辑弹窗 -->
-    <n-modal v-model:show="showEditModal" preset="card" title="编辑步骤参数" style="width: 80%; max-width: 500px">
+    <n-modal
+      v-model:show="showEditModal"
+      preset="card"
+      title="编辑步骤参数"
+      style="width: 80%; max-width: 500px"
+    >
       <n-form v-if="editingStep" label-placement="top" size="small">
         <!-- 无可编辑参数时的提示 -->
-        <div v-if="Object.keys(getStepSchema(editingStep)).length === 0" class="text-gray-400 text-sm py-4 text-center">
+        <div
+          v-if="Object.keys(getStepSchema(editingStep)).length === 0"
+          class="text-gray-400 text-sm py-4 text-center"
+        >
           此操作没有可配置的参数
         </div>
         <!-- 非数字类型的表单项 -->
@@ -260,7 +260,12 @@
     </n-modal>
 
     <!-- 保存工作流弹窗 -->
-    <n-modal v-model:show="showSaveModal" preset="card" title="保存工作流" style="width: 80%; max-width: 400px">
+    <n-modal
+      v-model:show="showSaveModal"
+      preset="card"
+      title="保存工作流"
+      style="width: 80%; max-width: 400px"
+    >
       <n-form label-placement="top" size="small">
         <n-form-item label="工作流名称" required>
           <n-input v-model:value="saveForm.name" placeholder="请输入工作流名称" />
@@ -396,7 +401,7 @@ const getStepSchema = (step) => {
 // 检查是否有数字类型字段
 const hasNumberFields = (step) => {
   const schema = getStepSchema(step)
-  return Object.values(schema).some(prop => prop.type === 'number')
+  return Object.values(schema).some((prop) => prop.type === 'number')
 }
 
 // 获取枚举选项（支持 enumLabels）
@@ -423,7 +428,7 @@ const getEnumLabel = (value) => {
     standard: '标准',
     deep: '深度',
     // 提取模式
-    basic: '基础要素',
+    basic: '基础要素'
     // full 已在上面定义
   }
   return labels[value] || value
@@ -582,8 +587,8 @@ onMounted(() => {
   registerAllActions()
   availableActions.value = actionRegistry.list()
   // 分类操作列表
-  aiActionList.value = availableActions.value.filter(a => a.category === 'ai')
-  documentActionList.value = availableActions.value.filter(a => a.category !== 'ai')
+  aiActionList.value = availableActions.value.filter((a) => a.category === 'ai')
+  documentActionList.value = availableActions.value.filter((a) => a.category !== 'ai')
   // 分类预设工作流
   aiPresets.value = getPresetList('ai')
   documentPresets.value = getPresetList('document')

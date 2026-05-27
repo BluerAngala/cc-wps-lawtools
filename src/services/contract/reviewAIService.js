@@ -61,7 +61,8 @@ export class ReviewAIService {
           messages,
           model: config.model,
           options: {
-            temperature: attempt === 1 ? config.temperature : Math.min(config.temperature + 0.2, 0.6),
+            temperature:
+              attempt === 1 ? config.temperature : Math.min(config.temperature + 0.2, 0.6),
             maxTokens: 1000, // 类型识别不需要太长
             response_format: { type: 'json_object' }
           }
@@ -83,7 +84,10 @@ export class ReviewAIService {
         }
       } catch (error) {
         lastError = error
-        unifiedLogger.error('识别合同类型失败', { error: error.message, type: 'contract_identification' })
+        unifiedLogger.error('识别合同类型失败', {
+          error: error.message,
+          type: 'contract_identification'
+        })
       }
     }
 
@@ -92,7 +96,9 @@ export class ReviewAIService {
     }
 
     if (lastError && (!lastResult || lastResult.type === '未知')) {
-      unifiedLogger.warn('多次识别仍未得到明确合同类型，返回默认结果', { type: 'contract_identification' })
+      unifiedLogger.warn('多次识别仍未得到明确合同类型，返回默认结果', {
+        type: 'contract_identification'
+      })
     }
 
     return lastResult
@@ -108,20 +114,31 @@ export class ReviewAIService {
       perspective: options.perspective,
       customPrompt: options.customPrompt
     })
-    
+
     // 合同审查必须返回 JSON 格式，因此默认使用非流式
     // 只有明确设置 stream=true 且不需要 JSON 时才使用流式
     const needJsonFormat = options.response_format !== false // 默认需要 JSON
     const useStream = options.stream === true && !needJsonFormat
 
     try {
-      unifiedLogger.info('审查条款', { section: context.segmentPosition?.section || '未知', type: 'contract_review' })
+      unifiedLogger.info('审查条款', {
+        section: context.segmentPosition?.section || '未知',
+        type: 'contract_review'
+      })
       const totalLength = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0)
-      unifiedLogger.info('AI消息统计', { messageCount: messages.length, totalLength: totalLength, type: 'contract_review' })
-      unifiedLogger.info('AI请求配置', { streamMode: useStream, needJson: needJsonFormat, type: 'contract_review' })
+      unifiedLogger.info('AI消息统计', {
+        messageCount: messages.length,
+        totalLength: totalLength,
+        type: 'contract_review'
+      })
+      unifiedLogger.info('AI请求配置', {
+        streamMode: useStream,
+        needJson: needJsonFormat,
+        type: 'contract_review'
+      })
 
       let response
-      
+
       if (options.onProgress && Array.isArray(context.checklist) && context.checklist.length > 0) {
         try {
           options.onProgress({
@@ -129,7 +146,10 @@ export class ReviewAIService {
             content: context.checklist
           })
         } catch (error) {
-          unifiedLogger.warn('进度回调（审查清单）失败', { error: error.message, type: 'contract_review' })
+          unifiedLogger.warn('进度回调（审查清单）失败', {
+            error: error.message,
+            type: 'contract_review'
+          })
         }
       }
 
@@ -146,7 +166,7 @@ export class ReviewAIService {
             maxTokens: config.maxTokens
           }
         })
-        
+
         unifiedLogger.info('流式响应长度', { length: response.length, type: 'contract_review' })
       } else {
         // 非流式请求（默认，支持JSON模式）
@@ -159,15 +179,36 @@ export class ReviewAIService {
         unifiedLogger.info('AI模型', { model: config.model, type: 'contract_review' })
         unifiedLogger.info('AI温度', { temperature: config.temperature, type: 'contract_review' })
         unifiedLogger.info('AI最大令牌数', { maxTokens: config.maxTokens, type: 'contract_review' })
-        unifiedLogger.info('审查位置', { section: context.segmentPosition?.section || '未知', type: 'contract_review' })
-        unifiedLogger.info('当前段落长度', { length: context.currentSegment?.length || 0, type: 'contract_review' })
-        unifiedLogger.info('完整文档长度', { length: context.fullDocument?.length || 0, type: 'contract_review' })
-        unifiedLogger.info('审查清单项数', { count: context.checklist?.length || 0, type: 'contract_review' })
-        unifiedLogger.info('系统消息', { content: messages[0]?.content?.substring(0, 100) + '...', type: 'contract_review' })
-        unifiedLogger.info('用户消息', { content: messages[1]?.content?.substring(0, 100) + '...', type: 'contract_review' })
-        unifiedLogger.info('消息总长度', { totalLength: messages.reduce((sum, m) => sum + (m.content?.length || 0), 0), type: 'contract_review' })
+        unifiedLogger.info('审查位置', {
+          section: context.segmentPosition?.section || '未知',
+          type: 'contract_review'
+        })
+        unifiedLogger.info('当前段落长度', {
+          length: context.currentSegment?.length || 0,
+          type: 'contract_review'
+        })
+        unifiedLogger.info('完整文档长度', {
+          length: context.fullDocument?.length || 0,
+          type: 'contract_review'
+        })
+        unifiedLogger.info('审查清单项数', {
+          count: context.checklist?.length || 0,
+          type: 'contract_review'
+        })
+        unifiedLogger.info('系统消息', {
+          content: messages[0]?.content?.substring(0, 100) + '...',
+          type: 'contract_review'
+        })
+        unifiedLogger.info('用户消息', {
+          content: messages[1]?.content?.substring(0, 100) + '...',
+          type: 'contract_review'
+        })
+        unifiedLogger.info('消息总长度', {
+          totalLength: messages.reduce((sum, m) => sum + (m.content?.length || 0), 0),
+          type: 'contract_review'
+        })
         unifiedLogger.info('请求详情结束', { type: 'contract_review' })
-        
+
         const requestStartTime = Date.now()
         // 注意：某些模型对 response_format 支持不佳，尝试不使用该参数
         response = await nonStreamChatCompletions({
@@ -182,10 +223,12 @@ export class ReviewAIService {
         })
         const requestDuration = Date.now() - requestStartTime
 
-        
         unifiedLogger.info('请求耗时', { duration: requestDuration, type: 'contract_review' })
         unifiedLogger.info('响应长度', { length: response?.length || 0, type: 'contract_review' })
-        unifiedLogger.info('完整响应内容', { content: response?.substring(0, 100) + '...', type: 'contract_review' })
+        unifiedLogger.info('完整响应内容', {
+          content: response?.substring(0, 100) + '...',
+          type: 'contract_review'
+        })
 
         if (options.onProgress) {
           options.onProgress({ stage: '审查完成', content: response })
@@ -196,15 +239,22 @@ export class ReviewAIService {
       unifiedLogger.info('解析结果开始', { type: 'contract_review' })
       unifiedLogger.info('问题数组', { count: result.issues?.length || 0, type: 'contract_review' })
       unifiedLogger.info('风险数组', { count: result.risks?.length || 0, type: 'contract_review' })
-      unifiedLogger.info('审查统计', { issues: result.issues?.length || 0, risks: result.risks?.length || 0, type: 'contract_review' })
+      unifiedLogger.info('审查统计', {
+        issues: result.issues?.length || 0,
+        risks: result.risks?.length || 0,
+        type: 'contract_review'
+      })
       unifiedLogger.info('解析结果结束', { type: 'contract_review' })
-
 
       return result
     } catch (error) {
       unifiedLogger.error('审查失败', { error: error.message, type: 'contract_review' })
-      unifiedLogger.error('审查错误详情', { errorType: error.name, errorMessage: error.message, type: 'contract_review' })
-      
+      unifiedLogger.error('审查错误详情', {
+        errorType: error.name,
+        errorMessage: error.message,
+        type: 'contract_review'
+      })
+
       // 不要吞掉错误，应该向上抛出让调用者处理
       throw error
     }
@@ -219,14 +269,16 @@ export class ReviewAIService {
    */
   buildReviewMessages(context, contractType, options = {}) {
     // 生成文档摘要（用于上下文）
-    const summary = context.fullDocument && context.fullDocument.length > 0
-      ? this.generateDocumentSummary(context.fullDocument, context.currentSegment)
-      : null
+    const summary =
+      context.fullDocument && context.fullDocument.length > 0
+        ? this.generateDocumentSummary(context.fullDocument, context.currentSegment)
+        : null
 
     // 格式化审查清单
-    const checklistText = context.checklist && context.checklist.length > 0
-      ? this.formatChecklist(context.checklist)
-      : null
+    const checklistText =
+      context.checklist && context.checklist.length > 0
+        ? this.formatChecklist(context.checklist)
+        : null
 
     // 构建增强的上下文对象
     const enhancedContext = {
@@ -248,7 +300,7 @@ export class ReviewAIService {
    */
   async analyzeGlobal(documentText, onProgress) {
     const config = this.getAIConfig()
-    
+
     // 使用 PromptBuilder 构建消息
     const messages = PromptBuilder.forContractAnalysis(documentText)
 
@@ -268,7 +320,7 @@ export class ReviewAIService {
       })
 
       const result = this.parseJSONResponse(response)
-      
+
       if (onProgress) {
         onProgress({ stage: '全局分析完成', content: response })
       }
@@ -309,7 +361,10 @@ export class ReviewAIService {
     for (const { pattern, label } of keyPatterns) {
       const matches = [...fullDocument.matchAll(pattern)]
       if (matches.length > 0) {
-        const values = matches.slice(0, 2).map(m => m[2]?.trim()).filter(Boolean)
+        const values = matches
+          .slice(0, 2)
+          .map((m) => m[2]?.trim())
+          .filter(Boolean)
         if (values.length > 0) {
           summary.push(`${label}：${values.join('；')}`)
         }
@@ -329,9 +384,11 @@ export class ReviewAIService {
     }
 
     // 按优先级分组
-    const highPriority = checklist.filter(item => item.priority === 'high' && item.required)
-    const mediumPriority = checklist.filter(item => item.priority === 'medium' || (!item.required && item.priority === 'high'))
-    const lowPriority = checklist.filter(item => item.priority === 'low')
+    const highPriority = checklist.filter((item) => item.priority === 'high' && item.required)
+    const mediumPriority = checklist.filter(
+      (item) => item.priority === 'medium' || (!item.required && item.priority === 'high')
+    )
+    const lowPriority = checklist.filter((item) => item.priority === 'low')
 
     let text = ''
 
@@ -367,16 +424,16 @@ export class ReviewAIService {
    */
   parseResponse(response) {
     const result = this.parseJSONResponse(response)
-    
+
     // 确保返回正确的结构，包括 issues 和 risks
     const issues = Array.isArray(result.issues) ? result.issues : []
     const risks = Array.isArray(result.risks) ? result.risks : []
-    
+
     // 如果没有 risks 但有 revisions（修订模式），转换为 risks
     if (risks.length === 0 && Array.isArray(result.revisions)) {
       // revisions 模式下不需要转换，直接返回
     }
-    
+
     return {
       issues,
       risks
@@ -398,25 +455,28 @@ export class ReviewAIService {
     } catch (firstError) {
       // 检查是否是已知的畸形格式，如果是则不输出警告
       if (!response.match(/^\{":"/)) {
-        unifiedLogger.warn('直接解析失败，尝试清理', { error: firstError.message, type: 'response_parsing' })
+        unifiedLogger.warn('直接解析失败，尝试清理', {
+          error: firstError.message,
+          type: 'response_parsing'
+        })
       }
-      
+
       try {
         // 清理响应内容
         let cleanResponse = response.trim()
-        
+
         // 尝试提取 JSON 代码块（如果有）
         const jsonBlockMatch = cleanResponse.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/)
         if (jsonBlockMatch) {
           cleanResponse = jsonBlockMatch[1].trim()
         }
-        
+
         // 尝试提取纯 JSON（去除前后可能的非 JSON 内容）
         const jsonMatch = cleanResponse.match(/(\{[\s\S]*\})/)
         if (jsonMatch) {
           cleanResponse = jsonMatch[1]
         }
-        
+
         // 特殊处理：修复模型返回的畸形JSON格式
         if (cleanResponse === '{":":"}') {
           // 处理完全畸形的响应：{":":"}
@@ -435,31 +495,34 @@ export class ReviewAIService {
           // 处理其他缺少属性名的格式
           cleanResponse = cleanResponse.replace(/^\{":/, '{"type":')
         }
-        
+
         // 修复常见的 JSON 字符串问题
         // 1. 找到所有字符串值（在引号之间的内容）
         // 2. 修复其中的控制字符
         cleanResponse = cleanResponse.replace(/"([^"]*?)"/g, (match, content) => {
           // 在字符串内容中转义控制字符
           const fixed = content
-            .replace(/\\/g, '\\\\')  // 先转义反斜杠
-            .replace(/\n/g, '\\n')   // 转义换行
-            .replace(/\r/g, '\\r')   // 转义回车
-            .replace(/\t/g, '\\t')   // 转义制表符
-            .replace(/"/g, '\\"')    // 转义双引号
+            .replace(/\\/g, '\\\\') // 先转义反斜杠
+            .replace(/\n/g, '\\n') // 转义换行
+            .replace(/\r/g, '\\r') // 转义回车
+            .replace(/\t/g, '\\t') // 转义制表符
+            .replace(/"/g, '\\"') // 转义双引号
             // eslint-disable-next-line no-control-regex
             .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, '') // 移除其他控制字符
           return `"${fixed}"`
         })
-        
+
         // 尝试解析修复后的 JSON
         return JSON.parse(cleanResponse)
       } catch (secondError) {
         // 最后尝试：完全移除控制字符
         try {
-          // eslint-disable-next-line no-control-regex
-          const sanitized = response.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, ' ').trim()
-          
+          /* eslint-disable no-control-regex */
+          const sanitized = response
+            .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, ' ')
+            .trim()
+          /* eslint-enable no-control-regex */
+
           const jsonMatch = sanitized.match(/(\{[\s\S]*\})/)
           if (jsonMatch) {
             return JSON.parse(jsonMatch[1])
@@ -467,7 +530,7 @@ export class ReviewAIService {
         } catch (finalError) {
           unifiedLogger.error('JSON解析失败，返回空对象', { type: 'response_parsing' })
         }
-        
+
         return {}
       }
     }
@@ -504,9 +567,9 @@ export class ReviewAIService {
           }
           issues.push(issue)
           options.onIssue?.(issue)
-          unifiedLogger.info('流式解析到问题', { 
+          unifiedLogger.info('流式解析到问题', {
             keyword: issue.searchKeyword?.substring(0, 20),
-            type: 'streaming_review' 
+            type: 'streaming_review'
           })
         } else if (obj.type === 'risk') {
           const risk = {
@@ -516,9 +579,9 @@ export class ReviewAIService {
           }
           risks.push(risk)
           options.onRisk?.(risk)
-          unifiedLogger.info('流式解析到风险', { 
+          unifiedLogger.info('流式解析到风险', {
             description: risk.description?.substring(0, 20),
-            type: 'streaming_review' 
+            type: 'streaming_review'
           })
         }
       },
@@ -528,9 +591,9 @@ export class ReviewAIService {
     })
 
     try {
-      unifiedLogger.info('开始流式审查', { 
+      unifiedLogger.info('开始流式审查', {
         section: context.segmentPosition?.section || '未知',
-        type: 'streaming_review' 
+        type: 'streaming_review'
       })
 
       if (options.onProgress) {
@@ -554,10 +617,10 @@ export class ReviewAIService {
       // 处理剩余缓冲区
       parser.flush()
 
-      unifiedLogger.info('流式审查完成', { 
+      unifiedLogger.info('流式审查完成', {
         issueCount: issues.length,
         riskCount: risks.length,
-        type: 'streaming_review' 
+        type: 'streaming_review'
       })
 
       if (options.onProgress) {
@@ -566,9 +629,9 @@ export class ReviewAIService {
 
       return { issues, risks }
     } catch (error) {
-      unifiedLogger.error('流式审查失败', { 
+      unifiedLogger.error('流式审查失败', {
         error: error.message,
-        type: 'streaming_review' 
+        type: 'streaming_review'
       })
       throw error
     }
@@ -576,5 +639,3 @@ export class ReviewAIService {
 }
 
 export const reviewAIService = new ReviewAIService()
-
-

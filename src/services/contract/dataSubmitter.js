@@ -7,16 +7,7 @@ import { taskPane } from '../wps'
 import { fetchCompanyInfo } from '../ai/coze.js'
 import { appConfig } from '../../utils/appConfig.js'
 
-// 特定主体信息映射
-const specialSubjects = {
-  '中共广东省委宣传部': {
-    info: '广东省委宣传部是广东省委主管意识形态的综合职能部门，位于广东省广州市越秀区合群三马路26号省委大院。统一社会信用代码为11440000006939561H。'
-  },
-  '中共广东省委宣传部机关工会委员会': {
-    info: '广东省委宣传部是依法设立的工会，位于广东省广州市越秀区合群三马路26号省委大院。统一社会信用代码为81440000742971228Y。'
-  }
-  // 可以继续添加更多特定主体
-}
+const specialSubjects = {}
 
 export class DataSubmitter {
   constructor() {
@@ -56,7 +47,7 @@ export class DataSubmitter {
     // 自动获取主体信息（静默处理，不显示中间提示）
     try {
       console.log('开始获取主体信息...')
-      
+
       // 获取甲方信息
       const 甲方 = finalData['甲方'] || finalData['甲方名称']
       if (甲方 && 甲方.trim()) {
@@ -68,7 +59,7 @@ export class DataSubmitter {
       if (乙方 && 乙方.trim()) {
         finalData['乙方主体信息'] = await this.fetchSubjectInfo(乙方.trim(), '乙方')
       }
-      
+
       // 只在成功时静默处理，不显示提示（最终会在 contractService 中统一显示完成提示）
       console.log('主体信息获取成功')
     } catch (error) {
@@ -100,7 +91,7 @@ export class DataSubmitter {
 
       // 调用 coze API 获取企业信息
       const companyInfo = await fetchCompanyInfo(subjectName)
-      
+
       if (companyInfo.code) {
         console.log(`${subjectType}信息获取成功`)
         return this.formatCompanyInfo(companyInfo)
@@ -125,19 +116,19 @@ export class DataSubmitter {
     const type = companyInfo.companyOrgType || '组织'
     const creditCode = companyInfo.creditCode || '未知'
     let businessScope = companyInfo.businessScope || '未知'
-    
+
     // 检查是否是非正常数据（包含【】标记）
-    const hasAbnormalData = 
-      name.includes('【未查询到') || 
-      type.includes('【未查询到') || 
-      creditCode.includes('【未查询到') || 
+    const hasAbnormalData =
+      name.includes('【未查询到') ||
+      type.includes('【未查询到') ||
+      creditCode.includes('【未查询到') ||
       businessScope.includes('【未查询到')
-    
+
     // 如果是非正常数据，直接返回原始信息，不进行格式化
     if (hasAbnormalData) {
       return `名称：${name}，企业类型：${type}，统一社会信用代码：${creditCode}，业务范围：${businessScope}`
     }
-    
+
     // 正常数据：截取业务范围前4个分号的内容
     if (businessScope !== '未知') {
       // 匹配中文分号和英文分号
@@ -149,14 +140,14 @@ export class DataSubmitter {
         // 有分号但不足4项
         businessScope = parts.join('；')
       }
-      
+
       // 去除末尾的标点符号（包括：。，；;、等）
       businessScope = businessScope.replace(/[。，；;、：:！!？?【】[\]《》<>""'']+$/, '')
-      
+
       // 在末尾加"等"
       businessScope = businessScope + '等'
     }
-    
+
     // 正常数据：按照指定格式
     return `${name}是依法设立的${type}，统一社会信用代码是 ${creditCode} ，业务范围是${businessScope}`
   }
@@ -181,7 +172,16 @@ export class DataSubmitter {
    * 标准化字段
    */
   normalizeFields(data) {
-    const requiredFields = ['合同名称', '甲方', '乙方', '其他方', '合同金额', '对接人', '甲方主体信息', '乙方主体信息']
+    const requiredFields = [
+      '合同名称',
+      '甲方',
+      '乙方',
+      '其他方',
+      '合同金额',
+      '对接人',
+      '甲方主体信息',
+      '乙方主体信息'
+    ]
     const normalizedData = { ...data }
 
     requiredFields.forEach((field) => {
@@ -241,7 +241,6 @@ export class DataSubmitter {
     }
   }
 
-
   /**
    * 创建金山文档记录
    * @param {Object} fields - 字段数据
@@ -275,9 +274,9 @@ export class DataSubmitter {
         const 编号 = recordData?.fields?.编号
         // 是否存在编号
         if (编号) {
-          // 从配置获取合同编号前缀，默认为 SWXCBHT
+          // 从配置获取合同编号前缀
           const kdocsConfig = appConfig.get('kdocs') || {}
-          const prefix = kdocsConfig.contractNumberPrefix || 'SWXCBHT'
+          const prefix = kdocsConfig.contractNumberPrefix || 'HT'
           // 自定义构建审查编号 前缀-年份-编号
           审查编号 = `${prefix}-${new Date().getFullYear()}-${编号}`
           console.log('构建的审查编号:', 审查编号)
