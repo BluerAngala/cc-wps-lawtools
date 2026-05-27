@@ -61,17 +61,10 @@ function buildNsis() {
 }
 
 async function buildMacInstaller() {
-  const appName = 'Install WPS LawTools.app'
   const zipPath = path.join(buildDir, `${name}_mac.zip`)
 
-  const infoPlistSrc = fs.readFileSync(path.join(macDir, 'Info.plist'), 'utf8')
-  const infoPlist = infoPlistSrc
-    .replace(/__PLUGIN_NAME__/g, name)
-    .replace(/__PLUGIN_VERSION__/g, version)
-    .replace(/__PLUGIN_TYPE__/g, addonType)
-
-  const installScriptSrc = fs.readFileSync(path.join(macDir, 'install.sh'), 'utf8')
-  const installScript = installScriptSrc
+  const commandSrc = fs.readFileSync(path.join(macDir, 'install.command'), 'utf8')
+  const commandScript = commandSrc
     .replace(/__PLUGIN_NAME__/g, name)
     .replace(/__PLUGIN_VERSION__/g, version)
     .replace(/__PLUGIN_TYPE__/g, addonType)
@@ -94,22 +87,17 @@ async function buildMacInstaller() {
     archive.on('error', reject)
     archive.pipe(output)
 
-    archive.append(infoPlist, {
-      name: `${appName}/Contents/Info.plist`,
-      mode: 0o644,
-    })
-
-    archive.append(installScript, {
-      name: `${appName}/Contents/MacOS/install`,
+    archive.append(commandScript, {
+      name: '安装LawTools.command',
       mode: 0o755,
     })
 
     archive.append(readme, {
-      name: `${appName}/Contents/Resources/安装说明.txt`,
+      name: '安装说明.txt',
       mode: 0o644,
     })
 
-    archive.directory(distDir, `${appName}/Contents/Resources/dist`)
+    archive.directory(distDir, 'dist')
 
     archive.finalize()
   })
@@ -138,15 +126,14 @@ function generateReadme(hasNsis) {
   lines.push('【macOS 安装】')
   lines.push('')
   lines.push('1. 双击 wps_lawtools_mac.zip 解压')
-  lines.push('2. 找到 "Install WPS LawTools.app"')
-  lines.push('3. 右键点击 .app → 选择"打开"')
-  lines.push('   （首次打开必须右键，因为应用未签名）')
-  lines.push('4. 在弹出的对话框中点击"安装"')
-  lines.push('5. 安装成功后，重启 WPS Office')
+  lines.push('2. 双击 "安装LawTools.command" 运行安装')
+  lines.push('   （如果提示权限不足，请先在终端执行：')
+  lines.push('    chmod +x 安装LawTools.command）')
+  lines.push('3. 安装成功后，完全退出 WPS (Cmd+Q) 并重新打开')
   lines.push('')
   lines.push('常见问题：')
-  lines.push('  - 提示"无法验证开发者"：右键 → 打开 → 点击"打开"按钮')
-  lines.push('  - 安装后看不到插件：请完全退出 WPS 后重新打开')
+  lines.push('  - 提示"无法打开"：右键 → 打开；或在终端 chmod +x 后再双击')
+  lines.push('  - 安装后看不到插件：请完全退出 WPS (Cmd+Q) 后重新打开')
   lines.push('')
   lines.push('【AI 服务配置（必填）】')
   lines.push('')
@@ -243,7 +230,7 @@ async function main() {
 
   const lines = ['\n🎉 打包完成！']
   if (hasNsis) lines.push(`  Windows:  双击 ${name}_setup.exe 安装`)
-  lines.push(`  macOS:    双击 ${name}_mac.zip 解压 → 右键打开 .app 安装`)
+  lines.push(`  macOS:    双击 ${name}_mac.zip 解压 → 双击 .command 安装`)
   console.log(lines.join('\n'))
 }
 

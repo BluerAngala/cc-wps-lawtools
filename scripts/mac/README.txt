@@ -1,19 +1,21 @@
-陈恒律师AI工具箱 - macOS 安装说明
+WPS LawTools - macOS 安装说明
 ================================
 
-安装步骤（只需 3 步）：
+安装步骤：
 
 1. 双击 wps_lawtools_mac.zip 解压
-2. 右键点击 "Install WPS LawTools.app" → 选择 "打开"
-   首次打开请用右键，因为应用未经过 Apple 签名
-3. 在弹出的对话框中点击 "安装"
-   安装完成后，重启 WPS Office 即可使用
+2. 双击 "安装LawTools.command"
+   - 首次使用可能提示权限不足，请在终端执行：
+     chmod +x 安装LawTools.command
+   - 然后再双击运行
+3. 终端会显示安装进度，完成后完全退出 WPS (Cmd+Q)
+4. 重新打开 WPS 即可在功能区看到插件
 
 常见问题
 --------
 
-Q: macOS 提示 "无法打开，因为无法验证开发者"
-A: 打开 系统设置 → 隐私与安全性 → 在底部找到提示 → 点击 "仍要打开"
+Q: 双击 .command 没反应或提示权限不足
+A: 打开终端，执行 chmod +x 安装LawTools.command 后再双击
 
 Q: 安装后 WPS 中看不到插件
 A: 请完全退出 WPS（Command+Q）后重新打开
