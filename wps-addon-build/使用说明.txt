@@ -1,9 +1,9 @@
-wps_lawtools v1.2.0 安装指南
+WPS LawTools v1.2.0 安装指南
 ========================================
 
 【Windows 安装】
 
-1. 双击 wps_lawtools_setup.exe
+1. 双击 WPS_LawTools_Windows_v1.2.0_setup.exe
 2. 按照安装向导点击"下一步"完成安装
 3. 打开 WPS Office，功能区将出现新选项卡
 4. 如未出现，请重启 WPS Office
@@ -14,7 +14,7 @@ wps_lawtools v1.2.0 安装指南
 
 【macOS 安装】
 
-1. 双击 wps_lawtools_mac.dmg 打开
+1. 双击 WPS_LawTools_Mac_v1.2.0.dmg 打开
 2. 在弹出的窗口中双击 "安装LawTools.command"
 3. 按照终端提示完成安装
 4. 完全退出 WPS (Cmd+Q) 后重新打开
