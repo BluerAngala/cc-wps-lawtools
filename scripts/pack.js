@@ -21,6 +21,10 @@ const name = pkg.name
 const version = pkg.version
 const addonType = pkg.addonType || 'wps'
 
+function isMacOS() {
+  return process.platform === 'darwin'
+}
+
 function findMakensis() {
   const candidates = [
     path.join(nsisDir, 'Bin', 'makensis.exe'),
@@ -60,7 +64,57 @@ function buildNsis() {
   return false
 }
 
-async function buildMacInstaller() {
+function buildMacDmg() {
+  const dmgPath = path.join(buildDir, `${name}_mac.dmg`)
+  const stagingDir = path.join(buildDir, '_dmg_staging')
+
+  if (fs.existsSync(stagingDir)) {
+    fs.rmSync(stagingDir, { recursive: true })
+  }
+  fs.mkdirSync(stagingDir, { recursive: true })
+
+  const commandSrc = fs.readFileSync(path.join(macDir, 'install.command'), 'utf8')
+  const commandScript = commandSrc
+    .replace(/__PLUGIN_NAME__/g, name)
+    .replace(/__PLUGIN_VERSION__/g, version)
+    .replace(/__PLUGIN_TYPE__/g, addonType)
+
+  const commandPath = path.join(stagingDir, '安装LawTools.command')
+  fs.writeFileSync(commandPath, commandScript, 'utf8')
+  fs.chmodSync(commandPath, 0o755)
+
+  const readmeSrc = fs.readFileSync(path.join(macDir, 'README.txt'), 'utf8')
+  const readme = readmeSrc
+    .replace(/__PLUGIN_NAME__/g, name)
+    .replace(/__PLUGIN_VERSION__/g, version)
+    .replace(/__PLUGIN_TYPE__/g, addonType)
+  fs.writeFileSync(path.join(stagingDir, '安装说明.txt'), readme, 'utf8')
+
+  const distDest = path.join(stagingDir, 'dist')
+  fs.cpSync(distDir, distDest, { recursive: true })
+
+  try {
+    if (fs.existsSync(dmgPath)) fs.unlinkSync(dmgPath)
+
+    execSync(
+      `hdiutil create -volname "WPS LawTools" -srcfolder "${stagingDir}" -ov -format UDZO "${dmgPath}"`,
+      { stdio: 'pipe' }
+    )
+
+    fs.rmSync(stagingDir, { recursive: true })
+
+    const sizeMB = (fs.statSync(dmgPath).size / 1024 / 1024).toFixed(1)
+    console.log(`  ✅ macOS: ${name}_mac.dmg (${sizeMB} MB)`)
+    return true
+  } catch (err) {
+    console.warn(`\n⚠️  DMG 创建失败: ${err.message}`)
+    console.warn('   回退为 zip 格式\n')
+    fs.rmSync(stagingDir, { recursive: true })
+    return false
+  }
+}
+
+async function buildMacZip() {
   const zipPath = path.join(buildDir, `${name}_mac.zip`)
 
   const commandSrc = fs.readFileSync(path.join(macDir, 'install.command'), 'utf8')
@@ -103,7 +157,7 @@ async function buildMacInstaller() {
   })
 }
 
-function generateReadme(hasNsis) {
+function generateReadme(hasNsis, isDmg) {
   const lines = []
   lines.push(`${pkg.name} v${version} 安装指南`)
   lines.push('='.repeat(40))
@@ -125,11 +179,16 @@ function generateReadme(hasNsis) {
 
   lines.push('【macOS 安装】')
   lines.push('')
-  lines.push('1. 双击 wps_lawtools_mac.zip 解压')
-  lines.push('2. 双击 "安装LawTools.command" 运行安装')
-  lines.push('   （如果提示权限不足，请先在终端执行：')
-  lines.push('    chmod +x 安装LawTools.command）')
-  lines.push('3. 安装成功后，完全退出 WPS (Cmd+Q) 并重新打开')
+  if (isDmg) {
+    lines.push('1. 双击 wps_lawtools_mac.dmg 打开')
+    lines.push('2. 在弹出的窗口中双击 "安装LawTools.command"')
+    lines.push('3. 按照终端提示完成安装')
+    lines.push('4. 完全退出 WPS (Cmd+Q) 后重新打开')
+  } else {
+    lines.push('1. 双击 wps_lawtools_mac.zip 解压')
+    lines.push('2. 双击 "安装LawTools.command" 运行安装')
+    lines.push('3. 安装成功后，完全退出 WPS (Cmd+Q) 并重新打开')
+  }
   lines.push('')
   lines.push('常见问题：')
   lines.push('  - 提示"无法打开"：右键 → 打开；或在终端 chmod +x 后再双击')
@@ -194,10 +253,17 @@ async function main() {
 
   console.log('\n4️⃣  生成各平台安装包...')
   const hasNsis = buildNsis()
-  await buildMacInstaller()
+
+  let isDmg = false
+  if (isMacOS()) {
+    isDmg = buildMacDmg()
+  }
+  if (!isDmg) {
+    await buildMacZip()
+  }
 
   console.log('\n5️⃣  生成使用说明...')
-  const readme = generateReadme(hasNsis)
+  const readme = generateReadme(hasNsis, isDmg)
   fs.writeFileSync(path.join(buildDir, '使用说明.txt'), readme, 'utf8')
 
   const qrSrc = path.join(root, 'public', 'images', 'logo_card.png')
@@ -212,7 +278,7 @@ async function main() {
   if (fs.existsSync(buildPublish)) fs.unlinkSync(buildPublish)
 
   for (const f of fs.readdirSync(buildDir)) {
-    if (!f.endsWith('_setup.exe') && !f.endsWith('_mac.zip') && !f.endsWith('.txt') && !f.endsWith('.png')) {
+    if (!f.endsWith('_setup.exe') && !f.endsWith('_mac.zip') && !f.endsWith('_mac.dmg') && !f.endsWith('.txt') && !f.endsWith('.png')) {
       const p = path.join(buildDir, f)
       fs.rmSync(p, { recursive: true })
     }
@@ -230,7 +296,11 @@ async function main() {
 
   const lines = ['\n🎉 打包完成！']
   if (hasNsis) lines.push(`  Windows:  双击 ${name}_setup.exe 安装`)
-  lines.push(`  macOS:    双击 ${name}_mac.zip 解压 → 双击 .command 安装`)
+  if (isDmg) {
+    lines.push(`  macOS:    双击 ${name}_mac.dmg → 双击 安装LawTools.command`)
+  } else {
+    lines.push(`  macOS:    双击 ${name}_mac.zip 解压 → 双击 .command 安装`)
+  }
   console.log(lines.join('\n'))
 }
 
