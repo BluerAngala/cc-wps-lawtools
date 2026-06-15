@@ -414,7 +414,7 @@ import {
   NEmpty,
   NModal
 } from 'naive-ui'
-import { appConfig } from '../utils/appConfig.js'
+import { appConfig } from '../utils/AppConfig.js'
 import { reinitializeAIClient, getAvailableModels } from '../services/ai/siliconflow.js'
 
 const activeTab = ref('ai')

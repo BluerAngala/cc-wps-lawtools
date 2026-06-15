@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { appConfig } from '../../utils/appConfig.js'
+import { appConfig } from '../../utils/AppConfig.js'
 
 /**
  * 获取企业信息

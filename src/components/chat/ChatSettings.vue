@@ -376,9 +376,9 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { playbookService } from '@/services/ai/playbookService.js'
-import { appConfig } from '@/utils/appConfig.js'
-import { qdrantClient } from '@/services/rag/qdrantClient.js'
-import { ragService } from '@/services/rag/ragService.js'
+import { appConfig } from '@/utils/AppConfig.js'
+import { qdrantClient } from '@/services/rag/QdrantClient.js'
+import { ragService } from '@/services/rag/RagService.js'
 
 defineProps({
   visible: { type: Boolean, default: false }

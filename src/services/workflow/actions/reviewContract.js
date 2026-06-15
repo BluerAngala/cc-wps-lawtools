@@ -3,9 +3,9 @@
  * 使用 AI 审查合同并识别法律风险
  */
 
-import { AIBaseAction, createSuccessResult, createErrorResult } from './aiBaseAction.js'
+import { AIBaseAction, createSuccessResult, createErrorResult } from './AiBaseAction.js'
 import { ActionTypes } from '../types.js'
-import { contractReviewEngine } from '../../contract/contractReviewEngine.js'
+import { contractReviewEngine } from '../../contract/ContractReviewEngine.js'
 
 export class ReviewContractAction extends AIBaseAction {
   constructor() {

@@ -110,8 +110,8 @@ npm run create-templates          # 生成模板文档
 
 - **WPS 功能区入口**: `src/ribbon.js` — 必须挂载到 `window.ribbon`，导出 `OnAction`/`GetImage`/`OnAddinLoad`
 - **Vue 入口**: `src/main.js`
-- **路由**: `src/router/index.js` — 使用 hash history（9 个生产路由，2 个开发路由）
-- **WPS 服务**: `src/services/wps/index.js` — 核心 API（任务窗格、对话框）、文档操作（document.js）、文件操作（file.js）、按钮调度（taskHandler.js）、文档变化监听（watcher.js）
+- **路由**: `src/router/index.js` — 使用 hash history（2 个生产路由），默认 `/` 跳转 `/aichat`
+- **WPS 服务**: `src/services/wps/index.js` — 核心 API（WpsCore）、文档操作（WpsDocument）、文件操作（WpsFile）、按钮调度（WpsTaskHandler）、文档变化监听（DocumentWatcher）
 - **AI 对话服务**: `src/services/ai/chatService.js` — 对话式文档操作（读取上下文、流式输出、操作解析与执行），支持 5 种对话模式
 - **AI 异步任务**: `src/services/ai/TaskScheduler.js` — 带优先级/重试/超时的 AI 任务队列调度器
 - **AI API 客户端**: `src/services/ai/siliconflow.js` — SiliconFlow 兼容 API 的流式/非流式调用
@@ -119,11 +119,11 @@ npm run create-templates          # 生成模板文档
 - **AI Prompt 系统**: `src/services/ai/promptTemplates.js` — 5 种对话模式的系统提示词模板；`src/services/ai/promptGenerator.js` — 动态合同提取/审查/清单 prompt 生成
 - **审查策略服务**: `src/services/ai/playbookService.js` — 审查策略 CRUD 和序列化为 prompt 文本
 - **工作流引擎**: `src/services/workflow/index.js` — 可扩展的 Action 系统
-- **Action 注册表**: `src/services/workflow/actionRegistry.js` — 所有操作的统一注册中心（现已注册 22 个 action）
-- **合同审查引擎**: `src/services/contract/` — 合同分段、AI 审查编排、审查清单生成、结果提交
-- **RAG 服务**: `src/services/rag/` — Qdrant 向量数据库检索增强生成，支持 4 种集合类型
-- **文档处理**: `src/services/document/` — 文档解析（DocumentParser.js）、高级脱敏（desensitizeAdvanced.js）
-- **金山文档集成**: `src/services/kdocs/kdocs.js` — 提取的合同数据写入金山文档表格
+- **Action 注册表**: `src/services/workflow/ActionRegistry.js` — 所有操作的统一注册中心（现已注册 22 个 action）
+- **合同审查引擎**: `src/services/contract/index.js` — 合同分段、AI 审查编排、审查清单生成、结果提交
+- **RAG 服务**: `src/services/rag/index.js` — Qdrant 向量数据库检索增强生成，支持 4 种集合类型
+- **文档处理**: `src/services/document/index.js` — 文档解析（DocumentParser.js）、高级脱敏（Desensitizer.js）
+- **金山文档集成**: `src/services/kdocs/index.js` — 提取的合同数据写入金山文档表格
 
 ## WPS 加载机制
 
@@ -504,6 +504,50 @@ const data = JSON.parse(storage.getItem('key') || 'null')
 - 路径别名: `@/*` → `./src/*`
 - 使用 UnoCSS，配置文件在根目录 `uno.config.js`
 - 未使用变量可用 `_` 前缀忽略
+
+## 文件命名与组织
+
+### 命名规范
+
+| 类型 | 命名 | 示例 |
+|------|------|------|
+| 导出类的文件 | PascalCase | `WpsDocument.js`, `ContractReviewEngine.js` |
+| 函数/常量/工具文件 | camelCase | `chatService.js`, `coze.js`, `prompts.js` |
+| Vue 组件 | PascalCase | `AIChatPage.vue`, `ActionCard.vue` |
+| Action 文件 | 与 action type 一致（camelCase） | `addComment.js` → `type: 'addComment'` |
+
+> 例外：`JsonlParser.js` 文件名用 camelCase，但内部 `JSONLParser` 类名保持全大写。
+
+### 目录结构
+
+```
+src/
+├── App.vue                     # 根组件
+├── main.js                     # 入口
+├── ribbon.js                   # WPS 功能区回调
+├── components/                 # Vue 组件
+│   └── chat/                   # AI 对话相关组件（ActionCard, ChatInput, ...）
+├── config/                     # 静态配置（prompts, sensitivePatterns）
+├── services/                   # 业务服务
+│   ├── ai/                     # AI 服务（chat, prompt, playbook, coze, ...）
+│   ├── contract/               # 合同审查引擎
+│   ├── document/               # 文档解析与脱敏
+│   ├── kdocs/                  # 金山文档集成
+│   ├── rag/                    # Qdrant 向量检索
+│   ├── workflow/               # Action 系统
+│   │   └── actions/            # 22 个 action 实现
+│   └── wps/                    # WPS API 封装
+├── utils/                      # 工具类（AppConfig, PathManager, ...）
+├── views/                      # 页面（AIChatPage, SettingsPage）
+├── router/                     # 路由
+└── config/                     # 静态配置
+```
+
+> 每个 `services/*/` 子目录都有 `index.js` 统一导出，优先从目录入口导入：
+> ```js
+> import { chatService, playbookService } from '@/services/ai'
+> import { wpsDocument, wpsFile } from '@/services/wps'
+> ```
 
 ## 关键约束
 

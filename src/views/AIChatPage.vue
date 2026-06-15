@@ -144,7 +144,7 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 import { chatService } from '@/services/ai/chatService.js'
-import { actionRegistry } from '@/services/workflow/actionRegistry.js'
+import { actionRegistry } from '@/services/workflow/ActionRegistry.js'
 import { playbookService } from '@/services/ai/playbookService.js'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
@@ -569,7 +569,7 @@ async function handleLocateAction(action) {
   try {
     const keyword = action.keyword
     if (!keyword) return
-    const { wpsDocument } = await import('@/services/wps/document.js')
+    const { wpsDocument } = await import('@/services/wps/WpsDocument.js')
     const found = wpsDocument.locateAndSelect(keyword, action)
     if (!found) {
       const short = keyword.length > 20 ? keyword.substring(0, 20) + '...' : keyword

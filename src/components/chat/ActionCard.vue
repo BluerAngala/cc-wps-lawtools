@@ -112,7 +112,7 @@
 
 <script setup>
 import { computed, ref, reactive } from 'vue'
-import { actionRegistry } from '@/services/workflow/actionRegistry.js'
+import { actionRegistry } from '@/services/workflow/ActionRegistry.js'
 import { registerAllActions } from '@/services/workflow/actions/index.js'
 
 registerAllActions(actionRegistry)

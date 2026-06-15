@@ -3,7 +3,7 @@
  * 使用 AI 提取合同中的关键信息
  */
 
-import { AIBaseAction, createSuccessResult, createErrorResult } from './aiBaseAction.js'
+import { AIBaseAction, createSuccessResult, createErrorResult } from './AiBaseAction.js'
 import { ActionTypes } from '../types.js'
 import { processContractElements } from '../../ai/siliconflow.js'
 

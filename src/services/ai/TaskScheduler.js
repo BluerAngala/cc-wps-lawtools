@@ -5,7 +5,7 @@
 
 import { DocumentParser } from '../document/DocumentParser.js'
 import axios from 'axios'
-import { appConfig } from '../../utils/appConfig.js'
+import { appConfig } from '../../utils/AppConfig.js'
 import {
   generateContractExtractionPrompt,
   generateContractReviewPrompt

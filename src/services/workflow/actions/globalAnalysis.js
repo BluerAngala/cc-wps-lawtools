@@ -3,9 +3,9 @@
  * 分析合同整体结构和风险区域
  */
 
-import { AIBaseAction, createSuccessResult, createErrorResult } from './aiBaseAction.js'
+import { AIBaseAction, createSuccessResult, createErrorResult } from './AiBaseAction.js'
 import { ActionTypes } from '../types.js'
-import { reviewAIService } from '../../contract/reviewAIService.js'
+import { reviewAIService } from '../../contract/ReviewAiService.js'
 
 export class GlobalAnalysisAction extends AIBaseAction {
   constructor() {
