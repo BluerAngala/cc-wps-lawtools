@@ -74,6 +74,7 @@
         <RuleSchemeConfig
           ref="keywordRef"
           scheme-type="keyword"
+          type-label="关键词批注"
         />
       </section>
 
@@ -87,6 +88,7 @@
         <RuleSchemeConfig
           ref="reviewRef"
           scheme-type="review"
+          type-label="审查"
           :field-labels="{ keyword: '审查类别', comment: '审查要求', suggestedText: '修订建议' }"
           :field-placeholders="{
             keyword: '如：付款条款',

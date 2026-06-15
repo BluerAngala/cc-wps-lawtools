@@ -15,49 +15,63 @@
       />
     </div>
 
-    <div class="form-section">
-      <div v-for="(rule, idx) in activeRules" :key="idx" class="rule-card">
-        <div class="rule-head">
-          <span class="rule-num">#{{ idx + 1 }}</span>
-          <button class="del-btn-sm" @click="removeRule(idx)" title="删除">×</button>
+    <AccordionSection
+      v-model="open"
+      :title="`${typeLabel}规则`"
+      icon="📋"
+      :count="activeRules.length"
+      accent="danger"
+    >
+      <template #actions>
+        <button class="add-inline" @click.stop="addRule">+ 添加</button>
+      </template>
+
+      <div v-for="(rule, idx) in activeRules" :key="idx" class="acc-card">
+        <div class="acc-head" @click="toggleExpand(idx)">
+          <span class="acc-title">
+            <span :class="['action-tag', rule.actionType]">{{ rule.actionType }}</span>
+            {{ rule.keyword || `规则 #${idx + 1}` }}
+          </span>
+          <span class="acc-actions">
+            <button class="del-btn-sm" @click.stop="removeRule(idx)" title="删除">×</button>
+            <span class="acc-arrow">{{ expanded === idx ? '▾' : '▸' }}</span>
+          </span>
         </div>
-        <div class="form-group">
-          <label>{{ fieldLabels.keyword }}</label>
-          <input v-model="rule.keyword" class="text-input" :placeholder="fieldPlaceholders.keyword" />
-        </div>
-        <div class="form-group">
-          <label>操作类型</label>
-          <select v-model="rule.actionType" class="text-input">
-            <option value="批注">批注</option>
-            <option value="修订">修订</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>{{ rule.actionType === '修订' ? fieldLabels.suggestedText : fieldLabels.comment }}</label>
-          <textarea
-            v-if="rule.actionType === '批注'"
-            v-model="rule.comment"
-            rows="3"
-            class="text-input"
-            :placeholder="fieldPlaceholders.comment"
-          ></textarea>
-          <input
-            v-else
-            v-model="rule.suggestedText"
-            class="text-input"
-            :placeholder="fieldPlaceholders.suggestedText"
-          />
-        </div>
+        <Transition name="collapse">
+          <div v-if="expanded === idx" class="acc-body">
+            <div class="pb-field">
+              <label>{{ fieldLabels.keyword }}</label>
+              <input v-model="rule.keyword" class="text-input" :placeholder="fieldPlaceholders.keyword" />
+            </div>
+            <div class="pb-field">
+              <label>操作类型</label>
+              <select v-model="rule.actionType" class="text-input">
+                <option value="批注">批注</option>
+                <option value="修订">修订</option>
+              </select>
+            </div>
+            <div class="pb-field">
+              <label>{{ rule.actionType === '修订' ? fieldLabels.suggestedText : fieldLabels.comment }}</label>
+              <textarea
+                v-if="rule.actionType === '批注'"
+                v-model="rule.comment"
+                rows="3"
+                class="text-input"
+                :placeholder="fieldPlaceholders.comment"
+              ></textarea>
+              <input
+                v-else
+                v-model="rule.suggestedText"
+                class="text-input"
+                :placeholder="fieldPlaceholders.suggestedText"
+              />
+            </div>
+          </div>
+        </Transition>
       </div>
 
-      <div class="sub-section-head">
-        <div></div>
-        <div class="section-actions">
-          <button class="sm-btn" @click="addRule">+ 添加规则</button>
-        </div>
-      </div>
       <button class="primary-save-btn" @click="saveScheme">保存到当前方案</button>
-    </div>
+    </AccordionSection>
   </div>
 </template>
 
@@ -65,6 +79,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { appConfig } from '@/utils/AppConfig.js'
 import SchemeSelector from './SchemeSelector.vue'
+import AccordionSection from './AccordionSection.vue'
 
 const props = defineProps({
   schemeType: { type: String, required: true, validator: (v) => ['keyword', 'review'].includes(v) },
@@ -88,6 +103,8 @@ const schemes = ref([])
 const activeId = ref('')
 const activeRules = ref([])
 const showNewModal = ref(false)
+const open = ref(true)
+const expanded = ref(null)
 
 onMounted(loadSchemes)
 
@@ -105,12 +122,18 @@ function loadActiveRules() {
 
 watch(activeId, () => loadActiveRules())
 
+function toggleExpand(idx) {
+  expanded.value = expanded.value === idx ? null : idx
+}
+
 function addRule() {
   activeRules.value.push({ keyword: '', comment: '', actionType: '批注', suggestedText: '' })
+  expanded.value = activeRules.value.length - 1
 }
 
 function removeRule(idx) {
   activeRules.value.splice(idx, 1)
+  if (expanded.value === idx) expanded.value = null
 }
 
 function saveScheme() {
@@ -160,5 +183,20 @@ function deleteScheme() {
 <style scoped>
 .scheme-bar {
   margin-bottom: 14px;
+}
+.action-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
+.action-tag.批注 {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.action-tag.修订 {
+  background: #fef3c7;
+  color: #92400e;
 }
 </style>
