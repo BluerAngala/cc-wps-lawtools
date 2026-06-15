@@ -57,8 +57,7 @@
       </button>
     </div>
     <div class="input-hint">
-      <span>Enter 发送 · Shift+Enter 换行</span>
-      <span>输入 / 快捷指令</span>
+      <span>Enter 发送 · Shift+Enter 换行 · 输入 / 查看快捷指令</span>
     </div>
   </div>
 </template>
