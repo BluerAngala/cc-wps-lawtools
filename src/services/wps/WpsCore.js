@@ -293,15 +293,12 @@ class WPSCoreService {
       this.checkEnvironment()
 
       const dialogUrl = getUrlPath() + getRouterHash() + page
-      const pixelRatio = window.devicePixelRatio || 1
-      const physicalWidth = Math.round(width * pixelRatio)
-      const physicalHeight = Math.round(height * pixelRatio)
 
       window.Application.ShowDialog(
         dialogUrl,
         caption,
-        physicalWidth,
-        physicalHeight,
+        width,
+        height,
         modal,
         hasCaption,
         resizeEdge

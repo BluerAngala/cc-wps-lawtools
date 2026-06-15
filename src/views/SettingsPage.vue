@@ -1237,6 +1237,16 @@ function showConfigPath() {
 }
 </script>
 
+<style>
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+</style>
+
 <style scoped>
 .settings-root {
   --c-brand: #1e3a8a;
