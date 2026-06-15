@@ -59,11 +59,11 @@ const quickPrompts = [
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 20px 10px;
+  padding: 20px 8px;
 }
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 8px;
   width: 100%;
 }
@@ -71,7 +71,7 @@ const quickPrompts = [
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 10px 10px;
+  padding: 8px 10px;
   border: 1px solid var(--c-border);
   border-radius: var(--radius-sm, 8px);
   background: var(--c-surface);

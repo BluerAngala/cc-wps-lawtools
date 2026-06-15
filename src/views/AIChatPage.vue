@@ -794,7 +794,7 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   margin-bottom: 20px;
-  padding: 0 4px;
+  padding: 0;
   transition: background 0.15s;
   position: relative;
 }
