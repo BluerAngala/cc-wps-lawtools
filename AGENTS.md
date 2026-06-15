@@ -110,13 +110,20 @@ npm run create-templates          # 生成模板文档
 
 - **WPS 功能区入口**: `src/ribbon.js` — 必须挂载到 `window.ribbon`，导出 `OnAction`/`GetImage`/`OnAddinLoad`
 - **Vue 入口**: `src/main.js`
-- **路由**: `src/router/index.js` — 使用 hash history
-- **WPS 服务**: `src/services/wps/index.js` — 文档操作、任务窗格、对话框
-- **AI 服务**: `src/services/ai/TaskScheduler.js` — 统一 AI 调用入口
-- **AI 对话服务**: `src/services/ai/chatService.js` — 对话式文档操作（读取上下文、流式输出、操作解析与执行）
-- **工作流引擎**: `src/services/workflow/index.js` — 可扩展的 Action 系统
-- **Action 注册表**: `src/services/workflow/actionRegistry.js` — 所有操作的统一注册中心
+- **路由**: `src/router/index.js` — 使用 hash history（9 个生产路由，2 个开发路由）
+- **WPS 服务**: `src/services/wps/index.js` — 核心 API（任务窗格、对话框）、文档操作（document.js）、文件操作（file.js）、按钮调度（taskHandler.js）、文档变化监听（watcher.js）
+- **AI 对话服务**: `src/services/ai/chatService.js` — 对话式文档操作（读取上下文、流式输出、操作解析与执行），支持 5 种对话模式
+- **AI 异步任务**: `src/services/ai/TaskScheduler.js` — 带优先级/重试/超时的 AI 任务队列调度器
+- **AI API 客户端**: `src/services/ai/siliconflow.js` — SiliconFlow 兼容 API 的流式/非流式调用
+- **AI 企业查询**: `src/services/ai/coze.js` — Coze API 企业信息查询
+- **AI Prompt 系统**: `src/services/ai/promptTemplates.js` — 5 种对话模式的系统提示词模板；`src/services/ai/promptGenerator.js` — 动态合同提取/审查/清单 prompt 生成
 - **审查策略服务**: `src/services/ai/playbookService.js` — 审查策略 CRUD 和序列化为 prompt 文本
+- **工作流引擎**: `src/services/workflow/index.js` — 可扩展的 Action 系统
+- **Action 注册表**: `src/services/workflow/actionRegistry.js` — 所有操作的统一注册中心（现已注册 22 个 action）
+- **合同审查引擎**: `src/services/contract/` — 合同分段、AI 审查编排、审查清单生成、结果提交
+- **RAG 服务**: `src/services/rag/` — Qdrant 向量数据库检索增强生成，支持 4 种集合类型
+- **文档处理**: `src/services/document/` — 文档解析（DocumentParser.js）、高级脱敏（desensitizeAdvanced.js）
+- **金山文档集成**: `src/services/kdocs/kdocs.js` — 提取的合同数据写入金山文档表格
 
 ## WPS 加载机制
 
@@ -191,6 +198,29 @@ npm run create-templates          # 生成模板文档
   - 「向量检索」Tab：RAG 配置
 - `src/components/chat/ChatHeader.vue` — 对话头部（包含导出对话记录按钮）
 
+### 附加卡片组件
+
+| 组件 | 说明 |
+|------|------|
+| `src/components/chat/TriageCard.vue` | NDA 分类卡片 — 显示 GREEN/YELLOW/RED 分类结果、风险点列表和建议 |
+| `src/components/chat/RiskMatrix.vue` | 风险矩阵 — 3×3 Severity × Likelihood 网格，含风险项列表和筛选 |
+| `src/components/chat/CompareView.vue` | 条款对比 — 逐条款展示合同版本差异（新增/修改/删除），带风险标签 |
+| `src/components/chat/ExportReport.vue` | 导出报告 — 从对话消息生成 Markdown 报告，支持复制到剪贴板和另存为文档 |
+
+### 5 种对话模式
+
+`promptTemplates.js` 定义了 5 种系统提示词，通过 `chatService` 的 `mode` 参数切换：
+
+| 模式 | 函数 | 用途 |
+|------|------|------|
+| `standard` | `buildStandardPrompt()` | 通用文档操作（添加批注、修订、水印、页眉页脚等） |
+| `triage-nda` | `buildTriageNdaprompt()` | NDA 分类 — 输出 GREEN/YELLOW/RED 及具体风险点 |
+| `risk-assessment` | `buildRiskAssessmentPrompt()` | 风险评估 — Severity × Likelihood 矩阵 |
+| `compare` | `buildComparePrompt()` | 条款对比 — 逐条款分析新旧版本的差异 |
+| `respond` | `buildResponsePrompt()` | 法律函件生成 — 基于模板生成法律回复 |
+
+所有模式均注入：审查策略（playbook）立场、RAG 上下文（如开启）、文档上下文（前 8000 字符）。
+
 ### UI 特性
 
 | 特性 | 说明 |
@@ -252,15 +282,24 @@ AI 在回复中嵌入操作指令，使用 ` ```action ``` ` 代码块：
 |------|------|------|---------|
 | `addComment` | 添加批注 | 💬 | `keyword`, `comment` |
 | `addRevision` | 添加修订 | ✏️ | `keyword`, `newText` |
-| `addHeader` | 添加页眉 | 📰 | `text` |
-| `addFooter` | 添加页脚 | 📰 | `text` |
+| `addHeader` | 添加页眉 | 📝 | `text` |
+| `addFooter` | 添加页脚 | 📄 | `text` |
 | `addPageNumber` | 添加页码 | 🔢 | — |
-| `addWatermark` | 添加水印 | 💧 | `text` |
-| `renameDocument` | 重命名文档 | 📝 | `newName`（或 `prefix`） |
-| `exportPDF` | 导出PDF | 📄 | — |
+| `addWatermark` | 添加水印 | 💧 | `text`（默认"草稿"） |
+| `renameDocument` | 重命名文档 | 📄 | `newName`（或 `prefix`） |
+| `exportPDF` | 导出PDF | 📑 | — |
 | `scanSensitive` | 扫描敏感信息 | 🔍 | — |
 | `desensitize` | 信息脱敏 | 🔒 | — |
-| `batchKeyword` | 批量关键词标注 | 🎯 | `keywords`, `operation` |
+| `batchKeyword` | 批量关键词处理 | 🔍 | `keywordList` |
+| `readDocument` | 读取文档 | 📖 | — |
+| `saveDocument` | 保存文档 | 💾 | — |
+| `deleteFile` | 删除文件 | 🗑️ | `filePath` |
+| `submitKdocs` | 提交金山文档 | 📤 | — |
+| `identifyContract` | 识别合同类型 | 🔍 | — |
+| `extractContract` | 提取合同要素 | 📋 | — |
+| `reviewContract` | 审查合同 | ⚖️ | — |
+| `globalAnalysis` | 全局分析 | 🌐 | — |
+| `generateChecklist` | 生成审查清单 | 📋 | — |
 
 > **新增 action 流程**: 只需在 `src/services/workflow/actions/` 创建 Action 类 → 在 `index.js` 注册到 `allActions` 数组 → 系统自动识别（无需修改其他文件）
 
@@ -364,6 +403,50 @@ WPS 文档 `.Range().Text` 常夹杂不可见控制字符，`_normalizeForSearch
 | 可接受范围 | 可接受范围 | 可以接受的妥协范围 |
 | 升级触发 | 必须预警的情况 | 遇到这些情况必须提醒我 |
 | 重要度：高/中/低 | 🔴 高 — 必须关注 / 🟡 中 — 建议关注 / 🟢 低 — 可忽略 | — |
+
+## 合同审查引擎
+
+`src/services/contract/` 包含完整的 AI 合同审查管道：
+
+| 文件 | 说明 |
+|------|------|
+| `documentSegmenter.js` | 将长合同分段，分批提交 AI 审查 |
+| `contractReviewEngine.js` | AI 审查编排：类型识别 → 全局分析 → 要素提取 → 逐条审查 |
+| `reviewChecklistGenerator.js` | 根据合同类型和视角生成审查清单 |
+| `reviewAIService.js` | 合同相关的 AI 调用（类型识别、全局分析） |
+| `reviewProcessor.js` | 将审查结果解析为可执行操作 |
+| `dataSubmitter.js` | 向金山文档提交提取的合同数据 |
+| `contractService.js` | 合同服务统一入口 |
+| `jsonlParser.js` | JSONL 格式 AI 响应解析 |
+
+### 审查流程
+
+1. **识别合同类型** — AI 判断合同类型（买卖合同、保密协议等）
+2. **全局分析** — 分析整体结构和风险区域
+3. **提取合同要素** — 提取甲方/乙方、金额、期限等关键信息
+4. **逐条审查** — 按审查清单逐条款排查风险
+5. **提交数据** — 将审查结果写入金山文档表格
+
+## RAG 检索增强生成
+
+`src/services/rag/` 提供基于 Qdrant 向量数据库的语义检索：
+
+| 文件 | 说明 |
+|------|------|
+| `qdrantClient.js` | Qdrant 向量数据库客户端操作 |
+| `ragService.js` | RAG 编排（索引、搜索、统计） |
+| `embeddingService.js` | 文本向量化（Qwen3-Embedding-8B / BGE-large-zh） |
+
+### 4 种集合类型
+
+| 集合 | 用途 |
+|------|------|
+| `DOCUMENT_CHUNKS` | 当前文档分段向量化，支持语义问答 |
+| `CONVERSATION_MEMORY` | 对话历史向量化，跨会话知识复用 |
+| `REVIEW_HISTORY` | 历史审查记录索引 |
+| `LAW_KNOWLEDGE` | 法律法规知识库 |
+
+RAG 配置在 ChatSettings 的「向量检索」Tab 中，支持开关、连接配置、模型选择。
 
 ## WPS API 核心概念
 
