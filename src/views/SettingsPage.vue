@@ -1259,7 +1259,7 @@ body {
   --c-border: #e5e7eb;
   --c-bg: #f9fafb;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100vh;
   background: var(--c-bg);
   color: var(--c-text);
