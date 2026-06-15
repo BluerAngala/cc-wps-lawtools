@@ -1,10 +1,5 @@
 <template>
   <div class="settings-root">
-    <div class="settings-header">
-      <h2>设置</h2>
-      <button class="close-btn" @click="closePane" title="关闭">×</button>
-    </div>
-
     <div class="settings-tabs">
       <button
         v-for="t in tabs"
@@ -778,20 +773,8 @@ const extractor = ref({ ...appConfig.get('extractor') })
 // 数据管理
 const configPath = ref('')
 
-function closePane() {
-  // 任务窗格通过 PluginStorage 存储的 id 隐藏自己
-  try {
-    const app = window.Application
-    if (app?.PluginStorage) {
-      const id = app.PluginStorage.getItem('tp_settings')
-      if (id) {
-        const pane = app.GetTaskPane ? app.GetTaskPane(id) : null
-        if (pane) pane.Visible = false
-      }
-    }
-  } catch {
-    /* noop */
-  }
+function closeDialog() {
+  window.close()
 }
 
 onMounted(() => {
@@ -1281,37 +1264,6 @@ body {
   background: var(--c-bg);
   color: var(--c-text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-}
-
-.settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 18px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
-  flex-shrink: 0;
-}
-.settings-header h2 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-}
-.close-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  font-size: 20px;
-  cursor: pointer;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.22);
 }
 
 .settings-tabs {

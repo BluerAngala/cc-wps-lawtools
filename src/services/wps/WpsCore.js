@@ -284,21 +284,24 @@ class WPSCoreService {
       width = 600,
       height = 450,
       modal = true,
-      hasCaption = false,
+      hasCaption = true,
       resizeEdge = 2,
-      caption = ''
+      caption = '设置'
     } = options
 
     try {
       this.checkEnvironment()
 
       const dialogUrl = getUrlPath() + getRouterHash() + page
+      const pixelRatio = window.devicePixelRatio || 1
+      const physicalWidth = Math.round(width * pixelRatio)
+      const physicalHeight = Math.round(height * pixelRatio)
 
       window.Application.ShowDialog(
         dialogUrl,
         caption,
-        width,
-        height,
+        physicalWidth,
+        physicalHeight,
         modal,
         hasCaption,
         resizeEdge

@@ -11,7 +11,7 @@ function OnAction(control) {
       Util.wpsService.createTaskPane('aichat', { width: 420 })
       break
     case 'btnSettings':
-      Util.wpsService.createTaskPane('settings', { width: 880 })
+      Util.wpsService.showDialog('/settings', { width: 880, height: 720, caption: '陈恒律师 AI 工具箱 — 设置' })
       break
     case 'btnAboutME':
       {
