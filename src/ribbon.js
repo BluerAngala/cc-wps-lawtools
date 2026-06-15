@@ -11,7 +11,7 @@ function OnAction(control) {
       Util.wpsService.createTaskPane('aichat', { width: 420 })
       break
     case 'btnSettings':
-      Util.wpsService.showDialog('/settings', { width: 800, height: 600 })
+      Util.wpsService.showDialog('/settings', { width: 880, height: 720 })
       break
     case 'btnAboutME':
       {

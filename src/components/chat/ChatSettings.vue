@@ -8,6 +8,9 @@
         </div>
 
         <div class="drawer-body">
+          <div class="drawer-hint">
+            💡 更多配置（AI 模型/金山文档/数据管理）请到 <strong>设置</strong> 面板
+          </div>
           <div class="tabs">
             <button
               class="tab-btn"
@@ -539,7 +542,7 @@ async function loadStats() {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #0a0a0a, #2d2d2d);
   color: #fff;
   flex-shrink: 0;
 }
@@ -569,6 +572,14 @@ async function loadStats() {
   overflow-y: auto;
   padding: 0;
 }
+.drawer-hint {
+  background: var(--c-accent-light);
+  color: #991b1b;
+  font-size: 11px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #fecaca;
+  line-height: 1.5;
+}
 .tabs {
   display: flex;
   border-bottom: 1px solid #e5e7eb;
@@ -591,11 +602,11 @@ async function loadStats() {
   transition: all 0.15s;
 }
 .tab-btn.active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
+  color: var(--c-accent);
+  border-bottom-color: var(--c-accent);
 }
 .tab-btn:hover {
-  color: #1d4ed8;
+  color: var(--c-accent);
 }
 .tab-content {
   padding: 14px 16px;
