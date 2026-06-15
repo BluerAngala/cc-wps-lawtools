@@ -1127,18 +1127,18 @@ onMounted(() => {
 
 .action-toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 6px 6px 2px;
   flex-shrink: 0;
-  overflow-x: auto;
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
 }
 .qa-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
+  gap: 3px;
+  padding: 4px 8px;
   border: 1px solid var(--c-border);
   border-radius: 6px;
   background: var(--c-surface);
