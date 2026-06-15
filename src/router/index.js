@@ -28,7 +28,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/contractreview'
+      redirect: '/aichat'
     },
     {
       path: '/template',

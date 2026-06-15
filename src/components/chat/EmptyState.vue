@@ -46,6 +46,12 @@ const quickPrompts = [
     desc: '全面审查当前合同风险',
     text: '请全面审查当前合同，指出主要风险点并提供修改建议'
   },
+  {
+    icon: '🔒',
+    title: '信息脱敏',
+    desc: '识别并脱敏敏感信息',
+    text: '/脱敏'
+  },
   { icon: '🚦', title: '保密协议分流', desc: '快速分流保密协议风险等级', text: '/保密' },
   { icon: '⚡', title: '风险评估', desc: '结构化风险矩阵分析', text: '/风险' },
   {
@@ -53,6 +59,12 @@ const quickPrompts = [
     title: '摘要总结',
     desc: '总结合同核心内容',
     text: '请总结当前合同的核心条款和关键信息'
+  },
+  {
+    icon: '📝',
+    title: '生成模板',
+    desc: '生成法律合同模板',
+    text: '请帮我生成一份常见的法律合同模板'
   }
 ]
 </script>

@@ -110,7 +110,7 @@ npm run create-templates          # 生成模板文档
 
 - **WPS 功能区入口**: `src/ribbon.js` — 必须挂载到 `window.ribbon`，导出 `OnAction`/`GetImage`/`OnAddinLoad`
 - **Vue 入口**: `src/main.js`
-- **路由**: `src/router/index.js` — 使用 hash history（9 个生产路由，2 个开发路由）
+- **路由**: `src/router/index.js` — 使用 hash history（9 个生产路由，2 个开发路由），默认 `/` 跳转 `/aichat`
 - **WPS 服务**: `src/services/wps/index.js` — 核心 API（任务窗格、对话框）、文档操作（document.js）、文件操作（file.js）、按钮调度（taskHandler.js）、文档变化监听（watcher.js）
 - **AI 对话服务**: `src/services/ai/chatService.js` — 对话式文档操作（读取上下文、流式输出、操作解析与执行），支持 5 种对话模式
 - **AI 异步任务**: `src/services/ai/TaskScheduler.js` — 带优先级/重试/超时的 AI 任务队列调度器
@@ -156,7 +156,19 @@ npm run create-templates          # 生成模板文档
 - 必须挂载到 `window.ribbon`
 - 导出 `OnAction`（按钮点击）、`GetImage`（图标路径）、`OnAddinLoad`（加载完成回调）
 
-## 添加新功能区按钮
+## 功能区按钮（Ribbon）
+
+当前 Ribbon 保留 3 个核心按钮，其余功能统一通过 AI 对话面板访问：
+
+| 按钮 | 功能 | 类型 |
+|------|------|------|
+| `btnAIChat` | AI 对话（主入口） | 任务窗格（850px） |
+| `btnSettings` | 设置 | 对话框（800×600） |
+| `btnAboutME` | 关于我 | 外部链接（飞书，隐藏窗格） |
+
+> 移除的按钮（合同审查/风险扫描/信息脱敏/工作流/文书模板/AI助理/常用导航）均通过 AI 对话面板的快捷操作栏或 slash 指令访问。
+
+### 添加新功能区按钮
 
 1. 在 `public/ribbon.xml` 添加 `<button id="btnXxx" onAction="ribbon.OnAction" getImage="ribbon.GetImage"/>`
 2. 在 `src/ribbon.js` 的 `OnAction` switch 中添加 case
@@ -197,6 +209,7 @@ npm run create-templates          # 生成模板文档
   - 「审查策略」Tab：审查要点（手风琴折叠）、保密协议偏好、常用回复
   - 「向量检索」Tab：RAG 配置
 - `src/components/chat/ChatHeader.vue` — 对话头部（包含导出对话记录按钮）
+- `src/components/chat/EmptyState.vue` — 空状态引导（快速入口卡片）
 
 ### 附加卡片组件
 
@@ -220,6 +233,19 @@ npm run create-templates          # 生成模板文档
 | `respond` | `buildResponsePrompt()` | 法律函件生成 — 基于模板生成法律回复 |
 
 所有模式均注入：审查策略（playbook）立场、RAG 上下文（如开启）、文档上下文（前 8000 字符）。
+
+### 快捷操作栏
+
+AI 对话面板输入框上方有一个固定快捷操作栏，覆盖原来分散页面的功能：
+
+| 按钮 | 触发内容 | 说明 |
+|------|----------|------|
+| 🔍 审查合同 | `/审查` | 全面审查合同风险 |
+| ⚡ 风险扫描 | `请扫描当前文档中的敏感信息` | 扫描敏感信息位置和类型 |
+| 🔒 信息脱敏 | `/脱敏` | 识别并脱敏敏感信息 |
+| 📋 合同模板 | `请帮我生成一份法律合同模板` | 生成模板文档 |
+| 🔄 批量处理 | `请批量处理文档中的关键词` | 批量关键词批注/修订 |
+| 🚀 一键审查 | `_fullReview` | 四步串联：识别类型→全局分析→要素提取→逐条审查 |
 
 ### UI 特性
 
