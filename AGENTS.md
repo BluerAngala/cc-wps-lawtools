@@ -582,6 +582,31 @@ Install WPS LawTools.app/
 - 需通过 `.app` 安装程序或手动将文件复制到沙盒目录
 - 安装后需重启 WPS Office 方可加载插件
 
+### macOS 本地开发加载项不显示的修复
+
+`wpsjs debug` 仅启动 Vite 开发服务器，不会自动注册加载项到 WPS。如果修改 ribbon 或代码后 WPS 菜单不更新，按以下步骤清理：
+
+```bash
+# 1. 完全退出 WPS（Cmd+Q）
+# 2. 确认进程已杀死
+pgrep -f WPS && kill -9 $(pgrep -f WPS)
+
+# 3. 清理 jsaddons 缓存
+rm -rf ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/publish.xml
+rm -rf ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/authaddin.json
+rm -rf ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps_lawtools
+
+# 4. 重新构建并安装
+npm run build
+mkdir -p ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps_lawtools
+cp -r dist/* ~/Library/Containers/com.kingsoft.wpsoffice.mac/Data/.kingsoft/wps/jsaddons/wps_lawtools/
+
+# 5. 重启 WPS
+open -a "WPS Office"
+```
+
+> **注意**：目录名必须与 `publish.xml` 中的 `url` 属性一致，`authaddin.json` 中的 `path` 也必须同步更新。
+
 ### 打包依赖
 
 | 平台 | 依赖 | 安装方式 |
