@@ -9,7 +9,6 @@
       >
         <span class="qc-icon">{{ s.icon }}</span>
         <span class="qc-title">{{ s.title }}</span>
-        <span class="qc-desc">{{ s.desc }}</span>
       </button>
     </div>
   </div>
@@ -62,34 +61,31 @@ const quickPrompts = [
   padding: 20px 8px;
 }
 .quick-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 2px;
+}
+.quick-grid::-webkit-scrollbar {
+  display: none;
 }
 .quick-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 6px 12px;
   border: 1px solid var(--c-border);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: 16px;
   background: var(--c-surface);
   cursor: pointer;
-  text-align: left;
-  transition: all 0.18s;
-  min-width: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-.qc-desc {
-  font-size: 11px;
-  color: var(--c-text2);
-  margin-top: 2px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  transition: all 0.18s;
+  box-sizing: border-box;
 }
 .quick-card:hover {
   border-color: var(--c-accent);
@@ -97,16 +93,12 @@ const quickPrompts = [
   transform: translateY(-1px);
 }
 .qc-icon {
-  font-size: 18px;
-  margin-bottom: 6px;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 .qc-title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--c-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 </style>
