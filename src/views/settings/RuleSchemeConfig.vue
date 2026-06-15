@@ -30,7 +30,14 @@
         <div class="acc-head" @click="toggleExpand(idx)">
           <span class="acc-title">
             <span :class="['action-tag', rule.actionType]">{{ rule.actionType }}</span>
-            {{ rule.keyword || `规则 #${idx + 1}` }}
+            <input
+              v-if="expanded === idx"
+              v-model="rule.keyword"
+              class="title-input"
+              :placeholder="fieldPlaceholders.keyword"
+              @click.stop
+            />
+            <span v-else>{{ rule.keyword || `规则 #${idx + 1}` }}</span>
           </span>
           <span class="acc-actions">
             <button class="del-btn-sm" @click.stop="removeRule(idx)" title="删除">×</button>
@@ -39,10 +46,6 @@
         </div>
         <Transition name="collapse">
           <div v-if="expanded === idx" class="acc-body">
-            <div class="pb-field">
-              <label>{{ fieldLabels.keyword }}</label>
-              <input v-model="rule.keyword" class="text-input" :placeholder="fieldPlaceholders.keyword" />
-            </div>
             <div class="pb-field">
               <label>操作类型</label>
               <select v-model="rule.actionType" class="text-input">

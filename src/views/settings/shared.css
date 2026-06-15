@@ -467,6 +467,25 @@ textarea.text-input {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.acc-title .title-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--c-accent);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--c-text);
+  background: #fff;
+  outline: none;
+}
+.acc-title .title-input:focus {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 .acc-actions {
   display: flex;

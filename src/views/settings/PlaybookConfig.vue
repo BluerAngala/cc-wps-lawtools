@@ -8,7 +8,14 @@
         <div class="acc-head" @click="toggleExpand('pos', pos.id)">
           <span class="acc-title">
             <span :class="['sev-dot', pos.severity]"></span>
-            {{ pos.category || '未命名' }}
+            <input
+              v-if="expanded.pos === pos.id"
+              v-model="pos.category"
+              class="title-input"
+              placeholder="条款类别"
+              @click.stop
+            />
+            <span v-else>{{ pos.category || '未命名' }}</span>
           </span>
           <span class="acc-actions">
             <button class="del-btn-sm" @click.stop="removePosition(idx)" title="删除">×</button>
@@ -17,10 +24,6 @@
         </div>
         <Transition name="collapse">
           <div v-if="expanded.pos === pos.id" class="acc-body">
-            <div class="pb-field">
-              <label>条款类别</label>
-              <input v-model="pos.category" class="text-input" placeholder="如：违约金条款" />
-            </div>
             <div class="pb-field">
               <label>我方底线</label>
               <textarea v-model="pos.standardPosition" rows="2" class="text-input" placeholder="我方对该条款的基本立场"></textarea>
@@ -78,7 +81,16 @@
       </template>
       <div v-for="(tpl, idx) in playbook.responseTemplates" :key="tpl.id" class="acc-card">
         <div class="acc-head" @click="toggleExpand('tpl', tpl.id)">
-          <span class="acc-title">{{ tpl.name || '未命名回复' }}</span>
+          <span class="acc-title">
+            <input
+              v-if="expanded.tpl === tpl.id"
+              v-model="tpl.name"
+              class="title-input"
+              placeholder="回复模板名称"
+              @click.stop
+            />
+            <span v-else>{{ tpl.name || '未命名回复' }}</span>
+          </span>
           <span class="acc-actions">
             <button class="del-btn-sm" @click.stop="removeTemplate(idx)" title="删除">×</button>
             <span class="acc-arrow">{{ expanded.tpl === tpl.id ? '▾' : '▸' }}</span>
@@ -86,10 +98,6 @@
         </div>
         <Transition name="collapse">
           <div v-if="expanded.tpl === tpl.id" class="acc-body">
-            <div class="pb-field">
-              <label>名称</label>
-              <input v-model="tpl.name" class="text-input" placeholder="回复模板名称" />
-            </div>
             <div class="pb-field">
               <label>适用场景</label>
               <input v-model="tpl.category" class="text-input" placeholder="如：合规、争议、询价" />
