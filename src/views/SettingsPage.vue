@@ -113,13 +113,13 @@
 
 <script setup>
 import { ref } from 'vue'
-import AIConfig from './settings/AIConfig.vue'
-import RAGConfig from './settings/RAGConfig.vue'
-import PlaybookConfig from './settings/PlaybookConfig.vue'
-import KDocsConfig from './settings/KDocsConfig.vue'
-import RuleSchemeConfig from './settings/RuleSchemeConfig.vue'
-import DataConfig from './settings/DataConfig.vue'
-import './settings/shared.css'
+import AIConfig from '@/components/settings/AIConfig.vue'
+import RAGConfig from '@/components/settings/RAGConfig.vue'
+import PlaybookConfig from '@/components/settings/PlaybookConfig.vue'
+import KDocsConfig from '@/components/settings/KDocsConfig.vue'
+import RuleSchemeConfig from '@/components/settings/RuleSchemeConfig.vue'
+import DataConfig from '@/components/settings/DataConfig.vue'
+import '@/components/settings/shared.css'
 
 const tabs = [
   { id: 'ai', icon: '🤖', label: 'AI 服务' },

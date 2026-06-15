@@ -528,8 +528,9 @@ src/
 ├── App.vue                     # 根组件
 ├── main.js                     # 入口
 ├── ribbon.js                   # WPS 功能区回调
-├── components/                 # Vue 组件
-│   └── chat/                   # AI 对话相关组件（ActionCard, ChatInput, ...）
+├── components/                 # Vue 组件（可复用）
+│   ├── chat/                   # AI 对话相关组件（ActionCard, ChatInput, ...）
+│   └── settings/               # 设置面板的子组件（AIConfig, RAGConfig, ...）
 ├── config/                     # 静态配置（prompts, sensitivePatterns）
 ├── services/                   # 业务服务
 │   ├── ai/                     # AI 服务（chat, prompt, playbook, coze, ...）
@@ -541,7 +542,7 @@ src/
 │   │   └── actions/            # 22 个 action 实现
 │   └── wps/                    # WPS API 封装
 ├── utils/                      # 工具类（AppConfig, PathManager, ...）
-├── views/                      # 页面（AIChatPage, SettingsPage）
+├── views/                      # 页面（路由入口：AIChatPage, SettingsPage）
 ├── router/                     # 路由
 └── config/                     # 静态配置
 ```
