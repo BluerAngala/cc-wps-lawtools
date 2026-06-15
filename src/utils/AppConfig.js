@@ -10,27 +10,13 @@ class AppConfigManager {
     this.defaultConfig = {
       // AI 服务配置
       ai: {
+        provider: 'siliconflow',
         apiKey: import.meta.env.VITE_AI_API_KEY || '',
         baseUrl: import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
-        model: 'moonshotai/Kimi-K2-Instruct-0905',
+        model: 'Qwen/Qwen2.5-14B-Instruct',
         timeout: 120000,
         maxTokens: 8000,
-        temperature: 0.1,
-        defaultModels: [
-          {
-            label: 'Qwen2.5-7B-Instruct (推荐-快速)',
-            value: 'Qwen/Qwen2.5-7B-Instruct',
-            tag: '推荐'
-          },
-          {
-            label: 'Qwen2.5-14B-Instruct (推荐-平衡)',
-            value: 'Qwen/Qwen2.5-14B-Instruct',
-            tag: '推荐'
-          },
-          { label: 'Qwen2.5-72B-Instruct (强大)', value: 'Qwen/Qwen2.5-72B-Instruct', tag: '高级' },
-          { label: 'DeepSeek-V3 (高性能)', value: 'deepseek-ai/DeepSeek-V3', tag: '高级' },
-          { label: 'GLM-4-9B (快速)', value: 'Pro/THUDM/glm-4-9b-chat', tag: '推荐' }
-        ]
+        temperature: 0.1
       },
 
       // RAG 向量检索配置
@@ -961,10 +947,11 @@ class AppConfigManager {
   getAIConfig() {
     const config = this.get('ai') || {}
     return {
+      provider: config.provider || 'siliconflow',
       apiKey: config.apiKey || import.meta.env.VITE_AI_API_KEY || '',
       baseUrl:
         config.baseUrl || import.meta.env.VITE_AI_API_BASE_URL || 'https://api.siliconflow.cn/v1',
-      model: config.model || 'Qwen/Qwen2.5-7B-Instruct',
+      model: config.model || 'Qwen/Qwen2.5-14B-Instruct',
       timeout: config.timeout || 120000,
       maxTokens: config.maxTokens || 8000,
       temperature: config.temperature !== undefined ? config.temperature : 0.1

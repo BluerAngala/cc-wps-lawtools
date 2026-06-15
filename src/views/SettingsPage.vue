@@ -23,50 +23,89 @@
         <div class="section-head">
           <div>
             <h3>AI 服务</h3>
-            <p class="section-desc">配置 AI 模型、API 凭据和生成参数</p>
+            <p class="section-desc">选择服务商后只需填 API Key 即可使用</p>
           </div>
           <div class="section-actions">
             <button class="sm-btn warn" @click="resetSection('ai')">恢复默认</button>
-            <button class="sm-btn" @click="refreshModelList">刷新模型</button>
+            <button class="sm-btn" @click="refreshModelList" :disabled="!ai.apiKey">刷新模型</button>
           </div>
         </div>
 
         <div class="form-section">
           <div class="form-group">
-            <label>API Key</label>
-            <div class="input-with-action">
-              <input
-                v-model="ai.apiKey"
-                type="password"
-                class="text-input"
-                placeholder="请输入 API Key"
-                @input="autoSave"
-              />
+            <label>服务商</label>
+            <div class="provider-grid">
+              <button
+                v-for="p in AI_PROVIDERS"
+                :key="p.id"
+                class="provider-card"
+                :class="{ active: ai.provider === p.id }"
+                @click="selectProvider(p.id)"
+                type="button"
+              >
+                <div class="provider-name">{{ p.name }}</div>
+                <div class="provider-desc">{{ p.description }}</div>
+              </button>
             </div>
           </div>
 
           <div class="form-group">
+            <label>API Key</label>
+            <input
+              v-model="ai.apiKey"
+              type="password"
+              class="text-input"
+              placeholder="请输入 API Key"
+              @input="autoSave"
+            />
+            <p v-if="ai.provider === 'siliconflow'" class="field-hint">
+              硅基流动：<a class="link" @click="openUrl('https://cloud.siliconflow.cn/account/ak')">获取 API Key →</a>
+            </p>
+            <p v-else-if="ai.provider === 'deepseek'" class="field-hint">
+              DeepSeek：<a class="link" @click="openUrl('https://platform.deepseek.com/api_keys')">获取 API Key →</a>
+            </p>
+            <p v-else-if="ai.provider === 'kimi'" class="field-hint">
+              Kimi：<a class="link" @click="openUrl('https://platform.moonshot.cn/console/api-keys')">获取 API Key →</a>
+            </p>
+          </div>
+
+          <div v-if="ai.provider === 'custom'" class="form-group">
             <label>API 地址</label>
             <input
               v-model="ai.baseUrl"
               class="text-input"
-              placeholder="https://api.siliconflow.cn/v1"
+              placeholder="https://your-api.com/v1"
               @input="autoSave"
             />
+            <p class="field-hint">任何 OpenAI 兼容的中转 API（如 one-api、new-api）</p>
           </div>
 
           <div class="form-group">
             <label>模型</label>
-            <div class="input-with-action">
-              <select v-model="ai.model" class="text-input" @change="autoSave">
-                <option v-for="m in modelOptions" :key="m.value" :value="m.value">
-                  {{ m.label }}
-                </option>
-              </select>
-              <span class="hint-text">{{ modelOptions.length }} 个可用模型</span>
+            <div v-if="currentProviderModels.length" class="model-chips">
+              <button
+                v-for="m in currentProviderModels"
+                :key="m.value"
+                class="model-chip"
+                :class="{ active: ai.model === m.value }"
+                @click="selectModel(m.value)"
+                type="button"
+              >
+                <span v-if="m.tag" :class="['chip-tag', m.tag === '推荐' ? 'tag-recommend' : 'tag-advanced']">{{ m.tag }}</span>
+                {{ m.label }}
+              </button>
             </div>
-            <p class="field-hint">
-              💡 <strong>推荐</strong>：Qwen2.5-7B/14B（速度快）｜<strong>高级</strong>：DeepSeek-V3/Qwen2.5-72B（功能强）
+            <input
+              v-model="ai.model"
+              class="text-input"
+              :placeholder="currentProviderModels.length ? '或输入自定义模型名' : '请输入模型名称'"
+              @input="autoSave"
+            />
+            <p v-if="!currentProviderModels.length && ai.provider === 'custom'" class="field-hint">
+              自定义中转请输入服务商提供的模型 ID
+            </p>
+            <p v-else class="field-hint">
+              切换服务商时会自动选择推荐模型，你也可以输入任何服务商支持的模型名
             </p>
           </div>
         </div>
@@ -664,12 +703,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { appConfig } from '@/utils/AppConfig.js'
 import { reinitializeAIClient, getAvailableModels } from '@/services/ai/siliconflow.js'
 import { playbookService } from '@/services/ai/playbookService.js'
 import { qdrantClient } from '@/services/rag/QdrantClient.js'
 import { ragService } from '@/services/rag/RagService.js'
+import { AI_PROVIDERS, getProvider, detectProviderByUrl } from '@/config/providerPresets.js'
 
 const tabs = [
   { id: 'ai', label: '🤖 AI 服务' },
@@ -684,8 +724,14 @@ const tabs = [
 const activeTab = ref('ai')
 
 // AI 配置
-const ai = ref({ ...appConfig.get('ai') })
-const modelOptions = ref(appConfig.get('ai').defaultModels || [])
+const aiRaw = appConfig.get('ai')
+// 向后兼容：旧配置没有 provider 字段，根据 baseUrl 推断
+if (!aiRaw.provider) {
+  aiRaw.provider = detectProviderByUrl(aiRaw.baseUrl)
+}
+const ai = ref({ ...aiRaw })
+const currentProvider = computed(() => getProvider(ai.value.provider))
+const currentProviderModels = computed(() => currentProvider.value.models)
 
 // RAG 配置
 const rag = ref({ ...appConfig.get('rag') })
@@ -731,27 +777,52 @@ function closeDialog() {
 }
 
 onMounted(() => {
-  loadModelList()
   loadKdocsSchemes()
   loadKeywordSchemes()
   loadReviewSchemes()
 })
 
 // ========== AI 服务 ==========
-async function loadModelList() {
-  try {
-    const models = await getAvailableModels()
-    modelOptions.value = models.map((m) => ({ label: m.name || m.id, value: m.id }))
-  } catch {
-    modelOptions.value = appConfig.get('ai').defaultModels || []
+function selectProvider(id) {
+  const provider = getProvider(id)
+  ai.value.provider = id
+  if (provider.baseUrl) {
+    ai.value.baseUrl = provider.baseUrl
   }
+  if (provider.defaultModel) {
+    ai.value.model = provider.defaultModel
+  }
+  autoSave()
+}
+
+function selectModel(value) {
+  ai.value.model = value
+  autoSave()
 }
 
 async function refreshModelList() {
-  appConfig.saveConfig({ ...appConfig.getConfig(), ai: ai.value })
-  reinitializeAIClient()
-  await loadModelList()
-  window.$message?.success('模型列表已刷新')
+  if (!ai.value.apiKey) {
+    window.$message?.warning('请先填 API Key')
+    return
+  }
+  autoSave()
+  try {
+    const models = await getAvailableModels()
+    const provider = getProvider(ai.value.provider)
+    if (provider.id === 'custom') {
+      // 自定义中转：把 API 返回的模型加到可选列表
+      const newModels = models.map((m) => ({ label: m.name || m.id, value: m.id, tag: '' }))
+      const existing = provider.models.map((m) => m.value)
+      const merged = [...provider.models]
+      for (const m of newModels) {
+        if (!existing.includes(m.value)) merged.push(m)
+      }
+      provider.models = merged
+    }
+    window.$message?.success(`已获取 ${models.length} 个模型`)
+  } catch (e) {
+    window.$message?.error(`获取失败: ${e.message}`)
+  }
 }
 
 function autoSave() {
@@ -767,6 +838,14 @@ function resetSection(section) {
     ai.value = { ...defaults.ai }
     autoSave()
     window.$message?.success('已恢复默认配置')
+  }
+}
+
+function openUrl(url) {
+  if (window.Application?.Browser?.openUrl) {
+    window.Application.Browser.openUrl(url)
+  } else {
+    window.open(url, '_blank')
   }
 }
 
@@ -1355,6 +1434,106 @@ textarea.text-input {
   border-radius: 3px;
   margin-left: 6px;
   font-weight: 600;
+}
+
+/* Provider cards */
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.provider-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border: 1.5px solid var(--c-border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  font-family: inherit;
+}
+.provider-card:hover {
+  border-color: var(--c-accent);
+  background: var(--c-accent-light);
+}
+.provider-card.active {
+  border-color: var(--c-accent);
+  background: var(--c-accent-light);
+  box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.15);
+}
+.provider-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text);
+  margin-bottom: 2px;
+}
+.provider-desc {
+  font-size: 11px;
+  color: var(--c-text2);
+  line-height: 1.4;
+}
+
+/* Model chips */
+.model-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--c-text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.model-chip:hover {
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+.model-chip.active {
+  background: var(--c-accent);
+  color: #fff;
+  border-color: var(--c-accent);
+}
+.chip-tag {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.tag-recommend {
+  background: #fef3c7;
+  color: #92400e;
+}
+.tag-advanced {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+.model-chip.active .chip-tag {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.link {
+  color: var(--c-accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+}
+.link:hover {
+  color: #c62828;
 }
 
 .sm-btn {
