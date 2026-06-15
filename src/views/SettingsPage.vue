@@ -1226,12 +1226,12 @@ function showConfigPath() {
 
 <style scoped>
 .settings-root {
-  --c-brand: #0a0a0a;
-  --c-brand-light: #2d2d2d;
-  --c-accent: #e63946;
-  --c-accent-light: #fee2e2;
-  --c-highlight: #f5c518;
-  --c-highlight-light: #fff9c4;
+  --c-brand: #1e3a8a;
+  --c-brand-light: #2563eb;
+  --c-accent: #2563eb;
+  --c-accent-light: #dbeafe;
+  --c-highlight: #f59e0b;
+  --c-highlight-light: #fef3c7;
   --c-surface: #ffffff;
   --c-danger: #dc2626;
   --c-success: #16a34a;
@@ -1253,7 +1253,7 @@ function showConfigPath() {
   align-items: center;
   justify-content: space-between;
   padding: 12px 18px;
-  background: linear-gradient(135deg, #0a0a0a, #2d2d2d);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   flex-shrink: 0;
 }
@@ -1533,7 +1533,7 @@ textarea.text-input {
   font-weight: 500;
 }
 .link:hover {
-  color: #c62828;
+  color: #1d4ed8;
 }
 
 .sm-btn {
@@ -1571,8 +1571,8 @@ textarea.text-input {
   border-color: var(--c-accent);
 }
 .sm-btn.primary:hover {
-  background: #c62828;
-  border-color: #c62828;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 .danger-btn {
   padding: 6px 14px;
@@ -1840,7 +1840,7 @@ textarea.text-input {
   justify-content: center;
 }
 .del-btn-sm:hover {
-  background: #fee2e2;
+  background: var(--c-accent-light);
   color: var(--c-danger);
 }
 
@@ -1879,7 +1879,7 @@ textarea.text-input {
   margin-top: 4px;
 }
 .primary-save-btn:hover {
-  background: #c62828;
+  background: #1d4ed8;
 }
 
 /* Tag list */

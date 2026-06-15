@@ -310,7 +310,7 @@ function handleRetry() {
   background: #fafafa;
 }
 .af-input:focus {
-  border-color: var(--c-brand, #0a0a0a);
+  border-color: var(--c-accent, #2563eb);
   background: #fff;
 }
 .af-select {

@@ -757,12 +757,12 @@ onMounted(() => {
 
 <style scoped>
 .chat-root {
-  --c-brand: #0a0a0a;
-  --c-brand-light: #2d2d2d;
-  --c-accent: #e63946;
-  --c-accent-light: #fee2e2;
-  --c-highlight: #f5c518;
-  --c-highlight-light: #fff9c4;
+  --c-brand: #1e3a8a;
+  --c-brand-light: #2563eb;
+  --c-accent: #2563eb;
+  --c-accent-light: #dbeafe;
+  --c-highlight: #f59e0b;
+  --c-highlight-light: #fef3c7;
   --c-surface: #ffffff;
   --c-danger: #dc2626;
   --c-success: #16a34a;
@@ -891,7 +891,7 @@ onMounted(() => {
   word-break: break-word;
 }
 .msg-bubble.user {
-  background: linear-gradient(135deg, #e63946, #c62828);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -978,7 +978,7 @@ onMounted(() => {
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 12px;
-  color: #c62828;
+  color: #1d4ed8;
 }
 .md-content :deep(pre) {
   background: #f5f5f5;
@@ -1159,7 +1159,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 .qa-btn:last-child {
-  background: linear-gradient(135deg, #e63946, #c62828);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   border-color: transparent;
   font-weight: 600;

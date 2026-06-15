@@ -224,8 +224,8 @@ defineExpose({ inputRef, autoResizeInput })
   flex-shrink: 0;
 }
 .send-btn.ready {
-  background: linear-gradient(135deg, #e63946, #c62828);
-  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 .send-btn.ready:hover {
   transform: scale(1.06);

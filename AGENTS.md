@@ -239,16 +239,19 @@ npm run create-templates          # 生成模板文档
 | 历史持久化 | 对话记录保存到 `PluginStorage`，重开自动恢复 |
 | 宽度模式 | 紧凑/标准/宽屏 三档切换 (`mode-compact`/`mode-normal`/`mode-wide`) |
 
-### 品牌配色
+### 品牌配色（商务蓝）
 
 ```css
---c-brand: #0A0A0A       /* 纯黑（主色） */
---c-brand-light: #2D2D2D /* 深灰（渐变辅色） */
---c-accent: #E63946      /* 科技红（强调色） */
---c-accent-light: #FEE2E2 /* 浅红背景 */
---c-highlight: #F5C518   /* 明黄（高亮色） */
---c-highlight-light: #FFF9C4 /* 浅黄背景 */
+--c-brand: #1E3A8A       /* 深蓝（主色） */
+--c-brand-light: #2563EB /* 标准蓝（渐变辅色） */
+--c-accent: #2563EB      /* 商务蓝（强调色） */
+--c-accent-light: #DBEAFE /* 浅蓝背景 */
+--c-highlight: #F59E0B   /* 琥珀（高亮色） */
+--c-highlight-light: #FEF3C7 /* 浅琥珀背景 */
 ```
+
+主色为商务蓝（blue-700/600），适用于所有 header 渐变、按钮、按钮 hover 状态。
+风险/警示色（red/green/yellow）保持通用语义不变（TriageCard、RiskMatrix 等的红/黄/绿等级）。
 
 ### AI 操作指令格式
 

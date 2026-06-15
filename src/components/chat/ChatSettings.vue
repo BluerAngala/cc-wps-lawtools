@@ -542,7 +542,7 @@ async function loadStats() {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #0a0a0a, #2d2d2d);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   flex-shrink: 0;
 }
