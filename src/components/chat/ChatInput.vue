@@ -115,16 +115,17 @@ defineExpose({ inputRef, autoResizeInput })
 <style scoped>
 .input-area {
   flex-shrink: 0;
-  padding: 8px 6px 6px;
+  padding: 8px 10px 6px;
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
   position: relative;
+  min-width: 0;
 }
 .slash-menu {
   position: absolute;
   bottom: 100%;
-  left: 6px;
-  right: 6px;
+  left: 10px;
+  right: 10px;
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-sm, 8px);
@@ -180,9 +181,11 @@ defineExpose({ inputRef, autoResizeInput })
   display: flex;
   align-items: flex-end;
   gap: 6px;
+  min-width: 0;
 }
 .chat-input {
   flex: 1;
+  min-width: 0;
   resize: none;
   border: 1.5px solid var(--c-border);
   border-radius: var(--radius-sm, 8px);

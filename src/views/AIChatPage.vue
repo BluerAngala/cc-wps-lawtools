@@ -774,6 +774,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
   background: var(--c-bg);
   color: var(--c-text);
   font-family:
@@ -784,8 +785,9 @@ onMounted(() => {
 .messages-area {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 6px;
+  padding: 10px 12px;
   scroll-behavior: smooth;
+  min-width: 0;
 }
 
 .msg-row {
@@ -1129,7 +1131,7 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 6px 6px 2px;
+  padding: 8px 10px 4px;
   flex-shrink: 0;
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
