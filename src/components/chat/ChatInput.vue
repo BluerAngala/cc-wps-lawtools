@@ -270,10 +270,22 @@ defineExpose({ inputRef, autoResizeInput })
 }
 .input-hint {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
   padding: 2px 2px 0;
   font-size: 10px;
   color: var(--c-text2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.input-hint::-webkit-scrollbar {
+  display: none;
+}
+.input-hint > span {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .slide-up-enter-active,
 .slide-up-leave-active {
