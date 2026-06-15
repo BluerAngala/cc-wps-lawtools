@@ -63,7 +63,7 @@ const quickPrompts = [
 }
 .quick-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 8px;
   width: 100%;
 }
@@ -78,6 +78,18 @@ const quickPrompts = [
   cursor: pointer;
   text-align: left;
   transition: all 0.18s;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.qc-desc {
+  font-size: 11px;
+  color: var(--c-text2);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .quick-card:hover {
   border-color: var(--c-accent);
@@ -92,10 +104,9 @@ const quickPrompts = [
   font-size: 13px;
   font-weight: 600;
   color: var(--c-text);
-}
-.qc-desc {
-  font-size: 11px;
-  color: var(--c-text2);
-  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 </style>
