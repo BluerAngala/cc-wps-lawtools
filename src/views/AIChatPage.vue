@@ -9,13 +9,6 @@
     />
 
     <div ref="messagesArea" class="messages-area" @scroll="onScroll">
-      <EmptyState
-        v-if="messages.length === 0 && !isLoading"
-        :is-loading="isLoading"
-        :messages="messages"
-        @quick-prompt="handleQuickPrompt"
-      />
-
       <TransitionGroup name="msg">
         <div
           v-for="(msg, mIdx) in messages"
@@ -124,14 +117,14 @@
       <div class="lb-progress"></div>
     </div>
 
-    <div v-if="!selectMode && messages.length" class="action-toolbar">
+    <div v-if="!selectMode" class="action-toolbar">
       <button
-        v-for="qa in quickActions"
-        :key="qa.value"
+        v-for="qa in quickPrompts"
+        :key="qa.text"
         class="qa-btn"
         :title="qa.desc"
         :disabled="isLoading"
-        @click="handleQuickAction(qa)"
+        @click="handleQuickPrompt(qa.text)"
       >
         <span class="qa-icon">{{ qa.icon }}</span>
         <span class="qa-label">{{ qa.label }}</span>
@@ -163,7 +156,6 @@ import { playbookService } from '@/services/ai/playbookService.js'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import ChatSettings from '@/components/chat/ChatSettings.vue'
-import EmptyState from '@/components/chat/EmptyState.vue'
 import ActionCard from '@/components/chat/ActionCard.vue'
 import RiskMatrix from '@/components/chat/RiskMatrix.vue'
 import TriageCard from '@/components/chat/TriageCard.vue'
@@ -216,13 +208,13 @@ function toggleSelectAll() {
   }
 }
 
-const quickActions = [
-  { icon: '🔍', label: '审查合同', value: '/审查', desc: '全面审查合同风险' },
-  { icon: '⚡', label: '风险扫描', value: '请扫描当前文档中的敏感信息，列出位置和类型', desc: '扫描敏感信息' },
-  { icon: '🔒', label: '信息脱敏', value: '/脱敏', desc: '识别并脱敏敏感信息' },
-  { icon: '📋', label: '合同模板', value: '请帮我生成一份常见的法律合同模板', desc: '生成模板文档' },
-  { icon: '🔄', label: '批量处理', value: '请批量处理文档中的关键词，添加批注或修订', desc: '批量关键词处理' },
-  { icon: '🚀', label: '一键审查', value: '_fullReview', desc: '全流程审查：识别→分析→提取→逐条审查' }
+const quickPrompts = [
+  { icon: '🔍', label: '审查合同', text: '请全面审查当前合同，指出主要风险点并提供修改建议' },
+  { icon: '🔒', label: '信息脱敏', text: '/脱敏' },
+  { icon: '🚦', label: '保密协议分流', text: '/保密' },
+  { icon: '⚡', label: '风险评估', text: '/风险' },
+  { icon: '📋', label: '摘要总结', text: '请总结当前合同的核心条款和关键信息' },
+  { icon: '📝', label: '生成模板', text: '请帮我生成一份常见的法律合同模板' }
 ]
 
 const slashCommands = [
@@ -602,15 +594,6 @@ async function handleLocateAction(action) {
     console.warn('定位失败:', e)
     window.$message?.error('定位失败，请稍后重试')
   }
-}
-
-function handleQuickAction(qa) {
-  if (qa.value === '_fullReview') {
-    handleFullReview()
-    return
-  }
-  inputText.value = qa.value
-  nextTick(() => handleSend())
 }
 
 async function handleFullReview() {
