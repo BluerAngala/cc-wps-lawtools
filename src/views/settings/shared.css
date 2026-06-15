@@ -479,19 +479,13 @@ textarea.text-input {
 .acc-title:hover {
   background: #f3f4f6;
 }
-/* 编辑提示铅笔 - 悬停时显现 */
-.acc-title::after {
-  content: '✎';
+.edit-hint {
   font-size: 11px;
+  font-weight: 400;
   color: var(--c-text3);
-  opacity: 0;
-  flex-shrink: 0;
-  transition: opacity 0.12s;
   margin-left: auto;
-  padding-left: 6px;
-}
-.acc-title:hover::after {
-  opacity: 0.7;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .acc-title .title-input {
   flex: 1;

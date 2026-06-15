@@ -42,6 +42,7 @@
               @click.stop
             />
             <span v-else>{{ rule.keyword || `规则 #${idx + 1}` }}</span>
+            <span v-if="editing !== idx" class="edit-hint">双击可编辑</span>
           </span>
           <span class="acc-actions">
             <button class="del-btn-sm" @click.stop="removeRule(idx)" title="删除">×</button>

@@ -20,6 +20,7 @@
               @click.stop
             />
             <span v-else>{{ pos.category || '未命名' }}</span>
+            <span v-if="!(editing.kind === 'pos' && editing.id === pos.id)" class="edit-hint">双击可编辑</span>
           </span>
           <span class="acc-actions">
             <button class="del-btn-sm" @click.stop="removePosition(idx)" title="删除">×</button>
@@ -98,6 +99,7 @@
               @click.stop
             />
             <span v-else>{{ tpl.name || '未命名回复' }}</span>
+            <span v-if="!(editing.kind === 'tpl' && editing.id === tpl.id)" class="edit-hint">双击可编辑</span>
           </span>
           <span class="acc-actions">
             <button class="del-btn-sm" @click.stop="removeTemplate(idx)" title="删除">×</button>
