@@ -1,18 +1,22 @@
 <template>
   <div class="settings-root">
-    <div class="settings-tabs">
-      <button
-        v-for="t in tabs"
-        :key="t.id"
-        class="tab-btn"
-        :class="{ active: activeTab === t.id }"
-        @click="activeTab = t.id"
-      >
-        {{ t.label }}
-      </button>
-    </div>
+    <aside class="settings-sidebar">
+      <div class="sidebar-title">设置</div>
+      <nav class="sidebar-nav">
+        <button
+          v-for="t in tabs"
+          :key="t.id"
+          class="nav-item"
+          :class="{ active: activeTab === t.id }"
+          @click="activeTab = t.id"
+        >
+          <span class="nav-icon">{{ t.icon }}</span>
+          <span class="nav-label">{{ t.label }}</span>
+        </button>
+      </nav>
+    </aside>
 
-    <div class="settings-body">
+    <main class="settings-body">
       <!-- 1. AI 服务 -->
       <div v-show="activeTab === 'ai'" class="tab-content">
         <div class="section-head">
@@ -693,7 +697,7 @@
           <button class="danger-btn" @click="handleResetAll">重置所有配置</button>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -708,13 +712,13 @@ import { AI_PROVIDERS, getProvider, detectProviderByUrl } from '@/config/provide
 import { wpsCore } from '@/services/wps/WpsCore.js'
 
 const tabs = [
-  { id: 'ai', label: '🤖 AI 服务' },
-  { id: 'rag', label: '🔍 RAG' },
-  { id: 'playbook', label: '📋 审查策略' },
-  { id: 'kdocs', label: '📄 金山文档' },
-  { id: 'keyword', label: '🏷️ 关键词批注' },
-  { id: 'review', label: '⚖️ 审查方案' },
-  { id: 'data', label: '💾 数据管理' }
+  { id: 'ai', icon: '🤖', label: 'AI 服务' },
+  { id: 'rag', icon: '🔍', label: 'RAG' },
+  { id: 'playbook', icon: '📋', label: '审查策略' },
+  { id: 'kdocs', icon: '📄', label: '金山文档' },
+  { id: 'keyword', icon: '🏷️', label: '关键词批注' },
+  { id: 'review', icon: '⚖️', label: '审查方案' },
+  { id: 'data', icon: '💾', label: '数据管理' }
 ]
 
 // 各服务商 API Key 申请页
@@ -772,10 +776,6 @@ const extractor = ref({ ...appConfig.get('extractor') })
 
 // 数据管理
 const configPath = ref('')
-
-function closeDialog() {
-  window.close()
-}
 
 onMounted(() => {
   loadKdocsSchemes()
@@ -1266,42 +1266,77 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
-.settings-tabs {
-  display: flex;
+.settings-sidebar {
+  width: 180px;
   background: #fff;
-  border-bottom: 1px solid var(--c-border);
-  padding: 0 12px;
+  border-right: 1px solid var(--c-border);
   flex-shrink: 0;
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
 }
-.tab-btn {
-  padding: 10px 14px;
+.sidebar-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-text3);
+  padding: 16px 18px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
   border: none;
   background: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--c-text2);
+  border-radius: 6px;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
-  white-space: nowrap;
-  transition: all 0.15s;
-}
-.tab-btn:hover {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--c-text);
+  text-align: left;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
-.tab-btn.active {
+.nav-item:hover {
+  background: #f3f4f6;
+}
+.nav-item.active {
+  background: var(--c-accent-light);
   color: var(--c-accent);
-  border-bottom-color: var(--c-accent);
+  font-weight: 600;
+}
+.nav-icon {
+  font-size: 15px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settings-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 18px;
+  padding: 16px 22px;
+  min-width: 0;
 }
 
 .tab-content {
-  max-width: 800px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
