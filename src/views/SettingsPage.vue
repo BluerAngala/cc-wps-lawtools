@@ -2,7 +2,7 @@
   <div class="settings-root">
     <div class="settings-header">
       <h2>设置</h2>
-      <button class="close-btn" @click="closeDialog" title="关闭">×</button>
+      <button class="close-btn" @click="closePane" title="关闭">×</button>
     </div>
 
     <div class="settings-tabs">
@@ -778,8 +778,20 @@ const extractor = ref({ ...appConfig.get('extractor') })
 // 数据管理
 const configPath = ref('')
 
-function closeDialog() {
-  window.close()
+function closePane() {
+  // 任务窗格通过 PluginStorage 存储的 id 隐藏自己
+  try {
+    const app = window.Application
+    if (app?.PluginStorage) {
+      const id = app.PluginStorage.getItem('tp_settings')
+      if (id) {
+        const pane = app.GetTaskPane ? app.GetTaskPane(id) : null
+        if (pane) pane.Visible = false
+      }
+    }
+  } catch {
+    /* noop */
+  }
 }
 
 onMounted(() => {
