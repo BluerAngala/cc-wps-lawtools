@@ -1,21 +1,5 @@
 <template>
   <div v-if="messages.length === 0 && !isLoading" class="empty-state">
-    <div class="empty-logo">
-      <svg
-        width="48"
-        height="48"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M12 3v18m-6-4l6 4 6-4M6 7l6-4 6 4" />
-      </svg>
-    </div>
-    <h2 class="empty-title">AI 法律助手</h2>
-    <p class="empty-desc">对话式审查、修改当前合同文档</p>
     <div class="quick-grid">
       <button
         v-for="s in quickPrompts"
@@ -74,38 +58,14 @@ const quickPrompts = [
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px 10px;
-}
-.empty-logo {
-  width: 56px;
-  height: 56px;
-  background: #f5f5f5;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--c-highlight);
-  margin-bottom: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-.empty-title {
-  font-size: 18px;
-  font-weight: 800;
-  margin: 0 0 6px;
-  color: var(--c-brand);
-}
-.empty-desc {
-  font-size: 13px;
-  color: var(--c-text2);
-  margin: 0 0 24px;
+  justify-content: flex-start;
+  padding: 20px 10px;
 }
 .quick-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   width: 100%;
-  max-width: 420px;
 }
 .quick-card {
   display: flex;

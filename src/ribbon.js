@@ -8,7 +8,7 @@ function OnAction(control) {
   const eleId = control.Id
   switch (eleId) {
     case 'btnAIChat':
-      Util.wpsService.createTaskPane('aichat', { width: 850 })
+      Util.wpsService.createTaskPane('aichat', { width: 480 })
       break
     case 'btnSettings':
       Util.wpsService.showDialog('/settings', { width: 800, height: 600 })
