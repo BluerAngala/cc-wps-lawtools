@@ -522,7 +522,7 @@
         </div>
 
         <div class="form-section">
-          <div class="section-head">
+          <div class="sub-section-head">
             <div></div>
             <div class="section-actions">
               <button class="sm-btn" @click="addKeywordRule">+ 添加规则</button>
@@ -601,7 +601,7 @@
         </div>
 
         <div class="form-section">
-          <div class="section-head">
+          <div class="sub-section-head">
             <div></div>
             <div class="section-actions">
               <button class="sm-btn" @click="addReviewRule">+ 添加审查项</button>
@@ -1365,6 +1365,15 @@ body {
   font-size: 14px;
   font-weight: 700;
   color: var(--c-text);
+}
+
+/* 嵌套的子级 head（如"添加规则"按钮），不粘性 */
+.sub-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 .section-desc {
   margin: 0;
