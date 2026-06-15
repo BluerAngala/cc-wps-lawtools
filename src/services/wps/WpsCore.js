@@ -177,6 +177,31 @@ class WPSCoreService {
   }
 
   /**
+   * 在 WPS 内置浏览器中打开外部 URL（用于设置面板跳转 API 申请页等）
+   * @param {string} url 外部链接
+   * @param {string} title 弹窗标题
+   * @returns {boolean} 是否成功打开
+   */
+  openExternalUrl(url, title = '浏览器') {
+    if (!url) return false
+    try {
+      if (window.Application?.ShowDialog) {
+        window.Application.ShowDialog(url, title, 1200, 800, false)
+        return true
+      }
+      // 退而求其次：使用 WPS 任务窗格（侧边栏形式）
+      if (window.Application?.TaskPane) {
+        this.createExternalTaskPane(url, 850)
+        return true
+      }
+      return false
+    } catch (e) {
+      console.error('openExternalUrl failed:', e)
+      return false
+    }
+  }
+
+  /**
    * 停靠任务窗格
    */
   dockTaskPane(position, key = 'default') {

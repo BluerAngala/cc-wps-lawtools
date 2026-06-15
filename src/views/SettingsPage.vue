@@ -59,13 +59,13 @@
               @input="autoSave"
             />
             <p v-if="ai.provider === 'siliconflow'" class="field-hint">
-              硅基流动：<a class="link" @click="openUrl('https://cloud.siliconflow.cn/account/ak')">获取 API Key →</a>
+              硅基流动：<a class="link" :href="siliconflowKeyUrl" @click.prevent="openUrl(siliconflowKeyUrl)">获取 API Key →</a>
             </p>
             <p v-else-if="ai.provider === 'deepseek'" class="field-hint">
-              DeepSeek：<a class="link" @click="openUrl('https://platform.deepseek.com/api_keys')">获取 API Key →</a>
+              DeepSeek：<a class="link" :href="deepseekKeyUrl" @click.prevent="openUrl(deepseekKeyUrl)">获取 API Key →</a>
             </p>
             <p v-else-if="ai.provider === 'kimi'" class="field-hint">
-              Kimi：<a class="link" @click="openUrl('https://platform.moonshot.cn/console/api-keys')">获取 API Key →</a>
+              Kimi：<a class="link" :href="kimiKeyUrl" @click.prevent="openUrl(kimiKeyUrl)">获取 API Key →</a>
             </p>
           </div>
 
@@ -710,6 +710,7 @@ import { playbookService } from '@/services/ai/playbookService.js'
 import { qdrantClient } from '@/services/rag/QdrantClient.js'
 import { ragService } from '@/services/rag/RagService.js'
 import { AI_PROVIDERS, getProvider, detectProviderByUrl } from '@/config/providerPresets.js'
+import { wpsCore } from '@/services/wps/WpsCore.js'
 
 const tabs = [
   { id: 'ai', label: '🤖 AI 服务' },
@@ -720,6 +721,11 @@ const tabs = [
   { id: 'review', label: '⚖️ 审查方案' },
   { id: 'data', label: '💾 数据管理' }
 ]
+
+// 各服务商 API Key 申请页
+const siliconflowKeyUrl = 'https://cloud.siliconflow.cn/account/ak'
+const deepseekKeyUrl = 'https://platform.deepseek.com/api_keys'
+const kimiKeyUrl = 'https://platform.moonshot.cn/console/api-keys'
 
 const activeTab = ref('ai')
 
@@ -842,10 +848,17 @@ function resetSection(section) {
 }
 
 function openUrl(url) {
-  if (window.Application?.Browser?.openUrl) {
-    window.Application.Browser.openUrl(url)
-  } else {
-    window.open(url, '_blank')
+  const providerNames = {
+    siliconflow: '硅基流动',
+    deepseek: 'DeepSeek',
+    kimi: 'Kimi',
+    custom: '服务商'
+  }
+  const providerId = ai.value.provider
+  const title = `${providerNames[providerId] || '服务商'} - 获取 API Key`
+  const ok = wpsCore.openExternalUrl(url, title)
+  if (!ok) {
+    window.$message?.warning('无法在 WPS 中打开链接，请手动复制访问：' + url)
   }
 }
 
