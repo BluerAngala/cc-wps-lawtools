@@ -6,13 +6,17 @@
       </template>
       <div v-for="(pos, idx) in playbook.positions" :key="pos.id" class="acc-card">
         <div class="acc-head" @click="toggleExpand('pos', pos.id)">
-          <span class="acc-title">
+          <span class="acc-title" @dblclick.stop="startEdit('pos', pos.id)">
             <span :class="['sev-dot', pos.severity]"></span>
             <input
-              v-if="expanded.pos === pos.id"
+              v-if="editing.kind === 'pos' && editing.id === pos.id"
+              ref="titleInput"
               v-model="pos.category"
               class="title-input"
               placeholder="条款类别"
+              @blur="endEdit"
+              @keydown.enter.prevent="endEdit"
+              @keydown.esc.prevent="cancelEdit"
               @click.stop
             />
             <span v-else>{{ pos.category || '未命名' }}</span>
@@ -81,12 +85,16 @@
       </template>
       <div v-for="(tpl, idx) in playbook.responseTemplates" :key="tpl.id" class="acc-card">
         <div class="acc-head" @click="toggleExpand('tpl', tpl.id)">
-          <span class="acc-title">
+          <span class="acc-title" @dblclick.stop="startEdit('tpl', tpl.id)">
             <input
-              v-if="expanded.tpl === tpl.id"
+              v-if="editing.kind === 'tpl' && editing.id === tpl.id"
+              ref="titleInput"
               v-model="tpl.name"
               class="title-input"
               placeholder="回复模板名称"
+              @blur="endEdit"
+              @keydown.enter.prevent="endEdit"
+              @keydown.esc.prevent="cancelEdit"
               @click.stop
             />
             <span v-else>{{ tpl.name || '未命名回复' }}</span>
@@ -114,16 +122,40 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { playbookService } from '@/services/ai/playbookService.js'
 import AccordionSection from './AccordionSection.vue'
 
 const playbook = ref(playbookService.loadPlaybook())
 const sections = ref({ positions: false, nda: false, templates: false })
 const expanded = ref({ pos: null, tpl: null })
+const editing = ref({ kind: null, id: null })
+const titleInput = ref(null)
 
 function toggleExpand(type, id) {
+  // 如果处于编辑态，先退出
+  if (editing.value.kind) endEdit()
   expanded.value[type] = expanded.value[type] === id ? null : id
+}
+
+function startEdit(kind, id) {
+  expanded.value[kind] = id
+  editing.value = { kind, id }
+  nextTick(() => {
+    const el = titleInput.value
+    if (el) {
+      el.focus()
+      el.select?.()
+    }
+  })
+}
+
+function endEdit() {
+  editing.value = { kind: null, id: null }
+}
+
+function cancelEdit() {
+  endEdit()
 }
 
 watch(

@@ -469,11 +469,20 @@ textarea.text-input {
   gap: 6px;
   flex: 1;
   min-width: 0;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: 4px;
+  transition: background 0.12s;
+  cursor: pointer;
+  user-select: none;
+}
+.acc-title:hover {
+  background: #f3f4f6;
 }
 .acc-title .title-input {
   flex: 1;
   min-width: 0;
-  border: 1px solid var(--c-accent);
+  border: 1.5px solid var(--c-accent);
   border-radius: 4px;
   padding: 3px 8px;
   font-size: 13px;
@@ -482,10 +491,11 @@ textarea.text-input {
   color: var(--c-text);
   background: #fff;
   outline: none;
+  cursor: text;
+  user-select: text;
 }
 .acc-title .title-input:focus {
-  border-color: var(--c-accent);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 .acc-actions {
   display: flex;

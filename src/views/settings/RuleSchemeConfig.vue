@@ -28,13 +28,17 @@
 
       <div v-for="(rule, idx) in activeRules" :key="idx" class="acc-card">
         <div class="acc-head" @click="toggleExpand(idx)">
-          <span class="acc-title">
+          <span class="acc-title" @dblclick.stop="startEdit(idx)">
             <span :class="['action-tag', rule.actionType]">{{ rule.actionType }}</span>
             <input
-              v-if="expanded === idx"
+              v-if="editing === idx"
+              ref="titleInput"
               v-model="rule.keyword"
               class="title-input"
               :placeholder="fieldPlaceholders.keyword"
+              @blur="endEdit"
+              @keydown.enter.prevent="endEdit"
+              @keydown.esc.prevent="cancelEdit"
               @click.stop
             />
             <span v-else>{{ rule.keyword || `规则 #${idx + 1}` }}</span>
@@ -79,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { appConfig } from '@/utils/AppConfig.js'
 import SchemeSelector from './SchemeSelector.vue'
 import AccordionSection from './AccordionSection.vue'
@@ -108,6 +112,8 @@ const activeRules = ref([])
 const showNewModal = ref(false)
 const open = ref(true)
 const expanded = ref(null)
+const editing = ref(null)
+const titleInput = ref(null)
 
 onMounted(loadSchemes)
 
@@ -126,7 +132,28 @@ function loadActiveRules() {
 watch(activeId, () => loadActiveRules())
 
 function toggleExpand(idx) {
+  if (editing.value !== null) endEdit()
   expanded.value = expanded.value === idx ? null : idx
+}
+
+function startEdit(idx) {
+  expanded.value = idx
+  editing.value = idx
+  nextTick(() => {
+    const el = titleInput.value
+    if (el) {
+      el.focus()
+      el.select?.()
+    }
+  })
+}
+
+function endEdit() {
+  editing.value = null
+}
+
+function cancelEdit() {
+  endEdit()
 }
 
 function addRule() {
@@ -137,6 +164,7 @@ function addRule() {
 function removeRule(idx) {
   activeRules.value.splice(idx, 1)
   if (expanded.value === idx) expanded.value = null
+  if (editing.value === idx) editing.value = null
 }
 
 function saveScheme() {
