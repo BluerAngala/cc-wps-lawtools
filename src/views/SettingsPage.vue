@@ -1331,21 +1331,28 @@ body {
 .settings-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 22px;
+  padding: 0 22px 16px;
   min-width: 0;
 }
 
 .tab-content {
   max-width: 760px;
   margin: 0 auto;
+  padding-top: 16px;
 }
 
 .section-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
   gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--c-bg);
+  padding: 12px 0 10px;
+  margin: -12px 0 16px;
+  border-bottom: 1px solid var(--c-border);
 }
 .section-head h3 {
   margin: 0 0 4px;
