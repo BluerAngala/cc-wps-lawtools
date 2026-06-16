@@ -3,7 +3,7 @@
  * 导出所有操作并提供默认注册函数
  */
 
-import { actionRegistry } from '../actionRegistry.js'
+import { actionRegistry } from '../ActionRegistry.js'
 
 // 导入文档操作
 import { readDocumentAction } from './readDocument.js'
@@ -105,5 +105,5 @@ export {
 }
 
 // 导出基类
-export { BaseAction } from './baseAction.js'
-export { AIBaseAction } from './aiBaseAction.js'
+export { BaseAction } from './BaseAction.js'
+export { AIBaseAction } from './AiBaseAction.js'

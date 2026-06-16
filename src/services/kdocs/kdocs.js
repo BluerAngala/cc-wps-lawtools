@@ -1,6 +1,6 @@
 // 金山文档接口 - 使用 Coze 工作流
 import axios from 'axios'
-import { appConfig } from '../../utils/appConfig.js'
+import { appConfig } from '../../utils/AppConfig.js'
 
 // 获取金山文档配置
 const getKdocsConfig = () => {

@@ -11,7 +11,7 @@ import ribbon from './ribbon.js'
 window.ribbon = ribbon
 
 // 初始化路径管理器，确保所有必需目录存在
-import { pathManager } from './utils/pathManager.js'
+import { pathManager } from './utils/PathManager.js'
 if (typeof window !== 'undefined' && window.Application) {
   // 延迟初始化，确保 WPS 环境完全加载
   setTimeout(() => {

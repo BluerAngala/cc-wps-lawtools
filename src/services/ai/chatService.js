@@ -1,8 +1,8 @@
-import { wpsDocument } from '../wps/document.js'
-import { appConfig } from '../../utils/appConfig.js'
+import { wpsDocument } from '../wps/WpsDocument.js'
+import { appConfig } from '../../utils/AppConfig.js'
 import { buildSystemPrompt } from './promptTemplates.js'
 import { ragService, RagService } from '../rag/index.js'
-import { actionRegistry } from '../workflow/actionRegistry.js'
+import { actionRegistry } from '../workflow/ActionRegistry.js'
 import { registerAllActions } from '../workflow/actions/index.js'
 
 registerAllActions(actionRegistry)

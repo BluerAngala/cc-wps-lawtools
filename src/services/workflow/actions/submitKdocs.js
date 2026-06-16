@@ -3,9 +3,9 @@
  * 将提取的合同数据提交到金山文档并获取合同编号
  */
 
-import { BaseAction, createSuccessResult, createErrorResult } from './baseAction.js'
+import { BaseAction, createSuccessResult, createErrorResult } from './BaseAction.js'
 import { ActionTypes } from '../types.js'
-import { dataSubmitter } from '../../contract/dataSubmitter.js'
+import { dataSubmitter } from '../../contract/DataSubmitter.js'
 
 export class SubmitKdocsAction extends BaseAction {
   constructor() {

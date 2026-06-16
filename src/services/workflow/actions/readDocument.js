@@ -2,9 +2,9 @@
  * 读取文档操作
  */
 
-import { BaseAction, createSuccessResult, createErrorResult } from './baseAction.js'
+import { BaseAction, createSuccessResult, createErrorResult } from './BaseAction.js'
 import { ActionTypes } from '../types.js'
-import { wpsDocument } from '../../wps/document.js'
+import { wpsDocument } from '../../wps/WpsDocument.js'
 
 export class ReadDocumentAction extends BaseAction {
   constructor() {

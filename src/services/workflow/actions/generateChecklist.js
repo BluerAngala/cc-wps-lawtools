@@ -3,9 +3,9 @@
  * 根据文档类型和审查视角生成审查清单
  */
 
-import { BaseAction, createSuccessResult, createErrorResult } from './baseAction.js'
+import { BaseAction, createSuccessResult, createErrorResult } from './BaseAction.js'
 import { ActionTypes } from '../types.js'
-import { reviewChecklistGenerator } from '../../contract/reviewChecklistGenerator.js'
+import { reviewChecklistGenerator } from '../../contract/ReviewChecklistGenerator.js'
 
 export class GenerateChecklistAction extends BaseAction {
   constructor() {

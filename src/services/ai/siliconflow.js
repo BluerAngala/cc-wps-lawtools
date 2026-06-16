@@ -6,7 +6,7 @@ import {
   validateExtractTags,
   generateContractReviewPrompt
 } from './promptGenerator.js'
-import { appConfig } from '../../utils/appConfig.js'
+import { appConfig } from '../../utils/AppConfig.js'
 
 const aiConfig = appConfig.getAIConfig()
 

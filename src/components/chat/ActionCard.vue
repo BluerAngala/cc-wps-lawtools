@@ -112,7 +112,7 @@
 
 <script setup>
 import { computed, ref, reactive } from 'vue'
-import { actionRegistry } from '@/services/workflow/actionRegistry.js'
+import { actionRegistry } from '@/services/workflow/ActionRegistry.js'
 import { registerAllActions } from '@/services/workflow/actions/index.js'
 
 registerAllActions(actionRegistry)
@@ -310,7 +310,7 @@ function handleRetry() {
   background: #fafafa;
 }
 .af-input:focus {
-  border-color: var(--c-brand, #0a0a0a);
+  border-color: var(--c-accent, #2563eb);
   background: #fff;
 }
 .af-select {

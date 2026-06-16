@@ -3,10 +3,10 @@
  * 支持批量添加批注或修订
  */
 
-import { BaseAction, createSuccessResult, createErrorResult } from './baseAction.js'
+import { BaseAction, createSuccessResult, createErrorResult } from './BaseAction.js'
 import { ActionTypes } from '../types.js'
-import { wpsDocument } from '../../wps/document.js'
-import { wpsCore } from '../../wps/core.js'
+import { wpsDocument } from '../../wps/WpsDocument.js'
+import { wpsCore } from '../../wps/WpsCore.js'
 
 export class BatchKeywordAction extends BaseAction {
   constructor() {

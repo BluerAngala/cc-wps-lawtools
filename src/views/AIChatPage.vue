@@ -9,13 +9,6 @@
     />
 
     <div ref="messagesArea" class="messages-area" @scroll="onScroll">
-      <EmptyState
-        v-if="messages.length === 0 && !isLoading"
-        :is-loading="isLoading"
-        :messages="messages"
-        @quick-prompt="handleQuickPrompt"
-      />
-
       <TransitionGroup name="msg">
         <div
           v-for="(msg, mIdx) in messages"
@@ -124,14 +117,14 @@
       <div class="lb-progress"></div>
     </div>
 
-    <div v-if="!selectMode && messages.length" class="action-toolbar">
+    <div v-if="!selectMode" class="action-toolbar">
       <button
-        v-for="qa in quickActions"
-        :key="qa.value"
+        v-for="qa in quickPrompts"
+        :key="qa.text"
         class="qa-btn"
         :title="qa.desc"
         :disabled="isLoading"
-        @click="handleQuickAction(qa)"
+        @click="handleQuickPrompt(qa.text)"
       >
         <span class="qa-icon">{{ qa.icon }}</span>
         <span class="qa-label">{{ qa.label }}</span>
@@ -158,12 +151,11 @@
 import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 import { chatService } from '@/services/ai/chatService.js'
-import { actionRegistry } from '@/services/workflow/actionRegistry.js'
+import { actionRegistry } from '@/services/workflow/ActionRegistry.js'
 import { playbookService } from '@/services/ai/playbookService.js'
 import ChatHeader from '@/components/chat/ChatHeader.vue'
 import ChatInput from '@/components/chat/ChatInput.vue'
 import ChatSettings from '@/components/chat/ChatSettings.vue'
-import EmptyState from '@/components/chat/EmptyState.vue'
 import ActionCard from '@/components/chat/ActionCard.vue'
 import RiskMatrix from '@/components/chat/RiskMatrix.vue'
 import TriageCard from '@/components/chat/TriageCard.vue'
@@ -216,13 +208,13 @@ function toggleSelectAll() {
   }
 }
 
-const quickActions = [
-  { icon: '🔍', label: '审查合同', value: '/审查', desc: '全面审查合同风险' },
-  { icon: '⚡', label: '风险扫描', value: '请扫描当前文档中的敏感信息，列出位置和类型', desc: '扫描敏感信息' },
-  { icon: '🔒', label: '信息脱敏', value: '/脱敏', desc: '识别并脱敏敏感信息' },
-  { icon: '📋', label: '合同模板', value: '请帮我生成一份常见的法律合同模板', desc: '生成模板文档' },
-  { icon: '🔄', label: '批量处理', value: '请批量处理文档中的关键词，添加批注或修订', desc: '批量关键词处理' },
-  { icon: '🚀', label: '一键审查', value: '_fullReview', desc: '全流程审查：识别→分析→提取→逐条审查' }
+const quickPrompts = [
+  { icon: '🔍', label: '审查合同', text: '请全面审查当前合同，指出主要风险点并提供修改建议' },
+  { icon: '🔒', label: '信息脱敏', text: '/脱敏' },
+  { icon: '🚦', label: '保密协议分流', text: '/保密' },
+  { icon: '⚡', label: '风险评估', text: '/风险' },
+  { icon: '📋', label: '摘要总结', text: '请总结当前合同的核心条款和关键信息' },
+  { icon: '📝', label: '生成模板', text: '请帮我生成一份常见的法律合同模板' }
 ]
 
 const slashCommands = [
@@ -592,7 +584,7 @@ async function handleLocateAction(action) {
   try {
     const keyword = action.keyword
     if (!keyword) return
-    const { wpsDocument } = await import('@/services/wps/document.js')
+    const { wpsDocument } = await import('@/services/wps/WpsDocument.js')
     const found = wpsDocument.locateAndSelect(keyword, action)
     if (!found) {
       const short = keyword.length > 20 ? keyword.substring(0, 20) + '...' : keyword
@@ -601,76 +593,6 @@ async function handleLocateAction(action) {
   } catch (e) {
     console.warn('定位失败:', e)
     window.$message?.error('定位失败，请稍后重试')
-  }
-}
-
-function handleQuickAction(qa) {
-  if (qa.value === '_fullReview') {
-    handleFullReview()
-    return
-  }
-  inputText.value = qa.value
-  nextTick(() => handleSend())
-}
-
-async function handleFullReview() {
-  if (isLoading.value) return
-  showSlashMenu.value = false
-
-  const stages = [
-    { prefix: '🔍 第一步：合同类型识别', text: '请识别当前合同的类型（如：买卖合同、保密协议、服务协议等），输出合同名称、类型、子类型。' },
-    { prefix: '🌐 第二步：全局分析', text: '请对当前合同进行全局分析，列出整体结构框架，指出高风险区域。' },
-    { prefix: '📋 第三步：要素提取', text: '请提取当前合同的关键要素：甲方、乙方、合同金额、期限、管辖法院、违约责任、知识产权归属等。' },
-    { prefix: '⚖️ 第四步：逐条审查', text: '请逐条审查当前合同条款，按条款列出风险点、严重程度、修改建议。输出格式使用 ```action 代码块 包含 addComment 或 addRevision 操作。' }
-  ]
-
-  for (const stage of stages) {
-    const aiMsg = {
-      id: nextId(),
-      role: 'assistant',
-      text: `**${stage.prefix}**\n\n`,
-      actions: [],
-      executableActions: [],
-      statusText: STATUS_MAP.thinking,
-      isStreaming: true
-    }
-    messages.value.push(aiMsg)
-    scrollToBottom(true)
-
-    let msgRef = messages.value[messages.value.length - 1]
-
-    await chatService.sendMessage(stage.text, {
-      mode: 'standard',
-      onStatus(status) {
-        if (msgRef) msgRef.statusText = STATUS_MAP[status] || ''
-      },
-      onChunk(delta) {
-        if (msgRef) {
-          msgRef.text += delta
-        }
-        scrollToBottom()
-      },
-      onComplete(result) {
-        if (msgRef) {
-          msgRef.text = `**${stage.prefix}**\n\n${result.text || ''}`
-          msgRef.isStreaming = false
-          msgRef.statusText = ''
-          const allActions = result.actions || []
-          msgRef.actions = allActions
-          msgRef.executableActions = allActions.filter((a) => actionRegistry.has(a.type))
-        }
-        persistHistory()
-        scrollToBottom(true)
-      },
-      onError(err) {
-        if (msgRef) {
-          msgRef.text += `\n\n❌ ${err}`
-          msgRef.isStreaming = false
-          msgRef.statusText = ''
-        }
-      },
-      onAction() {}
-    })
   }
 }
 
@@ -757,12 +679,12 @@ onMounted(() => {
 
 <style scoped>
 .chat-root {
-  --c-brand: #0a0a0a;
-  --c-brand-light: #2d2d2d;
-  --c-accent: #e63946;
-  --c-accent-light: #fee2e2;
-  --c-highlight: #f5c518;
-  --c-highlight-light: #fff9c4;
+  --c-brand: #1e3a8a;
+  --c-brand-light: #2563eb;
+  --c-accent: #2563eb;
+  --c-accent-light: #dbeafe;
+  --c-highlight: #f59e0b;
+  --c-highlight-light: #fef3c7;
   --c-surface: #ffffff;
   --c-danger: #dc2626;
   --c-success: #16a34a;
@@ -774,6 +696,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
   background: var(--c-bg);
   color: var(--c-text);
   font-family:
@@ -784,15 +707,16 @@ onMounted(() => {
 .messages-area {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 6px;
+  padding: 10px 12px;
   scroll-behavior: smooth;
+  min-width: 0;
 }
 
 .msg-row {
   display: flex;
   gap: 6px;
   margin-bottom: 20px;
-  padding: 0 4px;
+  padding: 0;
   transition: background 0.15s;
   position: relative;
 }
@@ -891,7 +815,7 @@ onMounted(() => {
   word-break: break-word;
 }
 .msg-bubble.user {
-  background: linear-gradient(135deg, #e63946, #c62828);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -978,7 +902,7 @@ onMounted(() => {
   padding: 1px 5px;
   border-radius: 3px;
   font-size: 12px;
-  color: #c62828;
+  color: #1d4ed8;
 }
 .md-content :deep(pre) {
   background: #f5f5f5;
@@ -1127,18 +1051,18 @@ onMounted(() => {
 
 .action-toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  padding: 6px 6px 2px;
+  padding: 8px 10px 4px;
   flex-shrink: 0;
-  overflow-x: auto;
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
 }
 .qa-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
+  gap: 3px;
+  padding: 4px 8px;
   border: 1px solid var(--c-border);
   border-radius: 6px;
   background: var(--c-surface);
@@ -1159,7 +1083,7 @@ onMounted(() => {
   cursor: not-allowed;
 }
 .qa-btn:last-child {
-  background: linear-gradient(135deg, #e63946, #c62828);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   border-color: transparent;
   font-weight: 600;

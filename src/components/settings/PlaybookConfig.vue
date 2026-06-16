@@ -1,0 +1,206 @@
+<template>
+  <div>
+    <AccordionSection v-model="sections.positions" title="审查要点" icon="🔍" :count="playbook.positions.length" accent="danger">
+      <template #actions>
+        <button class="add-inline" @click.stop="addPosition">+ 添加</button>
+      </template>
+      <div v-for="(pos, idx) in playbook.positions" :key="pos.id" class="acc-card">
+        <div class="acc-head" @click="toggleExpand('pos', pos.id)">
+          <span class="acc-title" @dblclick.stop="startEdit('pos', pos.id)">
+            <span :class="['sev-dot', pos.severity]"></span>
+            <input
+              v-if="editing.kind === 'pos' && editing.id === pos.id"
+              ref="titleInput"
+              v-model="pos.category"
+              class="title-input"
+              placeholder="条款类别"
+              @blur="endEdit"
+              @keydown.enter.prevent="endEdit"
+              @keydown.esc.prevent="cancelEdit"
+              @click.stop
+            />
+            <span v-else>{{ pos.category || '未命名' }}</span>
+            <span v-if="!(editing.kind === 'pos' && editing.id === pos.id)" class="edit-hint">双击可编辑</span>
+          </span>
+          <span class="acc-actions">
+            <button class="del-btn-sm" @click.stop="removePosition(idx)" title="删除">×</button>
+            <span class="acc-arrow">{{ expanded.pos === pos.id ? '▾' : '▸' }}</span>
+          </span>
+        </div>
+        <Transition name="collapse">
+          <div v-if="expanded.pos === pos.id" class="acc-body">
+            <div class="pb-field">
+              <label>我方底线</label>
+              <textarea v-model="pos.standardPosition" rows="2" class="text-input" placeholder="我方对该条款的基本立场"></textarea>
+            </div>
+            <div class="pb-field">
+              <label>可接受范围</label>
+              <input v-model="pos.acceptableRange" class="text-input" placeholder="可以接受的妥协范围" />
+            </div>
+            <div class="pb-field">
+              <label>必须预警的情况</label>
+              <input v-model="pos.escalationTrigger" class="text-input" placeholder="遇到这些情况必须提醒我" />
+            </div>
+            <div class="pb-field">
+              <label>重要程度</label>
+              <select v-model="pos.severity" class="text-input">
+                <option value="high">🔴 高 — 必须关注</option>
+                <option value="medium">🟡 中 — 建议关注</option>
+                <option value="low">🟢 低 — 可忽略</option>
+              </select>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </AccordionSection>
+
+    <AccordionSection v-model="sections.nda" title="保密协议偏好" icon="🔒" accent="primary">
+      <div class="pb-field">
+        <label>是否要求互负保密义务</label>
+        <select v-model="playbook.ndaDefaults.mutualRequired" class="text-input">
+          <option :value="true">是 — 双方均有保密义务</option>
+          <option :value="false">否 — 可接受单方保密</option>
+        </select>
+      </div>
+      <div class="pb-field">
+        <label>标准保密期限</label>
+        <input v-model="playbook.ndaDefaults.standardTerm" class="text-input" placeholder="如：2-3年" />
+      </div>
+      <div class="pb-field">
+        <label>商业秘密保密期限</label>
+        <input v-model="playbook.ndaDefaults.tradeSecretTerm" class="text-input" placeholder="如：5年" />
+      </div>
+      <div class="pb-field">
+        <label>例外条款范围</label>
+        <select v-model="playbook.ndaDefaults.standardCarveouts" class="text-input">
+          <option value="narrowly-scoped">窄 — 仅法定例外</option>
+          <option value="broadly-scoped">宽 — 含已有信息例外</option>
+          <option value="none">不设例外</option>
+        </select>
+      </div>
+    </AccordionSection>
+
+    <AccordionSection v-model="sections.templates" title="常用回复" icon="💬" :count="playbook.responseTemplates.length" accent="accent">
+      <template #actions>
+        <button class="add-inline" @click.stop="addTemplate">+ 添加</button>
+      </template>
+      <div v-for="(tpl, idx) in playbook.responseTemplates" :key="tpl.id" class="acc-card">
+        <div class="acc-head" @click="toggleExpand('tpl', tpl.id)">
+          <span class="acc-title" @dblclick.stop="startEdit('tpl', tpl.id)">
+            <input
+              v-if="editing.kind === 'tpl' && editing.id === tpl.id"
+              ref="titleInput"
+              v-model="tpl.name"
+              class="title-input"
+              placeholder="回复模板名称"
+              @blur="endEdit"
+              @keydown.enter.prevent="endEdit"
+              @keydown.esc.prevent="cancelEdit"
+              @click.stop
+            />
+            <span v-else>{{ tpl.name || '未命名回复' }}</span>
+            <span v-if="!(editing.kind === 'tpl' && editing.id === tpl.id)" class="edit-hint">双击可编辑</span>
+          </span>
+          <span class="acc-actions">
+            <button class="del-btn-sm" @click.stop="removeTemplate(idx)" title="删除">×</button>
+            <span class="acc-arrow">{{ expanded.tpl === tpl.id ? '▾' : '▸' }}</span>
+          </span>
+        </div>
+        <Transition name="collapse">
+          <div v-if="expanded.tpl === tpl.id" class="acc-body">
+            <div class="pb-field">
+              <label>适用场景</label>
+              <input v-model="tpl.category" class="text-input" placeholder="如：合规、争议、询价" />
+            </div>
+            <div class="pb-field">
+              <label>回复内容</label>
+              <textarea v-model="tpl.template" rows="4" class="text-input" placeholder="回复模板的具体内容"></textarea>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </AccordionSection>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch, nextTick } from 'vue'
+import { playbookService } from '@/services/ai/playbookService.js'
+import AccordionSection from './AccordionSection.vue'
+
+const playbook = ref(playbookService.loadPlaybook())
+const sections = ref({ positions: false, nda: false, templates: false })
+const expanded = ref({ pos: null, tpl: null })
+const editing = ref({ kind: null, id: null })
+const titleInput = ref(null)
+
+function toggleExpand(type, id) {
+  // 如果处于编辑态，先退出
+  if (editing.value.kind) endEdit()
+  expanded.value[type] = expanded.value[type] === id ? null : id
+}
+
+function startEdit(kind, id) {
+  expanded.value[kind] = id
+  editing.value = { kind, id }
+  nextTick(() => {
+    const el = titleInput.value
+    if (el) {
+      el.focus()
+      el.select?.()
+    }
+  })
+}
+
+function endEdit() {
+  editing.value = { kind: null, id: null }
+}
+
+function cancelEdit() {
+  endEdit()
+}
+
+watch(
+  () => playbook.value,
+  () => playbookService.savePlaybook(playbook.value),
+  { deep: true }
+)
+
+function addPosition() {
+  playbook.value = playbookService.addPosition({
+    category: '',
+    standardPosition: '',
+    acceptableRange: '',
+    escalationTrigger: '',
+    severity: 'medium'
+  })
+  sections.value.positions = true
+}
+
+function removePosition(idx) {
+  const id = playbook.value.positions[idx]?.id
+  if (id) playbook.value = playbookService.removePosition(id)
+}
+
+function addTemplate() {
+  playbook.value = playbookService.addResponseTemplate({
+    name: '',
+    category: 'general',
+    template: ''
+  })
+  sections.value.templates = true
+}
+
+function removeTemplate(idx) {
+  const id = playbook.value.responseTemplates[idx]?.id
+  if (id) playbook.value = playbookService.removeResponseTemplate(id)
+}
+
+function resetToDefault() {
+  playbookService.resetPlaybook()
+  playbook.value = playbookService.loadPlaybook()
+  window.$message?.success('已恢复默认')
+}
+
+defineExpose({ resetToDefault })
+</script>

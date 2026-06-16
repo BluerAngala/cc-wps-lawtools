@@ -2,9 +2,9 @@
  * 添加页码操作
  */
 
-import { BaseAction, createSuccessResult, createErrorResult } from './baseAction.js'
+import { BaseAction, createSuccessResult, createErrorResult } from './BaseAction.js'
 import { ActionTypes } from '../types.js'
-import { wpsFileService } from '../../wps/file.js'
+import { wpsFileService } from '../../wps/WpsFile.js'
 
 export class AddPageNumberAction extends BaseAction {
   constructor() {

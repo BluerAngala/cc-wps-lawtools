@@ -57,8 +57,7 @@
       </button>
     </div>
     <div class="input-hint">
-      <span>Enter 发送 · Shift+Enter 换行</span>
-      <span>输入 / 快捷指令</span>
+      <span>Enter 发送 · Shift+Enter 换行 · 输入 / 查看快捷指令</span>
     </div>
   </div>
 </template>
@@ -115,16 +114,17 @@ defineExpose({ inputRef, autoResizeInput })
 <style scoped>
 .input-area {
   flex-shrink: 0;
-  padding: 8px 6px 6px;
+  padding: 8px 10px 6px;
   background: var(--c-surface);
   border-top: 1px solid var(--c-border);
   position: relative;
+  min-width: 0;
 }
 .slash-menu {
   position: absolute;
   bottom: 100%;
-  left: 6px;
-  right: 6px;
+  left: 10px;
+  right: 10px;
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-sm, 8px);
@@ -180,9 +180,11 @@ defineExpose({ inputRef, autoResizeInput })
   display: flex;
   align-items: flex-end;
   gap: 6px;
+  min-width: 0;
 }
 .chat-input {
   flex: 1;
+  min-width: 0;
   resize: none;
   border: 1.5px solid var(--c-border);
   border-radius: var(--radius-sm, 8px);
@@ -224,8 +226,8 @@ defineExpose({ inputRef, autoResizeInput })
   flex-shrink: 0;
 }
 .send-btn.ready {
-  background: linear-gradient(135deg, #e63946, #c62828);
-  box-shadow: 0 2px 8px rgba(230, 57, 70, 0.3);
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 .send-btn.ready:hover {
   transform: scale(1.06);
@@ -267,10 +269,22 @@ defineExpose({ inputRef, autoResizeInput })
 }
 .input-hint {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
   padding: 2px 2px 0;
   font-size: 10px;
   color: var(--c-text2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.input-hint::-webkit-scrollbar {
+  display: none;
+}
+.input-hint > span {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .slide-up-enter-active,
 .slide-up-leave-active {

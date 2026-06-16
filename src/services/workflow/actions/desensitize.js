@@ -3,10 +3,10 @@
  * 对文档中的敏感信息进行脱敏处理
  */
 
-import { BaseAction, createSuccessResult, createErrorResult } from './baseAction.js'
+import { BaseAction, createSuccessResult, createErrorResult } from './BaseAction.js'
 import { ActionTypes } from '../types.js'
 import { wpsDocumentService } from '../../wps/index.js'
-import { Desensitizer } from '../../document/desensitizeAdvanced.js'
+import { Desensitizer } from '../../document/Desensitizer.js'
 import { SENSITIVE_TYPES } from '../../../config/sensitivePatterns.js'
 
 export class DesensitizeAction extends BaseAction {

@@ -11,7 +11,7 @@ import { onMounted, onUnmounted } from 'vue'
 // 引入文档监听器
 import { DocumentWatcher } from './services/wps'
 // 引入模板管理器
-import { templateManager } from './utils/templateManager.js'
+import { templateManager } from './utils/TemplateManager.js'
 
 let documentWatcher = null
 

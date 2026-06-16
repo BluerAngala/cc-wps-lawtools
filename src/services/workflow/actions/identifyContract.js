@@ -3,9 +3,9 @@
  * 使用 AI 识别合同的类型和子类型
  */
 
-import { AIBaseAction, createSuccessResult, createErrorResult } from './aiBaseAction.js'
+import { AIBaseAction, createSuccessResult, createErrorResult } from './AiBaseAction.js'
 import { ActionTypes } from '../types.js'
-import { reviewAIService } from '../../contract/reviewAIService.js'
+import { reviewAIService } from '../../contract/ReviewAiService.js'
 
 export class IdentifyContractAction extends AIBaseAction {
   constructor() {
