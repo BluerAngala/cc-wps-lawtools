@@ -35,6 +35,11 @@ import { batchKeywordAction } from './batchKeyword.js'
 // 导入金山文档操作
 import { submitKdocsAction } from './submitKdocs.js'
 
+// 导入法律数据查询操作
+import { searchLawAction } from './searchLaw.js'
+import { searchCaseAction } from './searchCase.js'
+import { searchCompanyAction } from './searchCompany.js'
+
 // 文档操作列表
 export const documentActions = [
   readDocumentAction,
@@ -63,8 +68,15 @@ export const aiActions = [
   generateChecklistAction
 ]
 
+// 法律数据查询操作（自动执行，不操作文档）
+export const searchActions = [
+  searchLawAction,
+  searchCaseAction,
+  searchCompanyAction
+]
+
 // 所有操作列表
-export const allActions = [...documentActions, ...aiActions]
+export const allActions = [...documentActions, ...aiActions, ...searchActions]
 
 /**
  * 注册所有默认操作到注册表
@@ -102,6 +114,13 @@ export {
   reviewContractAction,
   globalAnalysisAction,
   generateChecklistAction
+}
+
+// 导出法律数据查询操作
+export {
+  searchLawAction,
+  searchCaseAction,
+  searchCompanyAction
 }
 
 // 导出基类

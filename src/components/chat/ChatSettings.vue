@@ -19,6 +19,9 @@
             <button class="tab-btn" :class="{ active: tab === 'rag' }" @click="tab = 'rag'">
               🔍 向量检索
             </button>
+            <button class="tab-btn" :class="{ active: tab === 'provider' }" @click="tab = 'provider'">
+              📡 法律数据
+            </button>
           </div>
 
           <div v-if="tab === 'playbook'" class="tab-content">
@@ -367,6 +370,108 @@
               </div>
             </div>
           </div>
+
+          <div v-if="tab === 'provider'" class="tab-content">
+            <div class="section-head">
+              <span class="section-title">法律数据 Provider</span>
+              <div class="section-actions">
+                <button class="sm-btn" @click="openProviderEdit">+ 添加</button>
+              </div>
+            </div>
+            <p class="section-desc">
+              对接法条 / 案例 / 企业数据查询的 API 供应商。打开开关即启用并激活；填入 API Key 会自动测试连接，通过后才保存。
+            </p>
+
+            <!-- provider 列表（始终展开，去掉点击折叠） -->
+            <div
+              v-for="p in providerList"
+              :key="p.id"
+              class="prov-card"
+              :class="{
+                'is-active': p.id === activeProviderId && p.usable,
+                'is-disabled': !p.enabled
+              }"
+            >
+              <div class="prov-head">
+                <div class="prov-head-left">
+                  <div class="prov-name">
+                    {{ getDraft(p.id).nickname || p.nickname || '元典' }}
+                    <span v-if="p.id === activeProviderId && p.usable" class="prov-tag active"
+                      >✓ 当前激活</span
+                    >
+                  </div>
+                  <div class="prov-sub">
+                    {{ p.id }} · 法条 / 案例 / 企业
+                  </div>
+                </div>
+                <label class="switch" :title="p.enabled ? '点击停用' : '点击启用'">
+                  <input
+                    type="checkbox"
+                    :checked="p.enabled"
+                    :disabled="togglingId === p.id"
+                    @change="onToggleProvider(p.id, $event.target.checked)"
+                  />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+              <div class="prov-body">
+                <div class="pb-field">
+                  <label>昵称</label>
+                  <input
+                    :value="getDraft(p.id).nickname"
+                    class="pb-input"
+                    placeholder="如：元典主账号"
+                    @input="onDraftChange(p.id, 'nickname', $event.target.value)"
+                  />
+                </div>
+                <div class="pb-field">
+                  <label>API Key</label>
+                  <input
+                    :value="getDraft(p.id).apiKey"
+                    class="pb-input"
+                    type="password"
+                    placeholder="供应商 API Key"
+                    @input="onDraftChange(p.id, 'apiKey', $event.target.value)"
+                  />
+                  <span
+                    v-if="getTestState(p.id).status === 'testing'"
+                    class="prov-test testing"
+                  >
+                    <span class="dot-spin"></span> 测试连接中…
+                  </span>
+                  <span
+                    v-else-if="getTestState(p.id).status === 'ok'"
+                    class="prov-test ok"
+                  >
+                    ✓ 已连接
+                  </span>
+                  <span
+                    v-else-if="getTestState(p.id).status === 'fail'"
+                    class="prov-test fail"
+                  >
+                    ✗ {{ getTestState(p.id).error }}
+                  </span>
+                </div>
+                <div class="pb-field">
+                  <label>Base URL</label>
+                  <input
+                    :value="getDraft(p.id).baseUrl"
+                    class="pb-input"
+                    placeholder="https://..."
+                    @input="onDraftChange(p.id, 'baseUrl', $event.target.value)"
+                  />
+                </div>
+                <div class="prov-actions">
+                  <span class="prov-spacer"></span>
+                  <button class="sm-btn warn" @click="removeProvider(p.id)">删除</button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="!providerList.length" class="prov-empty">
+              尚未配置任何法律数据 Provider，点击右上角「+ 添加」开始配置
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -379,6 +484,7 @@ import { playbookService } from '@/services/ai/playbookService.js'
 import { appConfig } from '@/utils/appConfig.js'
 import { qdrantClient } from '@/services/rag/qdrantClient.js'
 import { ragService } from '@/services/rag/ragService.js'
+import { providerManager } from '@/services/yuandian/index.js'
 
 defineProps({
   visible: { type: Boolean, default: false }
@@ -393,8 +499,35 @@ const ragTestResult = ref(null)
 const ragStatsLoading = ref(false)
 const ragStats = ref(null)
 
+const providerList = ref(loadProviderList())
+const activeProviderId = ref(loadActiveProviderId())
+
+// 每个 provider 的草稿态（不立即持久化、不触发测试）
+const drafts = ref({})
+// 每个 provider 的测试状态：idle | testing | ok | fail
+// 只有开关切换才会更新此状态
+const testStates = ref({})
+// 开关正在异步处理中的 id
+const togglingId = ref('')
+
+function getDraft(id) {
+  if (!drafts.value[id]) {
+    const p = providerList.value.find((x) => x.id === id)
+    drafts.value[id] = {
+      nickname: p?.nickname || '元典',
+      apiKey: p?.apiKey || '',
+      baseUrl: p?.baseUrl || 'https://open.chineselaw.com/open'
+    }
+  }
+  return drafts.value[id]
+}
+
+function getTestState(id) {
+  return testStates.value[id] || { status: 'idle' }
+}
+
 const sections = ref({ positions: false, nda: false, templates: false })
-const expanded = ref({ pos: null, tpl: null })
+const expanded = ref({ pos: null, tpl: null, provider: null })
 
 function toggleExpand(type, id) {
   expanded.value[type] = expanded.value[type] === id ? null : id
@@ -513,6 +646,96 @@ async function loadStats() {
   } finally {
     ragStatsLoading.value = false
   }
+}
+
+function loadProviderList() {
+  const cfg = appConfig.get('yuandian') || { providers: [], activeProviderId: '' }
+  return (cfg.providers || []).map((p) => {
+    const configured = !!p.apiKey && p.apiKey.trim().length >= 8
+    const enabled = p.enabled !== false
+    return {
+      ...p,
+      configured,
+      enabled,
+      usable: configured && enabled
+    }
+  })
+}
+
+function loadActiveProviderId() {
+  const cfg = appConfig.get('yuandian') || {}
+  return cfg.activeProviderId || ''
+}
+
+function reloadProviders() {
+  providerList.value = loadProviderList()
+  activeProviderId.value = loadActiveProviderId()
+}
+
+/**
+ * 字段输入：只更新 draft，不发请求，不持久化
+ * 改动后清空测试状态（避免显示过期的测试结果）
+ */
+function onDraftChange(id, field, value) {
+  const d = getDraft(id)
+  d[field] = value
+  testStates.value[id] = { status: 'idle' }
+}
+
+/**
+ * 开关切换：开启=测 draft，通过则持久化+启用+激活；关闭=立即停用
+ */
+async function onToggleProvider(id, enabled) {
+  togglingId.value = id
+  try {
+    if (!enabled) {
+      providerManager.disable(id)
+      reloadProviders()
+      testStates.value[id] = { status: 'idle' }
+      window.$message?.info('已停用')
+      return
+    }
+    // 启用：测 draft
+    const d = getDraft(id)
+    testStates.value[id] = { status: 'testing' }
+    const result = await providerManager.enable(id, d)
+    if (result.ok) {
+      testStates.value[id] = { status: 'ok' }
+      reloadProviders()
+      window.$message?.success(`已启用并激活：${d.nickname || '元典'}`)
+    } else {
+      testStates.value[id] = { status: 'fail', error: result.error }
+      window.$message?.error(`启用失败：${result.error}`)
+    }
+  } finally {
+    togglingId.value = ''
+  }
+}
+
+function removeProvider(configId) {
+  providerManager.remove(configId)
+  delete drafts.value[configId]
+  delete testStates.value[configId]
+  reloadProviders()
+  window.$message?.success('已删除')
+}
+
+function openProviderEdit() {
+  const newId = 'yuandian'
+  const exists = providerList.value.find((p) => p.id === newId)
+  if (exists) {
+    getDraft(newId) // 初始化
+    return
+  }
+  providerManager.upsert({
+    id: newId,
+    nickname: '元典',
+    enabled: false,
+    apiKey: '',
+    baseUrl: 'https://open.chineselaw.com/open'
+  })
+  reloadProviders()
+  getDraft(newId)
 }
 </script>
 
@@ -940,5 +1163,159 @@ async function loadStats() {
 .collapse-leave-from {
   opacity: 1;
   max-height: 800px;
+}
+
+/* Provider 列表 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.switch input:disabled + .switch-slider {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: #d1d5db;
+  border-radius: 999px;
+  transition: 0.2s;
+}
+.switch-slider::before {
+  position: absolute;
+  content: '';
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.switch input:checked + .switch-slider {
+  background: #2563eb;
+}
+.switch input:checked + .switch-slider::before {
+  transform: translateX(14px);
+}
+
+.prov-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: all 0.15s;
+}
+.prov-card:hover {
+  border-color: #c7d2fe;
+}
+.prov-card.is-active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.08);
+}
+.prov-card.is-disabled {
+  background: #fafafa;
+}
+.prov-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fcfcfd;
+}
+.prov-card.is-active .prov-head {
+  background: #eff6ff;
+}
+.prov-head-left {
+  flex: 1;
+  min-width: 0;
+}
+.prov-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.prov-sub {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.prov-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.prov-tag.active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.prov-body {
+  padding: 10px 12px 12px;
+}
+.prov-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.prov-spacer {
+  flex: 1;
+}
+.prov-test {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  margin-top: 4px;
+  font-weight: 600;
+}
+.prov-test.testing {
+  color: #1d4ed8;
+}
+.prov-test.ok {
+  color: #16a34a;
+}
+.prov-test.fail {
+  color: #dc2626;
+  word-break: break-all;
+}
+.dot-spin {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #93c5fd;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.prov-empty {
+  text-align: center;
+  padding: 30px 16px;
+  color: #9ca3af;
+  font-size: 12px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
 }
 </style>

@@ -47,6 +47,14 @@
               <TriageCard v-if="getTriageAction(msg)" v-bind="getTriageAction(msg)" />
               <CompareView v-if="getCompareAction(msg)" :items="getCompareAction(msg).items" />
 
+              <SearchResultCard
+                v-for="(sr, srIdx) in getSearchResults(msg)"
+                :key="`sr-${srIdx}`"
+                :type="sr.type"
+                :query="sr.query"
+                :result="sr.result"
+              />
+
               <div v-if="msg.executableActions.length" class="action-list">
                 <div class="al-header">
                   <span class="al-title">操作建议 ({{ msg.executableActions.length }})</span>
@@ -154,6 +162,7 @@ import ActionCard from '@/components/chat/ActionCard.vue'
 import RiskMatrix from '@/components/chat/RiskMatrix.vue'
 import TriageCard from '@/components/chat/TriageCard.vue'
 import CompareView from '@/components/chat/CompareView.vue'
+import SearchResultCard from '@/components/chat/SearchResultCard.vue'
 
 let msgIdCounter = 0
 function nextId() {
@@ -243,6 +252,10 @@ function getTriageAction(msg) {
 
 function getCompareAction(msg) {
   return msg.actions?.find((a) => a.type === 'compare')
+}
+
+function getSearchResults(msg) {
+  return msg.searchResults || []
 }
 
 function hasUnapplied(msg) {
@@ -337,6 +350,7 @@ async function handleSend() {
     role: 'assistant',
     text: '',
     actions: [],
+    searchResults: [],
     executableActions: [],
     statusText: STATUS_MAP.thinking,
     isStreaming: true
@@ -377,8 +391,10 @@ async function handleSend() {
         msgRef.statusText = ''
 
         const allActions = result.actions || []
+        const allSearchResults = result.searchResults || []
 
         msgRef.actions = allActions
+        msgRef.searchResults = allSearchResults
 
         msgRef.executableActions = allActions.filter((a) => actionRegistry.has(a.type))
       }

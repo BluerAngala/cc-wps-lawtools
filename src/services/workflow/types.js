@@ -98,7 +98,12 @@ export const ActionTypes = {
   BATCH_KEYWORD: 'batchKeyword',
 
   // 金山文档操作
-  SUBMIT_KDOCS: 'submitKdocs'
+  SUBMIT_KDOCS: 'submitKdocs',
+
+  // 法律数据查询（自动执行，不操作文档）
+  SEARCH_LAW: 'searchLaw',
+  SEARCH_CASE: 'searchCase',
+  SEARCH_COMPANY: 'searchCompany'
 }
 
 /**

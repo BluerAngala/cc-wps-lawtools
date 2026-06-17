@@ -43,6 +43,23 @@ class AppConfigManager {
         embeddingModel: import.meta.env.VITE_EMBEDDING_MODEL || 'Qwen/Qwen3-Embedding-8B'
       },
 
+      // 法律数据 Provider 配置（多供应商并存）
+      // 结构：
+      //   providers: [ { id, nickname, enabled, apiKey, baseUrl? } ]
+      //   activeProviderId: 当前激活的 provider id
+      yuandian: {
+        providers: [
+          {
+            id: 'yuandian',
+            nickname: '元典',
+            enabled: !!import.meta.env.VITE_YUANDIAN_API_KEY,
+            apiKey: import.meta.env.VITE_YUANDIAN_API_KEY || '',
+            baseUrl: 'https://open.chineselaw.com/open'
+          }
+        ],
+        activeProviderId: 'yuandian'
+      },
+
       // 金山文档配置
       kdocs: {
         webhookUrl: import.meta.env.VITE_KDOCS_WEBHOOK_URL || '',
@@ -726,7 +743,7 @@ class AppConfigManager {
    */
   exportConfig() {
     const config = this.getConfig()
-    const userSections = ['ai', 'kdocs', 'rag', 'system', 'kdocsSchemes', 'keywordSchemes', 'reviewSchemes']
+    const userSections = ['ai', 'kdocs', 'rag', 'system', 'kdocsSchemes', 'keywordSchemes', 'reviewSchemes', 'yuandian']
     const exportData = {
       _version: 1,
       _warning: '此文件包含敏感信息（API Key、Token 等），请勿分享给他人',
@@ -756,7 +773,7 @@ class AppConfigManager {
       reader.onload = (e) => {
         try {
           const imported = JSON.parse(e.target.result)
-          const userSections = ['ai', 'kdocs', 'rag', 'system', 'kdocsSchemes', 'keywordSchemes', 'reviewSchemes']
+          const userSections = ['ai', 'kdocs', 'rag', 'system', 'kdocsSchemes', 'keywordSchemes', 'reviewSchemes', 'yuandian']
           const defaults = this.getDefaultConfig()
           const cleanConfig = {}
           for (const key of userSections) {

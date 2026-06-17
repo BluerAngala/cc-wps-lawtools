@@ -20,7 +20,10 @@ const CHAT_TOOL_ACTIONS = [
   'exportPDF',
   'scanSensitive',
   'desensitize',
-  'batchKeyword'
+  'batchKeyword',
+  'searchLaw',
+  'searchCase',
+  'searchCompany'
 ]
 
 function _buildToolDefinitions() {
@@ -68,6 +71,9 @@ const _LEGACY_TYPE_MAP = {
   comment: 'addComment',
   revision: 'addRevision'
 }
+
+// 自动执行的 action 类型（只读，不修改文档）
+const AUTO_EXECUTE_TYPES = new Set(['searchLaw', 'searchCase', 'searchCompany'])
 
 function _pushAction(actions, action) {
   if (!action || !action.type) return
@@ -273,6 +279,37 @@ class ChatService {
 
       this.conversationHistory.push({ role: 'assistant', content: fullResponse })
 
+      // 自动执行只读 search action（无需用户确认）
+      const searchResults = []
+      const pendingSearch = actions.filter((a) => AUTO_EXECUTE_TYPES.has(a.type))
+      if (pendingSearch.length) {
+        onStatus?.('reading')
+        await Promise.all(
+          pendingSearch.map(async (act) => {
+            try {
+              const result = await executeAction(act)
+              searchResults.push({
+                type: act.type,
+                query: act.query || act.name || act.keyword || '',
+                action: act,
+                result
+              })
+            } catch (e) {
+              searchResults.push({
+                type: act.type,
+                query: act.query || act.name || act.keyword || '',
+                action: act,
+                result: { success: false, message: e.message }
+              })
+            }
+          })
+        )
+        // 过滤掉已自动执行的 search action（避免重复渲染 ActionCard）
+        for (let i = actions.length - 1; i >= 0; i--) {
+          if (AUTO_EXECUTE_TYPES.has(actions[i].type)) actions.splice(i, 1)
+        }
+      }
+
       if (RagService.isRagEnabled()) {
         if (actions.length > 0) {
           ragService.indexReviewHistory({ actions }, { docName }).catch((e) => {
@@ -286,10 +323,19 @@ class ChatService {
         }
       }
 
-      onComplete?.({ text: cleanedText, actions, rawText: fullResponse, mode: effectiveMode })
+      onComplete?.({
+        text: cleanedText,
+        actions,
+        searchResults,
+        rawText: fullResponse,
+        mode: effectiveMode
+      })
 
       if (actions.length > 0) {
         onAction?.(actions)
+      }
+      if (searchResults.length > 0) {
+        onAction?.(searchResults)
       }
     } catch (error) {
       if (error.name === 'AbortError') {
