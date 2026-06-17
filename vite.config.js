@@ -49,6 +49,12 @@ export default defineConfig(({ mode }) => {
           target: 'https://env-00jxg9mus2ok.dev-hz.cloudbasefunction.cn',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/kdocs/, '/wps-kdocs')
+        },
+        // 元典开放平台 API（无 CORS 头，必须走代理）
+        '/api/yuandian': {
+          target: 'https://open.chineselaw.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/yuandian/, '/open')
         }
       }
     }
