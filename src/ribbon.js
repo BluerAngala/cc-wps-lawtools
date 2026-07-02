@@ -18,42 +18,42 @@ function OnAction(control) {
     // 模板管理
     case 'btnTemplateManager':
       {
-        Util.wpsService.createTaskPane('template', { width: 850 })
+        Util.wpsService.createTaskPane('template', { width: 1000 })
       }
       break
 
     // 合同审查
     case 'btnContractReview':
       {
-        Util.wpsService.createTaskPane('contractreview', { width: 850 })
+        Util.wpsService.createTaskPane('contractreview', { width: 1000 })
       }
       break
 
     // 风险扫描
     case 'btnRiskScan':
       {
-        Util.wpsService.createTaskPane('riskscan', { width: 850 })
+        Util.wpsService.createTaskPane('riskscan', { width: 1000 })
       }
       break
 
     // 信息脱敏
     case 'btnDesensitize':
       {
-        Util.wpsService.createTaskPane('desensitize', { width: 850 })
+        Util.wpsService.createTaskPane('desensitize', { width: 1000 })
       }
       break
 
     // 工作流
     case 'btnWorkflow':
       {
-        Util.wpsService.createTaskPane('workflow', { width: 850 })
+        Util.wpsService.createTaskPane('workflow', { width: 1000 })
       }
       break
 
     // AI对话
     case 'btnAIChat':
       {
-        Util.wpsService.createTaskPane('aichat', { width: 850 })
+        Util.wpsService.createTaskPane('aichat', { width: 1000 })
       }
       break
 

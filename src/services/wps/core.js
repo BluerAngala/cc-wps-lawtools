@@ -141,11 +141,19 @@ class WPSCoreService {
       }
 
       this.taskPanes.set(key, taskPane)
-      taskPane.Visible = true
 
-      if (options.width) taskPane.Width = options.width
+      // 先设置尺寸，再显示，避免闪烁
+      const targetWidth = options.width || 1000
+      taskPane.Width = targetWidth
       if (options.height) taskPane.Height = options.height
       if (options.dockPosition !== undefined) taskPane.DockPosition = options.dockPosition
+
+      taskPane.Visible = true
+
+      // ponytail: WPS 可能忽略 Visible 前的 Width，延迟再设一次
+      setTimeout(() => {
+        try { taskPane.Width = targetWidth } catch (_) {}
+      }, 100)
 
       this.currentTaskPane = taskPane
       return taskPane
